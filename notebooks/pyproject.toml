@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "notebooks"
+version = "0.1.0"
+description = ""
+authors = ["Jeff Strunk <strunkjd@amazon.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+boto3 = "^1.35.40"
+inflect = "^7.4.0"
+nltk = "^3.9.1"
+gensim = "^4.3.3"
+pympler = "^1.1"
+amzn-smart-product-onboarding-metaclasses = { path = "../packages/smart-product-onboarding/metaclasses", develop = true }
+pandas = "^2.2.3"
+
+
+[tool.poetry.group.dev.dependencies]
+notebook = "^7.2.2"
+jupyterlab = "^4.3.0"
+ipython = "^8.29.0"
+
+[tool.poetry.group.dev.dependencies.boto3-stubs-lite]
+version = "^1.35.37"
+extras = [
+    "bedrock-runtime",
+    "dynamodb",
+    "firehose",
+    "s3",
+    "sagemaker-a2i-runtime",
+    "ssm",
+    "stepfunctions"
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

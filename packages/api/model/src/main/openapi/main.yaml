@@ -1,0 +1,565 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
+#checkov:skip=CKV_OPENAPI_4:security operations are applied at deploy time by PDK
+#checkov:skip=CKV_OPENAPI_5:security operations are applied at deploy time by PDK
+openapi: 3.0.3
+info:
+  version: 1.0.0
+  title: Smart Product Onboarding API
+paths:
+  /metaclass:
+    post:
+      operationId: metaclass
+      requestBody:
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/MetaclassRequestContent'
+      responses:
+        200:
+          description: Successful response
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/MetaclassResponseContent'
+        500:
+          $ref: '#/components/responses/internalError'
+        400:
+          $ref: '#/components/responses/notFound'
+        403:
+          $ref: '#/components/responses/notAuthorized'
+  /categorizeProduct:
+    post:
+      operationId: categorizeProduct
+      requestBody:
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/CategorizeProductRequestContent'
+      responses:
+        200:
+          description: Successful response
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/CategorizeProductResponseContent'
+        500:
+          $ref: '#/components/responses/internalError'
+        400:
+          $ref: '#/components/responses/notFound'
+        403:
+          $ref: '#/components/responses/notAuthorized'
+  /extractAttributes:
+    post:
+      operationId: extractAttributes
+      requestBody:
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/ExtractAttributesRequestContent'
+      responses:
+        200:
+          description: Successful response
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ExtractAttributesResponseContent'
+        500:
+          $ref: '#/components/responses/internalError'
+        400:
+          $ref: '#/components/responses/notFound'
+        403:
+          $ref: '#/components/responses/notAuthorized'
+  /generateProduct:
+    post:
+      operationId: generateProduct
+      x-handler:
+        language: typescript
+      description: |
+        Using images in S3 and textual metadata, generate a title and description for the product.
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/GenProductRequestContent"
+      responses:
+        200:
+          description: Successful response
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/GenProductResponseContent"
+        500:
+          description: An internal failure at the fault of the server
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/InternalFailureErrorResponseContent"
+        400:
+          description: An error at the fault of the client sending invalid input
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/BadRequestErrorResponseContent"
+        403:
+          description: An error due to the client not being authorized to access the resource
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/NotAuthorizedErrorResponseContent"
+  /createBatchExecution:
+    post:
+      operationId: createBatchExecution
+      x-handler:
+        language: python
+      requestBody:
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/CreateBatchExecutionRequestContent'
+      responses:
+        200:
+          description: Successful response
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/StartBatchExecutionResponseContent'
+        500:
+          $ref: '#/components/responses/internalError'
+        400:
+          $ref: '#/components/responses/notFound'
+        403:
+          $ref: '#/components/responses/notAuthorized'
+  /listBatchExecutions:
+    get:
+      operationId: listBatchExecutions
+      x-handler:
+        language: python
+      parameters:
+        - name: start_time
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: end_time
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful response
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ListBatchExecutionsResponseContent'
+        500:
+          $ref: '#/components/responses/internalError'
+        400:
+          $ref: '#/components/responses/notFound'
+        403:
+          $ref: '#/components/responses/notAuthorized'
+  /getBatchExecution/{executionId}:
+    get:
+      operationId: getBatchExecution
+      x-handler:
+        language: python
+      parameters:
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful response
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/BatchExecution'
+        500:
+          $ref: '#/components/responses/internalError'
+        400:
+          $ref: '#/components/responses/notFound'
+        403:
+          $ref: '#/components/responses/notAuthorized'
+  /downloadFile:
+    post:
+      operationId: downloadFile
+      x-handler:
+        language: python
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: '#/components/schemas/DownloadFileRequestContent'
+      responses:
+        200:
+          description: Successful response
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/PresignedUrlResponse'
+        500:
+          $ref: '#/components/responses/internalError'
+        400:
+          $ref: '#/components/responses/notFound'
+        403:
+          $ref: '#/components/responses/notAuthorized'
+  /uploadFile:
+    post:
+      operationId: uploadFile
+      x-handler:
+        language: python
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: '#/components/schemas/UploadFileRequestContent'
+      responses:
+        200:
+          description: Successful response
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/PresignedUrlResponse'
+        500:
+          $ref: '#/components/responses/internalError'
+        400:
+          $ref: '#/components/responses/notFound'
+        403:
+          $ref: '#/components/responses/notAuthorized'
+components:
+  responses:
+    internalError:
+      description: An internal failure at the fault of the server
+      content:
+        'application/json':
+          schema:
+            $ref: '#/components/schemas/InternalFailureErrorResponseContent'
+    notFound:
+      description: An error at the fault of the client sending invalid input
+      content:
+        'application/json':
+          schema:
+            $ref: '#/components/schemas/BadRequestErrorResponseContent'
+    notAuthorized:
+      description: An error due to the client not being authorized to access the resource
+      content:
+        'application/json':
+          schema:
+            $ref: '#/components/schemas/NotAuthorizedErrorResponseContent'
+  schemas:
+    MetaclassRequestContent:
+      type: object
+      properties:
+        product:
+          $ref: "#/components/schemas/ProductData"
+        demo:
+          type: boolean
+          default: false
+      required:
+        - product
+    WordFinding:
+      type: object
+      properties:
+        position:
+          type: integer
+        type:
+          type: string
+        word:
+          type: string
+        score:
+          type: number
+    MetaclassResponseContent:
+      type: object
+      properties:
+        possibleCategories:
+          type: array
+          maxLength: 600
+          items:
+            type: string
+        cleanTitle:
+          type: string
+        findings:
+          type: array
+          maxLength: 600
+          items:
+            $ref: "#/components/schemas/WordFinding"
+      required:
+        - possibleCategories
+    CategorizeProductRequestContent:
+      type: object
+      properties:
+        product:
+          $ref: "#/components/schemas/ProductData"
+        possibleCategories:
+          type: array
+          maxLength: 600
+          items:
+            type: string
+        demo:
+          type: boolean
+          default: false
+      required:
+        - product
+        - possibleCategories
+    CategorizeProductResponseContent:
+      type: object
+      properties:
+        categoryId:
+          type: string
+        categoryName:
+          type: string
+        categoryPath:
+          type: string
+        explanation:
+          type: string
+        prompt:
+          type: string
+      required:
+        - categoryId
+        - categoryName
+        - categoryPath
+    ExtractAttributesRequestContent:
+      type: object
+      properties:
+        product:
+          $ref: "#/components/schemas/ProductData"
+        categoryId:
+          type: string
+      required:
+        - product
+        - categoryId
+    ExtractAttributesResponseContent:
+      type: object
+      properties:
+        attributes:
+          type: array
+          maxLength: 100
+          items:
+            $ref: "#/components/schemas/ProductAttribute"
+      required:
+        - attributes
+    ProductAttribute:
+      type: object
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+      required:
+        - name
+        - value
+    ProductData:
+      type: object
+      description: Customer facing product data.
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        shortDescription:
+          type: string
+        metadata:
+          type: string
+      required:
+        - title
+        - description
+    ModelUsage:
+      type: object
+      properties:
+        inputTokens:
+          type: integer
+        outputTokens:
+          type: integer
+      required:
+        - inputTokens
+    GenProductResponseContent:
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/ProductData"
+      properties:
+        usage:
+          $ref: "#/components/schemas/ModelUsage"
+    GenProductRequestContent:
+      type: object
+      properties:
+        language:
+          type: string
+          description: The language of the product description. You can specify a natural description of the language.
+          example: Chilean Spanish
+          default: English
+        descriptionLength:
+          type: string
+          description: The desired length of the product description.
+          enum:
+            - short
+            - medium
+            - long
+          default: medium
+        productImages:
+          type: array
+          description: The S3 keys of the images for the product.
+          maxItems: 20
+          items:
+            type: string
+        metadata:
+          type: string
+          description: Metadata for the product from the manufacturer or distributor.
+        temperature:
+          type: number
+          description: The level for randomness for the LLM.
+          default: 0.7
+        model:
+          type: string
+          description: The model to use for the LLM. Currently, only Anthropic Claude 3 and Amazon Nova variants are supported.
+          default: us.anthropic.claude-3-haiku-20240307-v1:0
+          enum:
+            - us.anthropic.claude-3-haiku-20240307-v1:0
+            - us.anthropic.claude-3-5-sonnet-20240620-v1:0
+            - us.anthropic.claude-3-5-sonnet-20241022-v2:0
+            - us.anthropic.claude-3-sonnet-20240229-v1:0
+            - us.amazon.nova-pro-v1:0
+            - us.amazon.nova-lite-v1:0
+        examples:
+          type: array
+          description: Examples of good product descriptions with the desired tone and language.
+          maxItems: 5
+          items:
+            $ref: "#/components/schemas/ProductData"
+      required:
+        - productImages
+    CreateBatchExecutionRequestContent:
+      type: object
+      properties:
+        inputFile:
+          type: string
+          description: The s3 key for the csv file containing the input data
+        compressedImagesFile:
+          type: string
+          description: The s3 key for the zip file containing the product images
+      required:
+        - inputFile
+    BatchExecutionStatus:
+      description: The status of the batch categorization workflow execution.
+      type: string
+      enum:
+        - STARTED
+        - RUNNING
+        - SUCCESS
+        - ERROR
+        - QUEUED
+        - WAITING
+      x-enum-descriptions:
+        - Execution submitted
+        - Workflow is currently running
+        - Workflow completed successfully
+        - An error occurred during execution
+        - Request is in queue
+        - Waiting for semaphore
+    StartBatchExecutionResponseContent:
+      type: object
+      properties:
+        executionId:
+          type: string
+        status:
+          $ref: '#/components/schemas/BatchExecutionStatus'
+    BatchExecution:
+      type: object
+      properties:
+        executionId:
+          type: string
+          description: The ID of the batch execution
+        createdAt:
+          type: string
+          description: The date and time the execution was created in ISO 8601 format
+        updatedAt:
+          type: string
+          description: The date and time the execution was last updated in ISO 8601 format
+        status:
+          $ref: '#/components/schemas/BatchExecutionStatus'
+        error:
+          type: string
+          description: The error message if the execution failed
+        outputKey:
+          type: string
+          description: The s3 key for the output file
+      required:
+        - executionId
+        - createdAt
+        - updatedAt
+        - status
+    ListBatchExecutionsResponseContent:
+      type: object
+      properties:
+        executions:
+          type: array
+          description: Foo
+          items:
+            $ref: '#/components/schemas/BatchExecution'
+      required:
+        - executions
+    DownloadFileRequestContent:
+      type: object
+      properties:
+        outputKey:
+          type: string
+        expiration:
+          type: number
+          description: The expiration, in seconds for the generated URL
+          minimum: 15
+          maximum: 300
+      required:
+        - outputKey
+    UploadFileRequestContent:
+      type: object
+      properties:
+        fileName:
+          type: string
+        expiration:
+          type: number
+          description: The expiration, in seconds for the generated URL
+          minimum: 15
+          maximum: 300
+          default: 300
+      required:
+        - fileName
+    PresignedUrlResponse:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          description: The presigned URL for interacting with S3 (downloading or uploading)
+        objectKey:
+          type: string
+          description: The optional object key
+      required:
+        - url
+    InternalFailureErrorResponseContent:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+    BadRequestErrorResponseContent:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+    NotAuthorizedErrorResponseContent:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+

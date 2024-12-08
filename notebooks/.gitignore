@@ -1,0 +1,8 @@
+.idea/
+data/
+/GPC as of *.json
+.ipynb_checkpoints/
+/*.json
+/*.csv
+/rendered-ui.html
+/human_review

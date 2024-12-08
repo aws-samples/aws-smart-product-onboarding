@@ -1,0 +1,11 @@
+{
+ 'brand': '[{language_tag=fr_FR, value=Solimo}]',
+ 'model_name': '',
+ 'model_number': '[{language_tag=null, value=5400606009813}]',
+ 'bullet_point': "[{language_tag=fr_FR, value=La vitamine E contribue à protéger les cellules contre le stress oxydatif}, {language_tag=fr_FR, value=Sans colorants, ni arômes, ni conservateurs}, {language_tag=fr_FR, value=Les compléments alimentaires ne doivent pas remplacer une alimentation variée et équilibrée et un mode de vie sain}, {language_tag=fr_FR, value=Ne pas dépasser la dose journalière recommandée}, {language_tag=fr_FR, value=Ne doit pas être consommé par les femmes enceintes, planifiant une grossesse ou allaitantes, sauf en cas d'avis favorable d'un médecin ou d'une clinique prénatale}, {language_tag=fr_FR, value=L'emballage contient 365 portions}, {language_tag=fr_FR, value=À conserver dans un endroit frais et sec, hors de la vue et de la portée des enfants}, {language_tag=fr_FR, value=Dose recommandée pour adultes et enfants de plus de 12 ans : Avaler une capsule par jour, pendant le repas}]",
+ 'color': '',
+ 'fabric_type': '',
+ 'finish_type': '',
+ 'item_dimensions': '{height={normalized_value={unit=inches, value=3.1496062}, value=8.0, unit=centimeters}, length={normalized_value={unit=inches, value=9.055119}, value=23.0, unit=centimeters}, width={normalized_value={unit=inches, value=6.102362}, value=15.5, unit=centimeters}}',
+ 'material': '',
+ 'style': ''}

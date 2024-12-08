@@ -1,0 +1,11 @@
+{
+ 'brand': '[{language_tag=en_AU, value=AmazonBasics}]',
+ 'model_name': '',
+ 'model_number': '[{language_tag=null, value=B074M5HPB7}]',
+ 'bullet_point': '[{language_tag=en_AU, value=With a life of 15,000 hours, the bulb will last over 13 years (based on 3 hours of use each day)}, {language_tag=en_AU, value=Provides 400 lumens of light immediately, with no waiting time to warm up to full brightness}, {language_tag=en_AU, value=With a correlated color temperature of 3000 Kelvin, this bulb provides a soft white light, creating a comfortable atmoshphere for any room}, {language_tag=en_AU, value=This LED light bulb uses only 6 watts of energy, saving up to $72.60 over the life of the bulb vs. its incandescent equivalent (based on 3 hours/day, 11 cents/kWh, may vary depending on rates and use)}, {language_tag=en_AU, value=This bulb costs only $0.72 per year to operate (based on 3 hours/day, 11 cents/kWh) making it an economical alternative to incandescent bulbs}, {language_tag=en_AU, value=Not eligible for shipments to California}]',
+ 'color': '[{language_tag=en_AU, value=Bright White}]',
+ 'fabric_type': '',
+ 'finish_type': '',
+ 'item_dimensions': '{height={normalized_value={unit=inches, value=9.0}, value=9.0, unit=inches}, length={normalized_value={unit=inches, value=9.0}, value=9.0, unit=inches}, width={normalized_value={unit=inches, value=9.0}, value=9.0, unit=inches}}',
+ 'material': '',
+ 'style': ''}

@@ -1,0 +1,11 @@
+{
+ 'brand': '[{language_tag=en_US, value=Starter}]',
+ 'model_name': '[{language_tag=en_US, value=Yoga Bag}]',
+ 'model_number': '[{language_tag=null, value=ST1004}]',
+ 'bullet_point': "[{language_tag=en_US, value=Starter hangtag doubles as a sticker!}, {language_tag=en_US, value=This gym bag is perfect for carrying your workout clothes and gear to and from the gym, or for an everyday overnight duffel bag. It featuers durable logo hand and shoulder straps, interior pockets, and an exterior size pocket for your yoga mat.}, {language_tag=en_US, value=Durable branded hand straps with detachable shoulder strap}, {language_tag=en_US, value=Exterior side pocket for your yoga mat, two stretch-mesh interior pockets, one large zipper interior pocket}, {language_tag=en_US, value=Main compartment features logo-printed fabric}, {language_tag=en_US, value=Lightweight, fast-drying}, {language_tag=en_US, value=Amazon Exclusive, Men's Activewear}, {language_tag=en_US, value=Amazon Exclusive, Women's Activewear}, {language_tag=en_US, value=Amazon Exclusive, Kids' Activewear}]",
+ 'color': '[{language_tag=en_US, value=Iron Grey}]',
+ 'fabric_type': '[{language_tag=zh_CN, value=100% 聚酯纤维}, {language_tag=es_US, value=100 %   poliéster}, {language_tag=pt_BR, value=100% poliéster}, {language_tag=en_US, value=100% Polyester}]',
+ 'finish_type': '',
+ 'item_dimensions': '',
+ 'material': '',
+ 'style': '[{language_tag=de_DE, value=Yogatasche}, {language_tag=en_US, value=Yoga Bag}]'}

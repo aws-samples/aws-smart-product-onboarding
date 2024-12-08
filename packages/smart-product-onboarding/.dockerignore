@@ -1,0 +1,6 @@
+**/.projen/
+**/tests/
+**/.gitattributes
+**/gitignore
+**/project.json
+**/dist/
