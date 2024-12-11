@@ -9,7 +9,11 @@ import { AwsSolutionsChecks } from "cdk-nag";
 import { ApplicationStack } from "../src/stacks/application-stack";
 
 test("No unsuppressed Errors", () => {
-  const app = new App();
+  const app = new App({
+    context: {
+      wordVectorsUrl: "https://testurl",
+    },
+  });
   Aspects.of(app).add(new AwsSolutionsChecks());
   const stack = new ApplicationStack(app, "test");
   app.synth();

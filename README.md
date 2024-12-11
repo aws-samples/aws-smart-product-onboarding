@@ -71,11 +71,22 @@ The following table provides a sample cost breakdown for deploying this solution
 
 ### Prerequisites
 
-* Node.js 18
-* Git
-* Python == 3.11
-* Poetry >= 1.5.1 and < 1.9
-* [Install prerequisites](https://aws.github.io/aws-pdk/getting_started/your_first_aws_pdk_project.html#prerequisites)
+* Configure the AWS Credentials in your environment. Refer to [Authentication and access](https://docs.aws.amazon.com/sdkref/latest/guide/access.html).
+* Download and install AWS CLI. Refer to [Installing the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
+* Install and configure AWS CDK. Refer to Installing the [AWS CDK](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html). 
+* Download and install Docker. Refer to [Docker](https://www.docker.com/products/docker-desktop/).
+* NodeJS >= 18.0.0 and < 22
+* Python >= 3.12 preferably with [pyenv](https://github.com/pyenv/pyenv)
+* Poetry >= 1.5.1
+* Pnpm >= 8.6.3 and < 9
+* JDK >= 11 [Coretto](https://docs.aws.amazon.com/corretto/)
+* Maven >= 3.8 [Maven](https://maven.apache.org/install.html)
+
+```shell
+pip install poetry
+npm install -g pnpm@^8.15.9 aws-cdk
+```
+
 
 ### First build
 
@@ -86,8 +97,8 @@ aws ecr-public get-login-password --region us-east-1 | docker login --username A
 ```
 
 ```shell
-npx pnpm i
-pnpm pdk
+pnpm i
+pnpm pdk install:ci
 pnpm pdk build
 ```
 
