@@ -4,10 +4,9 @@ node_modules/
 !/.projen/tasks.json
 !/.projen/deps.json
 !/.projen/files.json
-!/.pdk/dynamic-files/openapitools.json
-/openapitools.json
-.openapi-generator
 Apis
 Models
 README.md
+.openapi-generator
+.tsapi-manifest
 !/project.json

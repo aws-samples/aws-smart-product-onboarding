@@ -256,6 +256,10 @@ export class SmartProductOnboardingAPI extends Construct {
         fn,
         [
           {
+            id: "AwsSolutions-L1",
+            reason: "Using Python 3.12 until gensim can be built on 3.13",
+          },
+          {
             id: "AwsSolutions-IAM4",
             reason:
               "Lambda Basic Execution Managed Policy used to expedite development.",

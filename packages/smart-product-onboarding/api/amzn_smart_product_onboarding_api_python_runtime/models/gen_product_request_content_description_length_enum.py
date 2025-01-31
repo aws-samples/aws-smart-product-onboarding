@@ -26,24 +26,21 @@ try:
 except ImportError:
     from typing_extensions import Self
 
-class BatchExecutionStatus(str, Enum):
+class GenProductRequestContentDescriptionLengthEnum(str, Enum):
     """
-    The status of the batch categorization workflow execution.
+    The desired length of the product description.
     """
 
     """
     allowed enum values
     """
-    STARTED = 'STARTED'
-    RUNNING = 'RUNNING'
-    SUCCESS = 'SUCCESS'
-    ERROR = 'ERROR'
-    QUEUED = 'QUEUED'
-    WAITING = 'WAITING'
+    SHORT = 'short'
+    MEDIUM = 'medium'
+    LONG = 'long'
 
     @classmethod
     def from_json(cls, json_str: str) -> Self:
-        """Create an instance of BatchExecutionStatus from a JSON string"""
+        """Create an instance of GenProductRequestContentDescriptionLengthEnum from a JSON string"""
         return cls(json.loads(json_str))
 
 

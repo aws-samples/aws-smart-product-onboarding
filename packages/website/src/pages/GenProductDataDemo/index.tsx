@@ -49,7 +49,7 @@ const GenProductDataDemo = () => {
       <SpaceBetween size="l">
         {(generateProduct.isSuccess || generateProduct.isError) && (
           <ReviewProductDataStep
-            productData={generateProduct.data}
+            productData={generateProduct.data?.product}
             isLoading={generateProduct.isLoading}
             status={generateProduct.status}
           />

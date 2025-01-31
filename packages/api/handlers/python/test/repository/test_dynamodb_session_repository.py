@@ -1,12 +1,20 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
+from datetime import datetime, timedelta
+
+import boto3
 import pytest
 from moto import mock_aws
-import boto3
-from datetime import datetime, timedelta
-from amzn_smart_product_onboarding_api_python_runtime.api.operation_config import BatchExecution, BatchExecutionStatus
-from amzn_smart_product_onboarding_api_python_handlers.repository import ResourceNotFound, DynamoDBSessionRepository
+
+from amzn_smart_product_onboarding_api_python_handlers.repository import (
+    ResourceNotFound,
+    DynamoDBSessionRepository,
+)
+from amzn_smart_product_onboarding_api_python_runtime.api.operation_config import (
+    BatchExecution,
+    BatchExecutionStatus,
+)
 
 
 @pytest.fixture
@@ -36,7 +44,10 @@ def table(dynamodb):
                     {"AttributeName": "created_at", "KeyType": "RANGE"},
                 ],
                 "Projection": {"ProjectionType": "ALL"},
-                "ProvisionedThroughput": {"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1,
+                },
             }
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
@@ -46,7 +57,9 @@ def table(dynamodb):
 
 @pytest.fixture
 def repository(table):
-    return DynamoDBSessionRepository(table=table, created_at_index_name="type-created_at-index")
+    return DynamoDBSessionRepository(
+        table=table, created_at_index_name="type-created_at-index"
+    )
 
 
 def test_get_existing_item(repository, table):
@@ -120,11 +133,13 @@ def test_get_item_with_extra_fields(repository, table):
     result = repository.get("test-id")
 
     # Assert
-    assert result.to_dict().keys() == {
-        "executionId",
+    assert result.model_dump().keys() == {
+        "execution_id",
         "status",
-        "createdAt",
-        "updatedAt",
+        "created_at",
+        "updated_at",
+        "error",
+        "output_key",
     }
 
 

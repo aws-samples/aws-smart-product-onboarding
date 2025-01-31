@@ -3,12 +3,13 @@
  * SPDX-License-Identifier: MIT-0
  */
 
+import { GenProductRequestContentDescriptionLengthEnum } from "@aws-samples/smart-product-onboarding-api-typescript-react-query-hooks";
 import { Select, SpaceBetween } from "@cloudscape-design/components";
 import FormField from "@cloudscape-design/components/form-field";
 import React from "react";
 
 interface DescriptionLengthSelectorProps {
-  value?: string;
+  value?: GenProductRequestContentDescriptionLengthEnum;
   onChange: (value: string | undefined) => void;
 }
 

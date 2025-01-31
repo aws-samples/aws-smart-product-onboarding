@@ -14,8 +14,8 @@ import {
 import { NodePackageManager } from "projen/lib/javascript";
 import { PythonProject } from "projen/lib/python";
 
-const cdkVersion = "2.161.1";
-const pdkVersion = "0.23.64";
+const cdkVersion = "2.173.0";
+const pdkVersion = "0.25.13";
 const projectName = "smart-product-onboarding";
 const npmPrefix = "@aws-samples/";
 const pypiPrefix = "amzn-";
@@ -151,6 +151,7 @@ const metaclasses = new PythonProject({
   setuptools: false,
   venv: false,
 });
+
 metaclasses.addDependency(
   `${coreUtils.moduleName}@{ path = "${path.relative(metaclasses.outdir, coreUtils.outdir)}", develop = true }`,
 );
@@ -217,7 +218,7 @@ const api = new TypeSafeApiProject({
     libraries: [Library.TYPESCRIPT_REACT_QUERY_HOOKS],
   },
   documentation: {
-    formats: [DocumentationFormat.HTML2, DocumentationFormat.MARKDOWN],
+    formats: [DocumentationFormat.MARKDOWN],
   },
   commitGenerated: true,
 });

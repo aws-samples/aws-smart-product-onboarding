@@ -1,7 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-FROM public.ecr.aws/lambda/python:3.12 AS build
+FROM public.ecr.aws/lambda/python:3.13 AS build
 
 ENV POETRY_CACHE_DIR=/root/.cache/poetry
 RUN --mount=type=cache,target=/root/.cache pip install poetry~=1.8.3
@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/root/.cache poetry build
 RUN --mount=type=cache,target=/root/.cache poetry run pip cache remove 'amzn_smart_product_onboarding_*'
 RUN --mount=type=cache,target=/root/.cache poetry run pip install -t ${LAMBDA_TASK_ROOT} /src/product-categorization/dist/*.whl
 
-FROM public.ecr.aws/lambda/python:3.12
+FROM public.ecr.aws/lambda/python:3.13
 WORKDIR ${LAMBDA_TASK_ROOT}
 COPY --from=build ${LAMBDA_TASK_ROOT} ${LAMBDA_TASK_ROOT}
 

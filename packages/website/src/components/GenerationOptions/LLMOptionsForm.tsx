@@ -14,6 +14,7 @@ import FormField from "@cloudscape-design/components/form-field";
 import { useState } from "react";
 import "./llmoptions.css";
 import DescriptionLengthSelector from "../DescriptionLengthSelector";
+import { GenProductRequestContentDescriptionLengthEnum } from "@aws-samples/smart-product-onboarding-api-typescript-react-query-hooks";
 
 export const BedrockModels: SelectProps.Option[] = [
   {
@@ -38,7 +39,7 @@ export interface LLMOptions {
   temperature?: number;
   model?: SelectProps.Option;
   language?: string;
-  descriptionLength?: string;
+  descriptionLength?: GenProductRequestContentDescriptionLengthEnum;
 }
 
 export interface LLMOptionsFormProps {
@@ -82,7 +83,11 @@ const LLMOptionsForm: React.FC<LLMOptionsFormProps> = (
         value={options.descriptionLength}
         onChange={(value) => {
           setOptions((prev) => {
-            return { ...prev, descriptionLength: value };
+            return {
+              ...prev,
+              descriptionLength:
+                value as GenProductRequestContentDescriptionLengthEnum,
+            };
           });
         }}
       />
