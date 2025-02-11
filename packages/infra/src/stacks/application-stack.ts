@@ -8,6 +8,7 @@ import { UserIdentity } from "@aws/pdk/identity";
 import { PDKPipeline } from "@aws/pdk/pipeline";
 import {
   aws_cognito as cognito,
+  aws_iam as iam,
   aws_s3 as s3,
   aws_ssm as ssm,
   CfnOutput,
@@ -93,12 +94,34 @@ export class ApplicationStack extends Stack {
 
     const apiPersistence = new ApiPersistence(this, "ApiPersistence");
 
+    // This policy gets populated in the metaclasses notebook to grant read access to the DynamoDB table created there.
+    const wordEmbeddingsPolicy = new iam.ManagedPolicy(
+      this,
+      "WordEmbeddingsPolicy",
+      {
+        statements: [
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            sid: "NoopPlaceholder",
+            notActions: ["*"],
+            notResources: ["*"],
+          }),
+        ],
+      },
+    );
+
+    new ssm.StringParameter(this, "WordEmbeddingsPolicyParam", {
+      parameterName: ssmParameterPrefix + "/WordEmbeddingsPolicyArn",
+      stringValue: wordEmbeddingsPolicy.managedPolicyArn,
+    });
+
     const metaclassTaskFunction = new MetaclassTaskFunction(
       this,
       "MetaclassTaskFunction",
       {
         ssmParameterPrefix: ssmParameterPrefix,
         configBucket: configurationBucket,
+        wordEmbeddingsPolicy: wordEmbeddingsPolicy,
       },
     );
 
@@ -177,6 +200,7 @@ export class ApplicationStack extends Stack {
       batchCategorizationMachine: batchCategorizationMachine.stateMachine,
       ssmParameterPrefix: ssmParameterPrefix,
       configurationBucket: configurationBucket,
+      wordEmbeddingsPolicy: wordEmbeddingsPolicy,
     });
 
     const website = new Smartproductonboardingdemowebsite(this, "DemoWeb", {

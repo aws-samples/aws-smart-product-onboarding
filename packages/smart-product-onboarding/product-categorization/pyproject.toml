@@ -8,9 +8,9 @@ authors = [ "AWS Latam PACE <aws-latam-pace@amazon.com>" ]
 readme = "README.md"
 
   [tool.poetry.dependencies]
-  cachetools = "*"
+  cachetools = "^5.5.1"
   faker = "30.1.0"
-  jinja2 = "^3.1.5"
+  jinja2 = "^3.1.4"
   python = "^3.12"
 
     [tool.poetry.dependencies.amzn_smart_product_onboarding_api_python_runtime]

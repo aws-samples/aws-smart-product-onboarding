@@ -16,6 +16,7 @@ import {
 } from "@aws-samples/smart-product-onboarding-api-typescript-infra";
 import {
   ArnFormat,
+  aws_iam as iam,
   aws_lambda as lambda,
   aws_s3 as s3,
   aws_stepfunctions as sfn,
@@ -45,6 +46,7 @@ export interface SmartProductOnboardingAPIProps {
   readonly batchCategorizationMachine: sfn.IStateMachine;
   readonly ssmParameterPrefix: string;
   readonly configurationBucket: s3.IBucket;
+  readonly wordEmbeddingsPolicy: iam.IManagedPolicy;
 }
 
 /**
@@ -69,6 +71,7 @@ export class SmartProductOnboardingAPI extends Construct {
       {
         ssmParameterPrefix: props.ssmParameterPrefix,
         configBucket: props.configurationBucket,
+        wordEmbeddingsPolicy: props.wordEmbeddingsPolicy,
         cmd: [
           "amzn_smart_product_onboarding_metaclasses.aws_lambda_apigw.handler",
         ],
@@ -335,7 +338,14 @@ export class SmartProductOnboardingAPI extends Construct {
       true,
     );
 
-    for (const resource of [generateProductFunction]) {
+    for (const resource of [
+      generateProductFunction,
+      createBatchExecutionFunction,
+      listBatchExecutionsFunction,
+      getBatchExecutionFunction,
+      downloadFileFunction,
+      uploadFileFunction,
+    ]) {
       NagSuppressions.addResourceSuppressions(
         resource,
         [

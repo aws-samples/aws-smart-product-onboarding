@@ -1,21 +1,26 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-from abc import ABC
-from botocore.exceptions import ClientError
-from cachetools import cachedmethod, TTLCache
 import io
-import jinja2
 import json
 import operator
 import os
-from pydantic import ValidationError
 import time
+from abc import ABC
 from typing import TYPE_CHECKING, Optional
 
-from amzn_smart_product_onboarding_core_utils.exceptions import ModelResponseError, RateLimitError, RetryableError
-from amzn_smart_product_onboarding_core_utils.xml_output import parse_response
+import jinja2
+from botocore.exceptions import ClientError
+from cachetools import cachedmethod, TTLCache
+from pydantic import ValidationError
+
+from amzn_smart_product_onboarding_core_utils.exceptions import (
+    ModelResponseError,
+    RateLimitError,
+    RetryableError,
+)
 from amzn_smart_product_onboarding_core_utils.json_to_xml import json_to_xml
+from amzn_smart_product_onboarding_core_utils.xml_output import parse_response
 
 if TYPE_CHECKING:
     from mypy_boto3_bedrock_runtime.client import BedrockRuntimeClient
@@ -24,7 +29,11 @@ else:
     BedrockRuntimeClient = object
     Bucket = object
 
-from amzn_smart_product_onboarding_core_utils.types import Attributes, CategorySchema, Product, CategorizationPrediction
+from amzn_smart_product_onboarding_core_utils.models import (
+    Attributes,
+    CategorySchema,
+    Product,
+)
 from amzn_smart_product_onboarding_core_utils.logger import logger
 
 logger.name = "AttributesExtractor"
@@ -54,7 +63,9 @@ class GPCSchemaRetriever(SchemaRetriever):
     ) -> None:
         schema_obj = io.BytesIO()
         try:
-            self.schema_storage.download_fileobj(Key=self.schema_path, Fileobj=schema_obj)
+            self.schema_storage.download_fileobj(
+                Key=self.schema_path, Fileobj=schema_obj
+            )
             schema_obj.seek(0)
             self.schema = json.load(schema_obj)
         except ClientError as e:
@@ -79,7 +90,7 @@ class AttributesExtractor:
 
     def __init__(
         self,
-        bedrock_runtime_client: BedrockRuntimeClient,
+        bedrock_runtime_client: "BedrockRuntimeClient",
         schema_retriever: SchemaRetriever,
         model_id: Optional[str] = None,
     ):
@@ -87,14 +98,22 @@ class AttributesExtractor:
         self.schema_retriever = schema_retriever
 
         # nosemgrep: direct-use-of-jinja2,missing-autoescape-disabled - jinja2 output is not rendered by a browser
-        self.template = jinja2.Environment(  # nosec B701 - template output is not used on a website
-            loader=jinja2.FileSystemLoader(os.path.join(os.path.dirname(__file__), "prompt_templates")),
-            trim_blocks=True,
-            lstrip_blocks=True,
-            undefined=jinja2.StrictUndefined,
-        ).get_template("extract_attributes.jinja2")
+        self.template = (
+            jinja2.Environment(  # nosec B701 - template output is not used on a website
+                loader=jinja2.FileSystemLoader(
+                    os.path.join(os.path.dirname(__file__), "prompt_templates")
+                ),
+                trim_blocks=True,
+                lstrip_blocks=True,
+                undefined=jinja2.StrictUndefined,
+            ).get_template("extract_attributes.jinja2")
+        )
 
-        self.model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0" if model_id is None else model_id
+        self.model_id = (
+            "anthropic.claude-3-5-sonnet-20240620-v1:0"
+            if model_id is None
+            else model_id
+        )
 
     def extract_attributes(self, product: Product, category_id: str) -> Attributes:
         category_schema = self.schema_retriever.get(category_id)
@@ -105,7 +124,9 @@ class AttributesExtractor:
         logger.debug(f"CATEGORY SCHEMA: {category_schema.model_dump()}")
 
         if category_schema.attributes_schema is None:
-            logger.warning(f"CATEGORY {category_schema.category_name} HAS NO ATTRIBUTE SCHEMA")
+            logger.warning(
+                f"CATEGORY {category_schema.category_name} HAS NO ATTRIBUTE SCHEMA"
+            )
             return EMPTY_RESPONSE
 
         prompt = self.create_prompt(category_schema, product)
@@ -118,7 +139,10 @@ class AttributesExtractor:
         try:
             response = self.bedrock_runtime_client.converse(
                 modelId=self.model_id,
-                inferenceConfig={"temperature": 0, "stopSequences": [self.response_close]},
+                inferenceConfig={
+                    "temperature": 0,
+                    "stopSequences": [self.response_close],
+                },
                 messages=messages,
             )
         except ClientError as e:
@@ -161,7 +185,9 @@ class AttributesExtractor:
 
         if response["stopReason"] == "stop_sequence":
             xml_response = self.response_open + text + self.response_close
-        elif response["stopReason"] == "end_turn" and text.endswith(self.response_close):
+        elif response["stopReason"] == "end_turn" and text.endswith(
+            self.response_close
+        ):
             xml_response = self.response_open + text
         else:
             logger.error(f"Stop reason: {response['stopReason']}")
@@ -169,9 +195,15 @@ class AttributesExtractor:
         try:
             parsed_response = parse_response(xml_response)
             attributes = parsed_response["response"]["attributes"]["attribute"]
-            attributes = [attributes] if not isinstance(attributes, list) else attributes
+            attributes = (
+                [attributes] if not isinstance(attributes, list) else attributes
+            )
             return Attributes.model_validate({"attributes": attributes})
         except (ValueError, ValidationError, KeyError) as e:
             logger.exception(e)
-            logger.error(f"Failed to parse extracted attributes from response: {xml_response}")
-            raise ModelResponseError("Failed to parse extracted attributes from response")
+            logger.error(
+                f"Failed to parse extracted attributes from response: {xml_response}"
+            )
+            raise ModelResponseError(
+                "Failed to parse extracted attributes from response"
+            )

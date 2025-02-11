@@ -5,14 +5,17 @@ import os
 
 from aws_lambda_powertools.utilities.parser import event_parser
 
-from amzn_smart_product_onboarding_product_categorization.images_extractor import ImagesExtractor
-
+from amzn_smart_product_onboarding_core_utils.boto3_helper.s3_client import (
+    LAMBDA_S3_CLIENT,
+)
 from amzn_smart_product_onboarding_core_utils.logger import logger
-from amzn_smart_product_onboarding_core_utils.boto3_helper.s3_client import LAMBDA_S3_CLIENT
-from amzn_smart_product_onboarding_core_utils.types import (
+from amzn_smart_product_onboarding_core_utils.models import (
     ExtractImagesRequest,
     ExtractImagesResponseDict,
     ExtractImagesResponse,
+)
+from amzn_smart_product_onboarding_product_categorization.images_extractor import (
+    ImagesExtractor,
 )
 
 logger.name = "ImagesExtractor"

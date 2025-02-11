@@ -1,0 +1,22 @@
+You are a retail catalog specialist. Your task is to analyze this product and create a simple normalized title in {{ language }} that describes what this product fundamentally is.
+
+##Product##
+{{ product_text }}
+
+##Steps##
+1. Identify the core product type from the text in Product.
+2. Remove from consideration:
+- Brand names
+- Marketing terms
+- Decorative elements
+- Colors, sizes, materials
+- Target audience
+- Usage occasions
+3. Convert to a simple normalized title in {{ language }} that describes what this product fundamentally is.
+
+##Output format##
+{
+"normalized_title": "simple normalized title in {{ language }} that describes what this product fundamentally is",
+}
+
+Your response MUST be valid JSON in the above schema WITHOUT any additional commentary.

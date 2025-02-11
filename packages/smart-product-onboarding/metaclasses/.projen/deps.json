@@ -1,6 +1,11 @@
 {
   "dependencies": [
     {
+      "name": "boto3-stubs-lite",
+      "version": "{version = '^1.35.37', extras = ['bedrock-runtime', 's3', 'dynamodb']}",
+      "type": "devenv"
+    },
+    {
       "name": "amzn_smart_product_onboarding_api_python_runtime",
       "version": "{ path = \"../api\", develop = true }",
       "type": "runtime"
@@ -11,13 +16,23 @@
       "type": "runtime"
     },
     {
-      "name": "gensim",
-      "version": "^4.3.3",
+      "name": "cachetools",
+      "version": "^5.5.1",
+      "type": "runtime"
+    },
+    {
+      "name": "faiss-cpu",
+      "version": "^1.10.0",
       "type": "runtime"
     },
     {
       "name": "inflect",
       "version": "^7.4.0",
+      "type": "runtime"
+    },
+    {
+      "name": "jinja2",
+      "version": "^3.1.4",
       "type": "runtime"
     },
     {
@@ -27,7 +42,7 @@
     },
     {
       "name": "numpy",
-      "version": "1.26.4",
+      "version": "^2.2.2",
       "type": "runtime"
     },
     {

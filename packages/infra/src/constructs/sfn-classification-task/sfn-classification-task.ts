@@ -51,7 +51,7 @@ export class ClassificationTaskFunction extends lambda.DockerImageFunction {
       ),
       environment: {
         CONFIG_BUCKET_NAME: props.configBucket.bucketName,
-        CONFIG_PATHS_PARAM: props.ssmParameterPrefix + "/MetaclassPaths",
+        CONFIG_PATHS_PARAM: props.ssmParameterPrefix + "/CategorizationConfig",
         BEDROCK_MODEL_ID: "us.anthropic.claude-3-haiku-20240307-v1:0",
       },
       timeout: props.timeout ? props.timeout : Duration.minutes(10),
@@ -104,7 +104,7 @@ export class ClassificationTaskFunction extends lambda.DockerImageFunction {
         {
           id: "AwsSolutions-IAM5",
           reason:
-            "This role uses a wildcard resource to allow access to all objects in a specific bucket and to use.",
+            "This role uses a wildcard resource to allow access to all objects in a specific bucket and to use Bedrock models.",
         },
         {
           id: "AwsSolutions-IAM4",
@@ -123,7 +123,8 @@ export class ClassificationTaskFunction extends lambda.DockerImageFunction {
             arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
             service: "ssm",
             resource: "parameter",
-            resourceName: props.ssmParameterPrefix.slice(1) + "/MetaclassPaths",
+            resourceName:
+              props.ssmParameterPrefix.slice(1) + "/CategorizationConfig",
           }),
         ],
       }),

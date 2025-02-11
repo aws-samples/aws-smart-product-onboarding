@@ -30,7 +30,7 @@ export class SfnCsvResultwriter extends sfn.StateMachineFragment {
     const writerFunction = new PythonFunction(this, "CSVResultWriterFunction", {
       entry: __dirname + "/lambdas/csv_resultwriter",
       index: "csv_resultwriter.py",
-      runtime: lambda.Runtime.PYTHON_3_12,
+      runtime: lambda.Runtime.PYTHON_3_13,
       environment: {
         RESULT_BUCKET: props.resultBucket.bucketName,
         RESULT_PREFIX: "results/",

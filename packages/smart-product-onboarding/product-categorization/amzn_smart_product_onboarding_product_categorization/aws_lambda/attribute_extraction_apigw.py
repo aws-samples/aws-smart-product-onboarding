@@ -4,7 +4,6 @@
 import os
 
 from amzn_smart_product_onboarding_api_python_runtime import (
-    ExtractAttributesRequestContent,
     ExtractAttributesResponseContent,
     ProductAttribute,
 )
@@ -15,11 +14,20 @@ from amzn_smart_product_onboarding_api_python_runtime.api.operation_config impor
 )
 from amzn_smart_product_onboarding_api_python_runtime.interceptors import INTERCEPTORS
 from amzn_smart_product_onboarding_api_python_runtime.response import Response
-from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import LAMBDA_BEDROCK_RUNTIME_CLIENT
-from amzn_smart_product_onboarding_core_utils.boto3_helper.s3_client import LAMBDA_S3_RESOURCE
-from amzn_smart_product_onboarding_core_utils.exceptions import RateLimitError, RetryableError, ModelResponseError
+
+from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import (
+    LAMBDA_BEDROCK_RUNTIME_CLIENT,
+)
+from amzn_smart_product_onboarding_core_utils.boto3_helper.s3_client import (
+    LAMBDA_S3_RESOURCE,
+)
+from amzn_smart_product_onboarding_core_utils.exceptions import (
+    RateLimitError,
+    RetryableError,
+    ModelResponseError,
+)
 from amzn_smart_product_onboarding_core_utils.logger import logger
-from amzn_smart_product_onboarding_core_utils.types import CategorizationPrediction, Product
+from amzn_smart_product_onboarding_core_utils.models import Product
 from amzn_smart_product_onboarding_product_categorization.attributes_extractor import (
     GPCSchemaRetriever,
     AttributesExtractor,
@@ -36,17 +44,23 @@ if os.getenv("BEDROCK_XACCT_ROLE") and MODEL_ID[:3] != "us.":
     MODEL_ID = "us." + MODEL_ID
 
 
-def extract_attributes(event: ExtractAttributesRequest, **kwargs) -> ExtractAttributesOperationResponses:
+def extract_attributes(
+    event: ExtractAttributesRequest, **kwargs
+) -> ExtractAttributesOperationResponses:
     logger.debug(f"Event received: {event}")
 
     try:
-        schema_retriever = GPCSchemaRetriever(schema_storage=CONFIG_BUCKET, schema_path="data/attributes_schema.json")
+        schema_retriever = GPCSchemaRetriever(
+            schema_storage=CONFIG_BUCKET, schema_path="data/attributes_schema.json"
+        )
     except Exception as e:
         logger.exception(e)
         logger.error(f"Error while retrieving schema: {e}")
         return Response.internal_failure("Internal server error")
     attributes_extractor = AttributesExtractor(
-        bedrock_runtime_client=LAMBDA_BEDROCK_RUNTIME_CLIENT, schema_retriever=schema_retriever, model_id=MODEL_ID
+        bedrock_runtime_client=LAMBDA_BEDROCK_RUNTIME_CLIENT,
+        schema_retriever=schema_retriever,
+        model_id=MODEL_ID,
     )
 
     try:
@@ -69,7 +83,10 @@ def extract_attributes(event: ExtractAttributesRequest, **kwargs) -> ExtractAttr
 
     try:
         response = ExtractAttributesResponseContent(
-            attributes=[ProductAttribute(name=attr.name, value=attr.value) for attr in extracted_attributes.attributes]
+            attributes=[
+                ProductAttribute(name=attr.name, value=attr.value)
+                for attr in extracted_attributes.attributes
+            ]
         )
     except Exception as e:
         logger.exception(e)

@@ -33,7 +33,7 @@ export class SfnGenerateProductFunction extends lambda.Function {
     props?: SfnGenerateProductFunctionProps,
   ) {
     super(scope, id, {
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset(
         path.resolve(

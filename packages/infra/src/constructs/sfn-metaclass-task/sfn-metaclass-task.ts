@@ -21,6 +21,7 @@ import { Construct } from "constructs";
 export interface MetaclassTaskFunctionProps {
   configBucket: s3.IBucket;
   ssmParameterPrefix: string;
+  wordEmbeddingsPolicy: iam.IManagedPolicy;
   cmd?: string[];
   timeout?: Duration;
 }
@@ -39,19 +40,17 @@ export class MetaclassTaskFunction extends lambda.DockerImageFunction {
         ),
         {
           file: "metaclasses.Dockerfile",
-          buildArgs: {
-            EMBEDDINGS_MODEL_URL: scope.node.tryGetContext("wordVectorsUrl"),
-          },
           platform: ecr_assets.Platform.LINUX_ARM64,
           cmd: props.cmd,
         },
       ),
       environment: {
         CONFIG_BUCKET_NAME: props.configBucket.bucketName,
-        CONFIG_PATHS_PARAM: props.ssmParameterPrefix + "/MetaclassPaths",
+        CONFIG_PATHS_PARAM: props.ssmParameterPrefix + "/CategorizationConfig",
+        BEDROCK_MODEL_ID: "us.amazon.nova-micro-v1:0",
       },
       timeout: props.timeout ? props.timeout : Duration.seconds(900),
-      memorySize: 1792,
+      memorySize: 512,
       architecture: lambda.Architecture.ARM_64,
     });
 
@@ -63,11 +62,50 @@ export class MetaclassTaskFunction extends lambda.DockerImageFunction {
             arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
             service: "ssm",
             resource: "parameter",
-            resourceName: props.ssmParameterPrefix.slice(1) + "/MetaclassPaths",
+            resourceName:
+              props.ssmParameterPrefix.slice(1) + "/CategorizationConfig",
           }),
         ],
       }),
     );
+
+    this.role?.addToPrincipalPolicy(
+      new iam.PolicyStatement({
+        actions: ["bedrock:ListFoundationModels", "bedrock:InvokeModel"],
+        resources: [
+          Stack.of(this).formatArn({
+            service: "bedrock",
+            resource: "inference-profile",
+            resourceName: "us.anthropic.claude-*",
+            arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
+          }),
+          Stack.of(this).formatArn({
+            service: "bedrock",
+            resource: "inference-profile",
+            resourceName: "us.amazon.nova-*",
+            arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
+          }),
+          Stack.of(this).formatArn({
+            service: "bedrock",
+            resource: "foundation-model",
+            resourceName: "anthropic.claude-*",
+            arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
+            account: "",
+            region: "us-*",
+          }),
+          Stack.of(this).formatArn({
+            service: "bedrock",
+            resource: "foundation-model",
+            resourceName: "amazon.nova-*",
+            arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
+            account: "",
+            region: "us-*",
+          }),
+        ],
+      }),
+    );
+
+    this.role?.addManagedPolicy(props.wordEmbeddingsPolicy);
 
     props.configBucket.grantRead(this);
 
@@ -77,7 +115,7 @@ export class MetaclassTaskFunction extends lambda.DockerImageFunction {
         {
           id: "AwsSolutions-IAM5",
           reason:
-            "This role uses a wildcard resource to allow access to all objects in a specific bucket.",
+            "This role uses a wildcard resource to allow access to all objects in a specific bucket and use Bedrock models.",
         },
         {
           id: "AwsSolutions-IAM4",

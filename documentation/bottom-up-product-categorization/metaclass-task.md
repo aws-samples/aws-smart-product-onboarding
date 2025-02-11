@@ -26,6 +26,23 @@ For customers looking to adapt this system to their preferred language, they wou
 
 Using these resources, customers can relatively easily adapt the system to their preferred language without having to create word embeddings or translate category trees from scratch.
 
+### Word Embeddings and Language Support
+
+Our decision to use word embeddings instead of sentence embeddings was deliberate. While sentence embeddings can capture context well, they struggle with the short, often fragmented nature of product titles. Word embeddings allow us to evaluate each word independently, which is crucial when dealing with titles that may combine multiple concepts.
+
+To support products in multiple languages while maintaining the efficiency of our word embeddings approach, we first use the Amazon Nova Micro model to generate a normalized product title in the language of the category tree. This lightweight LLM translates and normalizes the product title and description, ensuring that the subsequent metaclass identification process works with text in the expected language. This approach allows us to support any language that Amazon Nova Micro can translate, while keeping our word embeddings and category tree in a single, consistent language.
+
+We initially experimented with FastText's aligned word vectors trained on Wikipedia, which theoretically allow for cross-lingual word similarity comparisons. However, this approach did not yield good results in practice, likely due to the specialized nature of product catalog terminology compared to Wikipedia's more general content. Our current approach of normalizing to a single language using Amazon Nova Micro before performing word embedding comparisons proved much more reliable.
+
+Customers looking to adapt this system to their preferred language need only provide:
+
+1. Word embeddings for their target language, which can be found in [FastText](https://fasttext.cc/docs/en/crawl-vectors.html). These pre-trained word vectors are available for 157 languages and are based on Common Crawl and Wikipedia data.
+
+2. A category tree in their target language. This accelerator uses the GS1 Global Product Categorization (GPC) as an example, and GS1 provides translations of their category tree in many languages through the [GPC Browser](https://gpc-browser.gs1.org/).
+
+Using these resources and leveraging Nova Micro's translation capabilities, the system can process products in any supported language while maintaining its categorization accuracy and efficiency.
+
+
 ### Key Components
 
 The heart of our metaclass identification lies in the `MetaclassClassifier` class. It orchestrates the matching, scoring, and selection processes. Each potential metaclass is scored based on its match type (exact or embedding) and its position in the title, with earlier words given higher scores as they're often more relevant to the product's core concept. The top-scoring metaclasses are then selected, with the possibility of combining multiple high-scoring metaclasses to form compound metaclasses.

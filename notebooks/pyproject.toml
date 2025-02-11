@@ -4,16 +4,19 @@ version = "0.1.0"
 description = ""
 authors = ["Jeff Strunk <strunkjd@amazon.com>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
 boto3 = "^1.35.40"
 inflect = "^7.4.0"
 nltk = "^3.9.1"
-gensim = "^4.3.3"
 pympler = "^1.1"
+numpy = "^2.2.2"
 amzn-smart-product-onboarding-metaclasses = { path = "../packages/smart-product-onboarding/metaclasses", develop = true }
 pandas = "^2.2.3"
+amazon-ion = "^0.13.0"
+faiss-cpu = "^1.10.0"
 
 
 [tool.poetry.group.dev.dependencies]
