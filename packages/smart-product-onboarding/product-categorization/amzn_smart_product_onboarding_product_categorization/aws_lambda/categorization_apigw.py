@@ -5,7 +5,6 @@ import json
 import os
 
 from amzn_smart_product_onboarding_api_python_runtime import (
-    CategorizeProductRequestContent,
     CategorizeProductResponseContent,
 )
 from amzn_smart_product_onboarding_api_python_runtime.api.operation_config import (
@@ -15,13 +14,26 @@ from amzn_smart_product_onboarding_api_python_runtime.api.operation_config impor
 )
 from amzn_smart_product_onboarding_api_python_runtime.interceptors import INTERCEPTORS
 from amzn_smart_product_onboarding_api_python_runtime.response import Response
-from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import LAMBDA_BEDROCK_RUNTIME_CLIENT
-from amzn_smart_product_onboarding_core_utils.boto3_helper.s3_client import LAMBDA_S3_CLIENT
-from amzn_smart_product_onboarding_core_utils.boto3_helper.ssm_client import LAMBDA_SSM_CLIENT
-from amzn_smart_product_onboarding_core_utils.exceptions import RateLimitError, RetryableError, ModelResponseError
+
+from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import (
+    LAMBDA_BEDROCK_RUNTIME_CLIENT,
+)
+from amzn_smart_product_onboarding_core_utils.boto3_helper.s3_client import (
+    LAMBDA_S3_CLIENT,
+)
+from amzn_smart_product_onboarding_core_utils.boto3_helper.ssm_client import (
+    LAMBDA_SSM_CLIENT,
+)
+from amzn_smart_product_onboarding_core_utils.exceptions import (
+    RateLimitError,
+    RetryableError,
+    ModelResponseError,
+)
 from amzn_smart_product_onboarding_core_utils.logger import logger
-from amzn_smart_product_onboarding_core_utils.types import ProductCategory
-from amzn_smart_product_onboarding_product_categorization.product_classifier import ProductClassifier
+from amzn_smart_product_onboarding_core_utils.models import ProductCategory
+from amzn_smart_product_onboarding_product_categorization.product_classifier import (
+    ProductClassifier,
+)
 
 logger.name = "categorization_handler"
 
@@ -39,15 +51,21 @@ s3 = LAMBDA_S3_CLIENT
 bedrock = LAMBDA_BEDROCK_RUNTIME_CLIENT
 
 # download and load config files
-config_paths: dict[str, str] = json.loads(ssm.get_parameter(Name=CONFIG_PATHS_PARAM)["Parameter"]["Value"])
+config_paths: dict[str, str] = json.loads(
+    ssm.get_parameter(Name=CONFIG_PATHS_PARAM)["Parameter"]["Value"]
+)
 category_tree: dict[str, ProductCategory] = {
     k: ProductCategory.model_validate(v)
     for k, v in json.loads(
-        s3.get_object(Bucket=CONFIG_BUCKET_NAME, Key=config_paths["categoryTree"])["Body"].read()
+        s3.get_object(Bucket=CONFIG_BUCKET_NAME, Key=config_paths["categoryTree"])[
+            "Body"
+        ].read()
     ).items()
 }
 always_categories: list[str] = json.loads(
-    s3.get_object(Bucket=CONFIG_BUCKET_NAME, Key=config_paths["alwaysCategories"])["Body"].read()
+    s3.get_object(Bucket=CONFIG_BUCKET_NAME, Key=config_paths["alwaysCategories"])[
+        "Body"
+    ].read()
 )
 
 product_classifier = ProductClassifier(
@@ -59,11 +77,15 @@ product_classifier = ProductClassifier(
 )
 
 
-def categorize_product(event: CategorizeProductRequest, **kwargs) -> CategorizeProductOperationResponses:
+def categorize_product(
+    event: CategorizeProductRequest, **kwargs
+) -> CategorizeProductOperationResponses:
     logger.debug(f"Event received {event}")
     try:
         prediction = product_classifier.classify(
-            event.body.product, event.body.possible_categories, include_prompt=event.body.demo
+            event.body.product,
+            event.body.possible_categories,
+            include_prompt=event.body.demo,
         )
     except (RateLimitError, RetryableError, ModelResponseError) as e:
         logger.exception(e)
@@ -80,7 +102,9 @@ def categorize_product(event: CategorizeProductRequest, **kwargs) -> CategorizeP
             CategorizeProductResponseContent(
                 category_id=prediction.predicted_category_id,
                 category_name=prediction.predicted_category_name,
-                category_path=category_tree[prediction.predicted_category_id].formatted_path,
+                category_path=category_tree[
+                    prediction.predicted_category_id
+                ].formatted_path,
                 explanation=prediction.explanation,
                 prompt=prediction.prompt if event.body.demo else None,
             )

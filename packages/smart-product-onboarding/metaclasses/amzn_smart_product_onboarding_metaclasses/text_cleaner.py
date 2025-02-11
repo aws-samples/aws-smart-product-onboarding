@@ -1,13 +1,12 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-import inflect
+import os
+import re
 from typing import Sequence
 
-import re
-
+import inflect
 import nltk
-import os
 
 from amzn_smart_product_onboarding_core_utils.logger import logger
 
@@ -58,7 +57,7 @@ class TextCleaner:
         for word in text.split():
             parts = self._split_plants(word)
             for part in parts:
-                part = self._singularize_word(part)
+                part = self.singularize_word(part)
                 part = self._replace_synonyms(part)
                 s.append(part)
         text = " ".join(s)
@@ -126,7 +125,7 @@ class TextCleaner:
         return [word]
 
     # adapted from https://github.com/bermi/Python-Inflector
-    def _singularize_word(self, word: str) -> str:
+    def singularize_word(self, word: str) -> str:
         if word.endswith("ss"):
             return word
         if word in self.singularize:
@@ -142,8 +141,13 @@ class TextCleaner:
         except:
             return word
 
+    def singularize_sentence(self, sentence: str) -> str:
+        return " ".join((self.singularize_word(word) for word in sentence.split()))
+
     def _remove_descriptors(self, sentence: str) -> str:
-        return " ".join((word for word in sentence.split() if word not in self.descriptors))
+        return " ".join(
+            (word for word in sentence.split() if word not in self.descriptors)
+        )
 
     def _remove_stopwords_tokenize_text(self, text: str):
         stopwords = nltk.corpus.stopwords.words(self.language)

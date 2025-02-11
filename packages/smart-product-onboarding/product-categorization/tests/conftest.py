@@ -1,11 +1,17 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-import pytest
 from unittest.mock import Mock
 
-from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import BedrockRuntimeClient
-from amzn_smart_product_onboarding_core_utils.types import Product, CategorizationPrediction
+import pytest
+
+from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import (
+    BedrockRuntimeClient,
+)
+from amzn_smart_product_onboarding_core_utils.models import (
+    Product,
+    CategorizationPrediction,
+)
 
 
 @pytest.fixture

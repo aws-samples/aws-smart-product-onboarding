@@ -111,7 +111,7 @@ const productCategorization = new PythonProject({
   authorName: "AWS Latam PACE",
   authorEmail: "aws-latam-pace@amazon.com",
   version: "0.1.0",
-  deps: ["python@^3.12", "cachetools", "jinja2@^3.1.4", "faker@30.1.0"],
+  deps: ["python@^3.12", "cachetools@^5.5.1", "jinja2@^3.1.4", "faker@30.1.0"],
   devDeps: [
     "boto3-stubs-lite@{version = '^1.35.37', extras = ['bedrock-runtime', 's3']}",
     "moto@{version = '^5.0.16', extras = ['all']}",
@@ -136,10 +136,15 @@ const metaclasses = new PythonProject({
   version: "0.1.0",
   deps: [
     "python@^3.12",
-    "gensim@^4.3.3",
     "nltk@^3.9.1",
-    "numpy@1.26.4", // https://github.com/piskvorky/gensim/issues/3560
+    "numpy@^2.2.2",
     "inflect@^7.4.0",
+    "faiss-cpu@^1.10.0",
+    "cachetools@^5.5.1",
+    "jinja2@^3.1.4",
+  ],
+  devDeps: [
+    "boto3-stubs-lite@{version = '^1.35.37', extras = ['bedrock-runtime', 's3', 'dynamodb']}",
   ],
   poetry: true,
   pip: false,

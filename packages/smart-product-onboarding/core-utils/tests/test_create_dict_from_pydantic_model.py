@@ -3,7 +3,7 @@
 
 from pydantic import BaseModel
 
-from amzn_smart_product_onboarding_core_utils.types import create_typed_dict_from_model
+from amzn_smart_product_onboarding_core_utils.models import create_typed_dict_from_model
 
 
 class MyModel(BaseModel):

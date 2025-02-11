@@ -258,6 +258,10 @@ export class CategorizationWorkflow extends Construct {
           branchPrefix + "ProductCategorization",
           {
             removalPolicy: RemovalPolicy.DESTROY,
+            logGroupName:
+              "/aws/vendedlogs/states/" +
+              branchPrefix +
+              "ProductCategorization",
           },
         ),
         level: sfn.LogLevel.ALL,

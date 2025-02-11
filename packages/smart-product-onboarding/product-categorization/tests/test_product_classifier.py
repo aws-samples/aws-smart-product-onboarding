@@ -1,18 +1,20 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-import pytest
 from unittest.mock import Mock, call
 
+import pytest
+
 from amzn_smart_product_onboarding_core_utils.exceptions import ModelResponseError
-from amzn_smart_product_onboarding_core_utils.types import (
+from amzn_smart_product_onboarding_core_utils.models import (
     Product,
     ProductCategory,
     BaseProductCategory,
     CategorizationPrediction,
 )
-
-from amzn_smart_product_onboarding_product_categorization.product_classifier import ProductClassifier
+from amzn_smart_product_onboarding_product_categorization.product_classifier import (
+    ProductClassifier,
+)
 
 
 @pytest.fixture
@@ -111,7 +113,9 @@ def test_classify(product_classifier):
     product_classifier.create_prompt = Mock(return_value="Mocked prompt")
     product_classifier.get_product_category = Mock(
         return_value=CategorizationPrediction(
-            predicted_category_id="2", predicted_category_name="Smartphones", explanation="This is a smartphone."
+            predicted_category_id="2",
+            predicted_category_name="Smartphones",
+            explanation="This is a smartphone.",
         )
     )
 
@@ -121,7 +125,9 @@ def test_classify(product_classifier):
     assert result.predicted_category_id == "2"
     assert result.predicted_category_name == "Smartphones"
     product_classifier.create_prompt.assert_called_once()
-    product_classifier.get_product_category.assert_called_once_with("Mocked prompt", dryrun=False)
+    product_classifier.get_product_category.assert_called_once_with(
+        "Mocked prompt", dryrun=False
+    )
 
 
 def test_classify_with_always_categories(product_classifier):
@@ -132,7 +138,9 @@ def test_classify_with_always_categories(product_classifier):
     product_classifier.create_prompt = Mock(return_value="Mocked prompt")
     product_classifier.get_product_category = Mock(
         return_value=CategorizationPrediction(
-            predicted_category_id="3", predicted_category_name="Books", explanation="This is a book."
+            predicted_category_id="3",
+            predicted_category_name="Books",
+            explanation="This is a book.",
         )
     )
 
@@ -143,7 +151,9 @@ def test_classify_with_always_categories(product_classifier):
     assert result.predicted_category_name == "Books"
     assert result.explanation == "This is a book."
     product_classifier.create_prompt.assert_called_once()
-    product_classifier.get_product_category.assert_called_once_with("Mocked prompt", dryrun=False)
+    product_classifier.get_product_category.assert_called_once_with(
+        "Mocked prompt", dryrun=False
+    )
 
     # Check if the always_categories were included in the candidate categories
     _, args, _ = product_classifier.create_prompt.mock_calls[0]
@@ -158,7 +168,9 @@ def test_classify_with_include_prompt(product_classifier):
     product_classifier.create_prompt = Mock(return_value="Mocked prompt")
     product_classifier.get_product_category = Mock(
         return_value=CategorizationPrediction(
-            predicted_category_id="2", predicted_category_name="Smartphones", explanation="This is a smartphone."
+            predicted_category_id="2",
+            predicted_category_name="Smartphones",
+            explanation="This is a smartphone.",
         )
     )
 
@@ -169,7 +181,9 @@ def test_classify_with_include_prompt(product_classifier):
     assert result.predicted_category_name == "Smartphones"
     assert result.prompt == "Mocked prompt"
     product_classifier.create_prompt.assert_called_once()
-    product_classifier.get_product_category.assert_called_once_with("Mocked prompt", dryrun=False)
+    product_classifier.get_product_category.assert_called_once_with(
+        "Mocked prompt", dryrun=False
+    )
 
 
 def test_classify_with_hallucination(product_classifier):
@@ -247,7 +261,9 @@ def test_classify_with_hallucination(product_classifier):
 
 def test_validate_prediction_matches_leaf_name(product_classifier):
     prediction = CategorizationPrediction(
-        predicted_category_id="2", predicted_category_name="Smartphones", explanation="This is a smartphone."
+        predicted_category_id="2",
+        predicted_category_name="Smartphones",
+        explanation="This is a smartphone.",
     )
 
     result = product_classifier.validate_prediction(prediction)
@@ -269,7 +285,9 @@ def test_validate_prediction_matches_full_path_name(product_classifier):
 
 def test_validate_prediction_does_not_match_leaf_name(product_classifier):
     prediction = CategorizationPrediction(
-        predicted_category_id="2", predicted_category_name="Electronics", explanation="This is a smartphone."
+        predicted_category_id="2",
+        predicted_category_name="Electronics",
+        explanation="This is a smartphone.",
     )
 
     result = product_classifier.validate_prediction(prediction)
@@ -279,7 +297,9 @@ def test_validate_prediction_does_not_match_leaf_name(product_classifier):
 
 def test_validate_prediction_does_not_match_id(product_classifier):
     prediction = CategorizationPrediction(
-        predicted_category_id="42", predicted_category_name="Smartphones", explanation="This is a smartphone."
+        predicted_category_id="42",
+        predicted_category_name="Smartphones",
+        explanation="This is a smartphone.",
     )
 
     result = product_classifier.validate_prediction(prediction)

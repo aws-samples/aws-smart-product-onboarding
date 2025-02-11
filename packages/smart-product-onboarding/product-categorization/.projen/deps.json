@@ -22,6 +22,7 @@
     },
     {
       "name": "cachetools",
+      "version": "^5.5.1",
       "type": "runtime"
     },
     {

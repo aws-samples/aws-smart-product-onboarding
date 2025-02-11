@@ -41,9 +41,9 @@ def test_split_plants(text_cleaner):
 
 
 def test_singularize_word(text_cleaner):
-    assert text_cleaner._singularize_word("geese") == "goose"
-    assert text_cleaner._singularize_word("cats") == "cat"
-    assert text_cleaner._singularize_word("mouse") == "mouse"
+    assert text_cleaner.singularize_word("geese") == "goose"
+    assert text_cleaner.singularize_word("cats") == "cat"
+    assert text_cleaner.singularize_word("mouse") == "mouse"
 
 
 def test_remove_descriptors(text_cleaner):
@@ -51,7 +51,10 @@ def test_remove_descriptors(text_cleaner):
 
 
 def test_remove_stopwords_tokenize_text(text_cleaner):
-    assert text_cleaner._remove_stopwords_tokenize_text("the quick brown fox") == "quick brown fox"
+    assert (
+        text_cleaner._remove_stopwords_tokenize_text("the quick brown fox")
+        == "quick brown fox"
+    )
 
 
 def test_remove_html_tags(text_cleaner):
@@ -67,7 +70,9 @@ def test_remove_dimensions(text_cleaner):
 
 
 def test_remove_brands(text_cleaner):
-    assert text_cleaner._remove_brands("apple iphone samsung galaxy") == " iphone  galaxy"
+    assert (
+        text_cleaner._remove_brands("apple iphone samsung galaxy") == " iphone  galaxy"
+    )
 
 
 def test_replace_synonyms(text_cleaner):
