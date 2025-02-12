@@ -206,7 +206,7 @@
       "description": "Upgrade dependencies in the monorepo for all affected projects",
       "steps": [
         {
-          "exec": "pnpm exec nx run-many --target=upgrade --output-style=stream --nx-bail --projects=amzn-smart-product-onboarding-core-utils,amzn-smart-product-onboarding-product-categorization,amzn-smart-product-onboarding-metaclasses,@aws-samples/smart-product-onboarding-api,@aws-samples/smart-product-onboarding-api-model,amzn-smart-product-onboarding-api-python-runtime,@aws-samples/smart-product-onboarding-api-documentation-html2,@aws-samples/smart-product-onboarding-api-documentation-markdown,amzn-smart-product-onboarding-api-python-handlers",
+          "exec": "pnpm exec nx run-many --target=upgrade --output-style=stream --nx-bail --projects=amzn-smart-product-onboarding-core-utils,amzn-smart-product-onboarding-product-categorization,amzn-smart-product-onboarding-metaclasses,@aws-samples/smart-product-onboarding-api,@aws-samples/smart-product-onboarding-api-model,amzn-smart-product-onboarding-api-python-runtime,@aws-samples/smart-product-onboarding-api-documentation-markdown,amzn-smart-product-onboarding-api-python-handlers",
           "receiveArgs": true
         },
         {

@@ -359,10 +359,6 @@ export class SmartProductOnboardingAPI extends Construct {
             reason:
               "Using the AWSLambdaBasicExecutionRole Managed Policy to expedite development. Replace on Production environment (Path to Production)",
           },
-          {
-            id: "AwsSolutions-L1",
-            reason: "Lambda runtime versions managed upstream in PDK.",
-          },
         ],
         true,
       );

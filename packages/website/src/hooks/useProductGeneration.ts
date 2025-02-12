@@ -4,6 +4,7 @@
  */
 
 import {
+  GenProductRequestContentModelEnum,
   ProductData,
   useGenerateProduct,
   useUploadFile,
@@ -62,7 +63,7 @@ export const useProductGeneration = (
     },
     onSuccess: (data) => {
       if (setProductData) {
-        setProductData(data);
+        setProductData(data.product);
       }
       setStatus("Success");
       console.log(data);
@@ -99,8 +100,8 @@ export const useProductGeneration = (
 
   async function uploadImageToS3(image: S3Image): Promise<string> {
     /*
-    Uploads an image to S3, returns the object key it was uploaded to.
-     */
+                    Uploads an image to S3, returns the object key it was uploaded to.
+                     */
     return uploadImage
       .mutateAsync({
         uploadFileRequestContent: {
@@ -173,7 +174,9 @@ export const useProductGeneration = (
         language: llmOptions.language,
         productImages: objectKeys,
         metadata: productMetadata,
-        model: llmOptions.model ? llmOptions.model.value : undefined,
+        model: llmOptions.model
+          ? (llmOptions.model.value as GenProductRequestContentModelEnum)
+          : undefined,
         temperature: llmOptions.temperature,
         descriptionLength: llmOptions.descriptionLength,
         examples: examples,

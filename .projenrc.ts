@@ -14,8 +14,8 @@ import {
 import { NodePackageManager } from "projen/lib/javascript";
 import { PythonProject } from "projen/lib/python";
 
-const cdkVersion = "2.161.1";
-const pdkVersion = "0.23.64";
+const cdkVersion = "2.178.1";
+const pdkVersion = "0.25.17";
 const projectName = "smart-product-onboarding";
 const npmPrefix = "@aws-samples/";
 const pypiPrefix = "amzn-";
@@ -151,6 +151,7 @@ const metaclasses = new PythonProject({
   setuptools: false,
   venv: false,
 });
+
 metaclasses.addDependency(
   `${coreUtils.moduleName}@{ path = "${path.relative(metaclasses.outdir, coreUtils.outdir)}", develop = true }`,
 );
@@ -187,7 +188,7 @@ const api = new TypeSafeApiProject({
           "boto3-stubs-lite@{version = '^1.35.37', extras = ['dynamodb', 's3', 'stepfunctions']}",
           "moto@{version = '^5.0.16', extras = ['all']}",
         ],
-        runtimeVersion: PythonVersion.PYTHON_3_12,
+        runtimeVersion: PythonVersion.PYTHON_3_13,
       },
       typescript: {
         deps: [
@@ -198,7 +199,7 @@ const api = new TypeSafeApiProject({
           "@aws-lambda-powertools/parameters@^2.10.0",
           "fast-xml-parser@^4.3.6",
         ],
-        runtimeVersion: NodeVersion.NODE_20,
+        runtimeVersion: NodeVersion.NODE_22,
         prettier: true,
       },
     },
@@ -217,7 +218,7 @@ const api = new TypeSafeApiProject({
     libraries: [Library.TYPESCRIPT_REACT_QUERY_HOOKS],
   },
   documentation: {
-    formats: [DocumentationFormat.HTML2, DocumentationFormat.MARKDOWN],
+    formats: [DocumentationFormat.MARKDOWN],
   },
   commitGenerated: true,
 });

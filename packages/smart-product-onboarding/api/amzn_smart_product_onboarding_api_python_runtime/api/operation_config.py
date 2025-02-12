@@ -31,27 +31,27 @@ OperationLookup = {
     "categorize_product": {
         "path": "/categorizeProduct",
         "method": "POST",
-        "contentTypes": ["application/json",]
+        "contentTypes": ["application/json"]
     },
     "create_batch_execution": {
         "path": "/createBatchExecution",
         "method": "POST",
-        "contentTypes": ["application/json",]
+        "contentTypes": ["application/json"]
     },
     "download_file": {
         "path": "/downloadFile",
         "method": "POST",
-        "contentTypes": ["application/json",]
+        "contentTypes": ["application/json"]
     },
     "extract_attributes": {
         "path": "/extractAttributes",
         "method": "POST",
-        "contentTypes": ["application/json",]
+        "contentTypes": ["application/json"]
     },
     "generate_product": {
         "path": "/generateProduct",
         "method": "POST",
-        "contentTypes": ["application/json",]
+        "contentTypes": ["application/json"]
     },
     "get_batch_execution": {
         "path": "/getBatchExecution/{executionId}",
@@ -66,12 +66,12 @@ OperationLookup = {
     "metaclass": {
         "path": "/metaclass",
         "method": "POST",
-        "contentTypes": ["application/json",]
+        "contentTypes": ["application/json"]
     },
     "upload_file": {
         "path": "/uploadFile",
         "method": "POST",
-        "contentTypes": ["application/json",]
+        "contentTypes": ["application/json"]
     },
 }
 
@@ -272,6 +272,7 @@ CategorizeProduct200OperationResponse = ApiResponse[Literal[200], CategorizeProd
 CategorizeProduct400OperationResponse = ApiResponse[Literal[400], BadRequestErrorResponseContent]
 CategorizeProduct403OperationResponse = ApiResponse[Literal[403], NotAuthorizedErrorResponseContent]
 CategorizeProduct500OperationResponse = ApiResponse[Literal[500], InternalFailureErrorResponseContent]
+
 CategorizeProductOperationResponses = Union[CategorizeProduct200OperationResponse, CategorizeProduct400OperationResponse, CategorizeProduct403OperationResponse, CategorizeProduct500OperationResponse, ]
 
 # Request type for categorize_product
@@ -325,7 +326,7 @@ def categorize_product_handler(_handler: CategorizeProductHandlerFunction = None
                 }
 
             # Non-primitive type so parse the body into the appropriate model
-            body = parse_body(event['body'], ['application/json',], CategorizeProductRequestBody)
+            body = parse_body(event['body'], ['application/json'], CategorizeProductRequestBody)
             interceptor_context = {
                 "operationId": "categorize_product",
             }
@@ -402,6 +403,7 @@ CreateBatchExecution200OperationResponse = ApiResponse[Literal[200], StartBatchE
 CreateBatchExecution400OperationResponse = ApiResponse[Literal[400], BadRequestErrorResponseContent]
 CreateBatchExecution403OperationResponse = ApiResponse[Literal[403], NotAuthorizedErrorResponseContent]
 CreateBatchExecution500OperationResponse = ApiResponse[Literal[500], InternalFailureErrorResponseContent]
+
 CreateBatchExecutionOperationResponses = Union[CreateBatchExecution200OperationResponse, CreateBatchExecution400OperationResponse, CreateBatchExecution403OperationResponse, CreateBatchExecution500OperationResponse, ]
 
 # Request type for create_batch_execution
@@ -455,7 +457,7 @@ def create_batch_execution_handler(_handler: CreateBatchExecutionHandlerFunction
                 }
 
             # Non-primitive type so parse the body into the appropriate model
-            body = parse_body(event['body'], ['application/json',], CreateBatchExecutionRequestBody)
+            body = parse_body(event['body'], ['application/json'], CreateBatchExecutionRequestBody)
             interceptor_context = {
                 "operationId": "create_batch_execution",
             }
@@ -532,6 +534,7 @@ DownloadFile200OperationResponse = ApiResponse[Literal[200], PresignedUrlRespons
 DownloadFile400OperationResponse = ApiResponse[Literal[400], BadRequestErrorResponseContent]
 DownloadFile403OperationResponse = ApiResponse[Literal[403], NotAuthorizedErrorResponseContent]
 DownloadFile500OperationResponse = ApiResponse[Literal[500], InternalFailureErrorResponseContent]
+
 DownloadFileOperationResponses = Union[DownloadFile200OperationResponse, DownloadFile400OperationResponse, DownloadFile403OperationResponse, DownloadFile500OperationResponse, ]
 
 # Request type for download_file
@@ -585,7 +588,7 @@ def download_file_handler(_handler: DownloadFileHandlerFunction = None, intercep
                 }
 
             # Non-primitive type so parse the body into the appropriate model
-            body = parse_body(event['body'], ['application/json',], DownloadFileRequestBody)
+            body = parse_body(event['body'], ['application/json'], DownloadFileRequestBody)
             interceptor_context = {
                 "operationId": "download_file",
             }
@@ -662,6 +665,7 @@ ExtractAttributes200OperationResponse = ApiResponse[Literal[200], ExtractAttribu
 ExtractAttributes400OperationResponse = ApiResponse[Literal[400], BadRequestErrorResponseContent]
 ExtractAttributes403OperationResponse = ApiResponse[Literal[403], NotAuthorizedErrorResponseContent]
 ExtractAttributes500OperationResponse = ApiResponse[Literal[500], InternalFailureErrorResponseContent]
+
 ExtractAttributesOperationResponses = Union[ExtractAttributes200OperationResponse, ExtractAttributes400OperationResponse, ExtractAttributes403OperationResponse, ExtractAttributes500OperationResponse, ]
 
 # Request type for extract_attributes
@@ -715,7 +719,7 @@ def extract_attributes_handler(_handler: ExtractAttributesHandlerFunction = None
                 }
 
             # Non-primitive type so parse the body into the appropriate model
-            body = parse_body(event['body'], ['application/json',], ExtractAttributesRequestBody)
+            body = parse_body(event['body'], ['application/json'], ExtractAttributesRequestBody)
             interceptor_context = {
                 "operationId": "extract_attributes",
             }
@@ -792,6 +796,7 @@ GenerateProduct200OperationResponse = ApiResponse[Literal[200], GenProductRespon
 GenerateProduct400OperationResponse = ApiResponse[Literal[400], BadRequestErrorResponseContent]
 GenerateProduct403OperationResponse = ApiResponse[Literal[403], NotAuthorizedErrorResponseContent]
 GenerateProduct500OperationResponse = ApiResponse[Literal[500], InternalFailureErrorResponseContent]
+
 GenerateProductOperationResponses = Union[GenerateProduct200OperationResponse, GenerateProduct400OperationResponse, GenerateProduct403OperationResponse, GenerateProduct500OperationResponse, ]
 
 # Request type for generate_product
@@ -845,7 +850,7 @@ def generate_product_handler(_handler: GenerateProductHandlerFunction = None, in
                 }
 
             # Non-primitive type so parse the body into the appropriate model
-            body = parse_body(event['body'], ['application/json',], GenerateProductRequestBody)
+            body = parse_body(event['body'], ['application/json'], GenerateProductRequestBody)
             interceptor_context = {
                 "operationId": "generate_product",
             }
@@ -923,6 +928,7 @@ GetBatchExecution200OperationResponse = ApiResponse[Literal[200], BatchExecution
 GetBatchExecution400OperationResponse = ApiResponse[Literal[400], BadRequestErrorResponseContent]
 GetBatchExecution403OperationResponse = ApiResponse[Literal[403], NotAuthorizedErrorResponseContent]
 GetBatchExecution500OperationResponse = ApiResponse[Literal[500], InternalFailureErrorResponseContent]
+
 GetBatchExecutionOperationResponses = Union[GetBatchExecution200OperationResponse, GetBatchExecution400OperationResponse, GetBatchExecution403OperationResponse, GetBatchExecution500OperationResponse, ]
 
 # Request type for get_batch_execution
@@ -1055,6 +1061,7 @@ ListBatchExecutions200OperationResponse = ApiResponse[Literal[200], ListBatchExe
 ListBatchExecutions400OperationResponse = ApiResponse[Literal[400], BadRequestErrorResponseContent]
 ListBatchExecutions403OperationResponse = ApiResponse[Literal[403], NotAuthorizedErrorResponseContent]
 ListBatchExecutions500OperationResponse = ApiResponse[Literal[500], InternalFailureErrorResponseContent]
+
 ListBatchExecutionsOperationResponses = Union[ListBatchExecutions200OperationResponse, ListBatchExecutions400OperationResponse, ListBatchExecutions403OperationResponse, ListBatchExecutions500OperationResponse, ]
 
 # Request type for list_batch_executions
@@ -1186,6 +1193,7 @@ Metaclass200OperationResponse = ApiResponse[Literal[200], MetaclassResponseConte
 Metaclass400OperationResponse = ApiResponse[Literal[400], BadRequestErrorResponseContent]
 Metaclass403OperationResponse = ApiResponse[Literal[403], NotAuthorizedErrorResponseContent]
 Metaclass500OperationResponse = ApiResponse[Literal[500], InternalFailureErrorResponseContent]
+
 MetaclassOperationResponses = Union[Metaclass200OperationResponse, Metaclass400OperationResponse, Metaclass403OperationResponse, Metaclass500OperationResponse, ]
 
 # Request type for metaclass
@@ -1239,7 +1247,7 @@ def metaclass_handler(_handler: MetaclassHandlerFunction = None, interceptors: L
                 }
 
             # Non-primitive type so parse the body into the appropriate model
-            body = parse_body(event['body'], ['application/json',], MetaclassRequestBody)
+            body = parse_body(event['body'], ['application/json'], MetaclassRequestBody)
             interceptor_context = {
                 "operationId": "metaclass",
             }
@@ -1316,6 +1324,7 @@ UploadFile200OperationResponse = ApiResponse[Literal[200], PresignedUrlResponse]
 UploadFile400OperationResponse = ApiResponse[Literal[400], BadRequestErrorResponseContent]
 UploadFile403OperationResponse = ApiResponse[Literal[403], NotAuthorizedErrorResponseContent]
 UploadFile500OperationResponse = ApiResponse[Literal[500], InternalFailureErrorResponseContent]
+
 UploadFileOperationResponses = Union[UploadFile200OperationResponse, UploadFile400OperationResponse, UploadFile403OperationResponse, UploadFile500OperationResponse, ]
 
 # Request type for upload_file
@@ -1369,7 +1378,7 @@ def upload_file_handler(_handler: UploadFileHandlerFunction = None, interceptors
                 }
 
             # Non-primitive type so parse the body into the appropriate model
-            body = parse_body(event['body'], ['application/json',], UploadFileRequestBody)
+            body = parse_body(event['body'], ['application/json'], UploadFileRequestBody)
             interceptor_context = {
                 "operationId": "upload_file",
             }

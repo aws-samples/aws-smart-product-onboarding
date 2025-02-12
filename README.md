@@ -79,10 +79,8 @@ The following table provides a sample cost breakdown for deploying this solution
 * Download and install Docker. Refer to [Docker](https://www.docker.com/products/docker-desktop/).
 * NodeJS >= 18.0.0 and < 22
 * Python >= 3.12 preferably with [pyenv](https://github.com/pyenv/pyenv)
-* Poetry >= 1.5.1
+* Poetry >= 1.5.1 and < 2
 * Pnpm >= 8.6.3 and < 9
-* JDK >= 11 [Coretto](https://docs.aws.amazon.com/corretto/)
-* Maven >= 3.8 [Maven](https://maven.apache.org/install.html)
 
 ```shell
 pip install poetry

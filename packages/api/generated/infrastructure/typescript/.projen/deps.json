@@ -53,7 +53,7 @@
     },
     {
       "name": "@aws/pdk",
-      "version": "^0.23.64",
+      "version": "^0.25.17",
       "type": "runtime"
     }
   ],

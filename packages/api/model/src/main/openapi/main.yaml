@@ -381,11 +381,13 @@ components:
         - inputTokens
     GenProductResponseContent:
       type: object
-      allOf:
-        - $ref: "#/components/schemas/ProductData"
       properties:
+        product:
+          $ref: "#/components/schemas/ProductData"
         usage:
           $ref: "#/components/schemas/ModelUsage"
+      required:
+        - product
     GenProductRequestContent:
       type: object
       properties:
@@ -510,7 +512,7 @@ components:
         outputKey:
           type: string
         expiration:
-          type: number
+          type: integer
           description: The expiration, in seconds for the generated URL
           minimum: 15
           maximum: 300
@@ -522,7 +524,7 @@ components:
         fileName:
           type: string
         expiration:
-          type: number
+          type: integer
           description: The expiration, in seconds for the generated URL
           minimum: 15
           maximum: 300

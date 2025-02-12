@@ -13,9 +13,9 @@ import {
 } from "@aws-samples/smart-product-onboarding-api-typescript-runtime";
 import {
   BedrockRuntimeClient,
-  ValidationException,
   ResourceNotFoundException,
   ThrottlingException,
+  ValidationException,
 } from "@aws-sdk/client-bedrock-runtime";
 import { S3Client } from "@aws-sdk/client-s3";
 import { ProductGeneratorService } from "./services/productGenerator";
@@ -76,8 +76,10 @@ export const generateProduct: GenerateProductChainedHandlerFunction = async (
     });
 
     return Response.success({
-      title: result.productData.title,
-      description: result.productData.description,
+      product: {
+        title: result.productData.title,
+        description: result.productData.description,
+      },
       usage: {
         inputTokens: result.usage?.inputTokens || Infinity,
         outputTokens: result.usage?.outputTokens || Infinity,

@@ -82,13 +82,6 @@
         "cwd": "packages/api/generated/runtime/python"
       }
     },
-    "create-openapitools.json": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen create-openapitools.json",
-        "cwd": "packages/api/generated/runtime/python"
-      }
-    },
     "generate": {
       "executor": "nx:run-commands",
       "options": {
