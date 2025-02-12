@@ -81,9 +81,6 @@ class GenProductRequestContent(BaseModel):
         # override the default output from pydantic by calling `to_dict()` of description_length
         if self.description_length:
             _dict['descriptionLength'] = self.description_length.to_dict()
-        # override the default output from pydantic by calling `to_dict()` of product_images
-        if self.product_images:
-            _dict['productImages'] = self.product_images.to_dict()
         # override the default output from pydantic by calling `to_dict()` of model
         if self.model:
             _dict['model'] = self.model.to_dict()

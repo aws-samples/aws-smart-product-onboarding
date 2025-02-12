@@ -75,9 +75,6 @@ class CategorizeProductRequestContent(BaseModel):
         # override the default output from pydantic by calling `to_dict()` of product
         if self.product:
             _dict['product'] = self.product.to_dict()
-        # override the default output from pydantic by calling `to_dict()` of possible_categories
-        if self.possible_categories:
-            _dict['possibleCategories'] = self.possible_categories.to_dict()
         return _dict
 
     @classmethod

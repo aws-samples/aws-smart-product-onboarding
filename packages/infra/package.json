@@ -27,7 +27,7 @@
     "@types/node": "^18",
     "@typescript-eslint/eslint-plugin": "^7",
     "@typescript-eslint/parser": "^7",
-    "aws-cdk": "^2.173.0",
+    "aws-cdk": "^2.178.1",
     "esbuild": "^0.19.12",
     "eslint": "^8",
     "eslint-config-prettier": "^9.1.0",
@@ -47,7 +47,7 @@
     "@aws-samples/smart-product-onboarding-api-typescript-runtime": "0.0.0",
     "@aws/pdk": "file:/Users/strunkjd/PycharmProjects/aws-pdk/packages/pdk/dist/js/pdk@0.0.0.jsii.tgz",
     "@dontirun/state-machine-semaphore": "^0.1.583",
-    "aws-cdk-lib": "^2.173.0",
+    "aws-cdk-lib": "^2.178.1",
     "cdk-nag": "^2.34.23",
     "constructs": "^10.0.5"
   },

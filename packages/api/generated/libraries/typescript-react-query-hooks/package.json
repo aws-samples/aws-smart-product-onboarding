@@ -16,12 +16,12 @@
   "devDependencies": {
     "@aws/pdk": "^0",
     "@types/node": "^18",
-    "@types/react": "^18.3.17",
-    "react": "18.2.0",
-    "typescript": "^5.7.2"
+    "@types/react": "*",
+    "react": "*",
+    "typescript": "*"
   },
   "peerDependencies": {
-    "react": "^18.2.0"
+    "react": "*"
   },
   "dependencies": {
     "@tanstack/react-query": "^4"

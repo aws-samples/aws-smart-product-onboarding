@@ -72,9 +72,6 @@ class MetaclassResponseContent(BaseModel):
             },
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of possible_categories
-        if self.possible_categories:
-            _dict['possibleCategories'] = self.possible_categories.to_dict()
         # override the default output from pydantic by calling `to_dict()` of each item in findings (list)
         _items = []
         if self.findings:
