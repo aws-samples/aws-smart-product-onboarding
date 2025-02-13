@@ -67,11 +67,13 @@ project.package.addPackageResolutions(
   "axios@^1.7.4",
   "cross-spawn@^7.0.5",
   "dompurify@^3.1.7",
+  "esbuild@^0.25.0",
   "fast-xml-parser@^4.4.1",
   "micromatch@^4.0.8",
   "nth-check@^2.1.1",
   "postcss@^8.4.38",
   "semver@^7.6.2",
+  "serialize-javascript@^6.0.2",
   "webpack@^5.94.0",
   "ws@^8.17.1",
 );
