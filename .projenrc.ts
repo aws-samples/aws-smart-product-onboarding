@@ -201,6 +201,7 @@ const api = new TypeSafeApiProject({
           "@aws-lambda-powertools/parameters@^2.10.0",
           "fast-xml-parser@^4.3.6",
         ],
+        devDeps: ["esbuild@^0.25.0"],
         runtimeVersion: NodeVersion.NODE_22,
         prettier: true,
       },
