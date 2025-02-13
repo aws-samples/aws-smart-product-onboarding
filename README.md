@@ -63,10 +63,10 @@ The following table provides a sample cost breakdown for deploying this solution
 | AWS API Gateway                       | API                                                                                                                | 1.02           |
 | Amazon CloudWatch                     | Service metrics and logs                                                                                           | 9.55           |
 | AWS X-Ray                             | API Gateway, Lambda, and Step Functions tracing                                                                    | 5.00           |
-| Amazon Cognito                        | Demo users                                                                                                         | 5.00           |
+| Amazon Cognito                        | Demo users - 100 Monthly Active Users on Plus feature plan                                                         | 2.00           |
 | AWS Web Application Firewall          | Protect API Gateway                                                                                                | 0.60           |
 | AWS Systems Manager                   | Parameter Store                                                                                                    | 0.00           |
-| **Total monthly infrastructure cost** |                                                                                                                    | **2,182.80**   |
+| **Total monthly infrastructure cost** |                                                                                                                    | **2,179.80**   |
 
 
 ## Deployment and Development
