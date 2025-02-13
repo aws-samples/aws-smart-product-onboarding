@@ -110,6 +110,17 @@ export class ApplicationStack extends Stack {
       },
     );
 
+    NagSuppressions.addResourceSuppressions(
+      wordEmbeddingsPolicy,
+      [
+        {
+          id: "AwsSolutions-IAM5",
+          reason: "This policy is populated by the metaclasses notebook.",
+        },
+      ],
+      true,
+    );
+
     new ssm.StringParameter(this, "WordEmbeddingsPolicyParam", {
       parameterName: ssmParameterPrefix + "/WordEmbeddingsPolicyArn",
       stringValue: wordEmbeddingsPolicy.managedPolicyArn,
@@ -169,7 +180,7 @@ export class ApplicationStack extends Stack {
       autoVerify: {
         email: true,
       },
-      advancedSecurityMode: cognito.AdvancedSecurityMode.ENFORCED,
+      featurePlan: cognito.FeaturePlan.PLUS,
     });
 
     NagSuppressions.addResourceSuppressions(
@@ -179,6 +190,11 @@ export class ApplicationStack extends Stack {
           id: "AwsSolutions-COG2",
           reason:
             "The Cognito User Pool is used for demo purposes only. In production, MFA should be required.",
+        },
+        {
+          id: "AwsSolutions-COG3",
+          reason:
+            "Advanced Security Features is deprecated in favor of the Plus feature plan.",
         },
         {
           id: "AwsSolutions-IAM5",
