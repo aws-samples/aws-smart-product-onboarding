@@ -67,8 +67,8 @@ const GenProductDataDemo = () => {
         >
           <SpaceBetween size="l">
             <ImageUploader
-              value={imageFiles}
-              setValue={(images) => setImageFiles(images)}
+              imageFiles={imageFiles}
+              setImageFiles={(images) => setImageFiles(images)}
             />
             <ProductMetadata
               value={productMetadata}
