@@ -49,6 +49,7 @@ const GenProductDataDemo = () => {
       <SpaceBetween size="l">
         {(generateProduct.isSuccess || generateProduct.isError) && (
           <ReviewProductDataStep
+            imageFiles={imageFiles}
             productData={generateProduct.data?.product}
             isLoading={generateProduct.isLoading}
             status={generateProduct.status}

@@ -130,6 +130,7 @@ const SmartProductOnboarding: React.FC = () => {
       title: "Generate product data",
       content: (
         <ReviewProductDataStep
+          imageFiles={imageFiles}
           productData={productData}
           setProductData={setProductData}
           isLoading={
@@ -186,6 +187,7 @@ const SmartProductOnboarding: React.FC = () => {
       title: "Review",
       content: (
         <ReviewStep
+          imageFiles={imageFiles}
           productData={productData}
           classification={categorizeProduct.data}
           attributes={extractAttributes.data}
