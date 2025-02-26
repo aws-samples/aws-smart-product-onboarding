@@ -13,7 +13,7 @@ type ImageError = string | null;
 
 export interface ImageUploaderProps {
   imageFiles: File[];
-  setImageFiles: (value: File[]) => void;
+  setImageFiles: React.Dispatch<React.SetStateAction<File[]>>;
 }
 
 const maxImages = 20;
@@ -42,7 +42,6 @@ const ImageUploader: React.FC<ImageUploaderProps> = (
     setImageFiles(newValue);
     setError(undefined);
     setErrorList(newValue.map(validateImage));
-    setUseCameraMode(false);
   };
 
   return (
@@ -96,6 +95,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = (
         <CameraCapture
           onCapture={handleCameraCapture}
           onCancel={() => setUseCameraMode(false)}
+          visible={useCameraMode}
+          imageFiles={imageFiles}
+          setImageFiles={setImageFiles}
         />
       )}
     </FormField>

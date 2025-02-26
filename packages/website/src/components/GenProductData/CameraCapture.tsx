@@ -1,25 +1,54 @@
 import {
+  Box,
   Button,
+  FileTokenGroup,
+  FileTokenGroupProps,
+  Grid,
+  Modal,
   Select,
   SelectProps,
   SpaceBetween,
 } from "@cloudscape-design/components";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 export interface CameraCaptureProps {
   onCapture: (file: File) => void;
   onCancel: () => void;
+  visible: boolean;
+  imageFiles: File[];
+  setImageFiles: React.Dispatch<React.SetStateAction<File[]>>;
 }
 
 const CameraCapture: React.FC<CameraCaptureProps> = ({
   onCapture,
   onCancel,
+  visible,
+  imageFiles,
+  setImageFiles,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream>();
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDevice, setSelectedDevice] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [windowHeight, setWindowHeight] = useState(0);
+
+  useEffect(() => {
+    // Set initial window height
+    setWindowHeight(window.innerHeight);
+
+    // Update window height when it changes
+    const handleResize = () => {
+      setWindowHeight(window.innerHeight);
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    // Clean up event listener
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
   // Function to get camera devices with labels
   const getDevicesWithLabels = async () => {
@@ -62,29 +91,6 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
     // Get available camera devices
     setIsLoading(true);
     void getDevicesWithLabels();
-
-    navigator.mediaDevices
-      .enumerateDevices()
-      .then((deviceList) => {
-        const videoDevices = deviceList.filter(
-          (device) => device.kind === "videoinput",
-        );
-        setDevices(videoDevices);
-        if (videoDevices.length > 0) {
-          // Try to select a rear camera by default if on mobile
-          const rearCamera = videoDevices.find(
-            (device) =>
-              device.label.toLowerCase().includes("back") ||
-              device.label.toLowerCase().includes("rear"),
-          );
-          setSelectedDevice(rearCamera?.deviceId || videoDevices[0].deviceId);
-        }
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error enumerating devices:", err);
-        setIsLoading(false);
-      });
   }, []);
 
   const startCamera = async () => {
@@ -116,7 +122,9 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
 
   const stopCamera = () => {
     if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
+      stream.getTracks().forEach((track) => {
+        track.stop();
+      });
       setStream(undefined);
     }
   };
@@ -142,7 +150,6 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
           type: "image/jpeg",
         });
         onCapture(file);
-        stopCamera();
       }, "image/jpeg");
     }
   };
@@ -154,6 +161,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
       setTimeout(startCamera, 100);
     }
   };
+
   useEffect(() => {
     return () => {
       stopCamera();
@@ -161,58 +169,83 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
   }, []);
 
   return (
-    <div>
-      {devices.length > 0 && (
-        <Select
-          selectedOption={{
-            value: selectedDevice,
-            label:
-              devices.find((d) => d.deviceId === selectedDevice)?.label ||
-              "Camera",
-          }}
-          onChange={handleDeviceChange}
-          options={devices.map((device) => ({
-            value: device.deviceId,
-            label: device.label || `Camera ${devices.indexOf(device) + 1}`,
-          }))}
-          placeholder="Select camera"
-          disabled={isLoading}
-        />
-      )}
-
-      <div style={{ margin: "1rem 0" }}>
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          style={{
-            width: "100%",
-            maxWidth: "400px",
-            display: stream ? "block" : "none",
-          }}
-        />
-      </div>
-
-      <SpaceBetween direction="horizontal" size="s">
-        {!stream ? (
-          <Button onClick={startCamera} loading={isLoading}>
-            Start Camera
+    <Modal
+      visible={visible}
+      onDismiss={onCancel}
+      size="max"
+      header="Take Photo"
+      footer={
+        <SpaceBetween direction="horizontal" size="s">
+          {!stream ? (
+            <Button onClick={startCamera} loading={isLoading}>
+              Start Camera
+            </Button>
+          ) : (
+            <Button onClick={takePhoto} variant="primary">
+              Take Photo
+            </Button>
+          )}
+          <Button
+            onClick={() => {
+              stopCamera();
+              onCancel();
+            }}
+          >
+            {imageFiles.length === 0 ? "Cancel" : "Close"}
           </Button>
-        ) : (
-          <Button onClick={takePhoto} variant="primary">
-            Take Photo
-          </Button>
+        </SpaceBetween>
+      }
+    >
+      <SpaceBetween size="s">
+        {devices.length > 0 && (
+          <Select
+            selectedOption={{
+              value: selectedDevice,
+              label:
+                devices.find((d) => d.deviceId === selectedDevice)?.label ||
+                "Camera",
+            }}
+            onChange={handleDeviceChange}
+            options={devices.map((device) => ({
+              value: device.deviceId,
+              label: device.label || `Camera ${devices.indexOf(device) + 1}`,
+            }))}
+            placeholder="Select camera"
+            disabled={isLoading}
+          />
         )}
-        <Button
-          onClick={() => {
-            stopCamera();
-            onCancel();
-          }}
-        >
-          Cancel
-        </Button>
+
+        <Grid gridDefinition={[{ colspan: 10 }, { colspan: 2 }]}>
+          <Box textAlign="center">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              style={{
+                width: "100%",
+                maxHeight: `${windowHeight * 0.75}px`, // 75% of window height
+                display: stream ? "block" : "none",
+              }}
+            />
+          </Box>
+          <FileTokenGroup
+            alignment="vertical"
+            showFileThumbnail={true}
+            onDismiss={({ detail }) =>
+              setImageFiles((value: File[]) =>
+                value.filter((_, index) => detail.fileIndex !== index),
+              )
+            }
+            limit={3}
+            items={imageFiles.map((file): FileTokenGroupProps.Item => {
+              return {
+                file: file,
+              };
+            })}
+          />
+        </Grid>
       </SpaceBetween>
-    </div>
+    </Modal>
   );
 };
 
