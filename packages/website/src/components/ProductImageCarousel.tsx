@@ -1,3 +1,8 @@
+/**
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: MIT-0
+ */
+
 import { Box, Button, Container, Modal } from "@cloudscape-design/components";
 import { useState } from "react";
 import "./carousel.css";

@@ -1,3 +1,6 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
 from amzn_smart_product_onboarding_api_python_runtime import MetaclassResponseContent
 from amzn_smart_product_onboarding_api_python_runtime.response import Response
 

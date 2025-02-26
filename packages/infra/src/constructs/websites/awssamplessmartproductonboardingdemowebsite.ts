@@ -1,3 +1,8 @@
+/**
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: MIT-0
+ */
+
 import { UserIdentity } from "@aws/pdk/identity";
 import { StaticWebsite } from "@aws/pdk/static-website";
 import { Stack } from "aws-cdk-lib";
