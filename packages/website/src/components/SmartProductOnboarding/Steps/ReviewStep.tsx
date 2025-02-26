@@ -18,14 +18,17 @@ import Container from "@cloudscape-design/components/container";
 import Header from "@cloudscape-design/components/header";
 import AttributesResults from "../../AttributesResults";
 import CategorizationResults from "../../CategorizationResults";
+import ProductImageCarousel from "../../ProductImageCarousel";
 
 export interface ReviewStepProps {
+  imageFiles: File[];
   productData?: Partial<ProductData>;
   classification?: CategorizeProductResponseContent;
   attributes?: ExtractAttributesResponseContent;
 }
 
 const ReviewStep: React.FC<ReviewStepProps> = ({
+  imageFiles,
   productData,
   classification,
   attributes,
@@ -43,6 +46,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
         }
       >
         <SpaceBetween size="l">
+          <ProductImageCarousel imageFiles={imageFiles} />
           <Container header={<Header variant="h3">Product Content</Header>}>
             <KeyValuePairs
               items={[

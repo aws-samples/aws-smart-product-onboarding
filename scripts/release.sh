@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
 
 # Get the current version
 current_version=$(git describe --tags --abbrev=0 || echo "0.0.0")

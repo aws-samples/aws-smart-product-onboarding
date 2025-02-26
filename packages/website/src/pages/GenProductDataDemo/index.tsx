@@ -49,6 +49,7 @@ const GenProductDataDemo = () => {
       <SpaceBetween size="l">
         {(generateProduct.isSuccess || generateProduct.isError) && (
           <ReviewProductDataStep
+            imageFiles={imageFiles}
             productData={generateProduct.data?.product}
             isLoading={generateProduct.isLoading}
             status={generateProduct.status}
@@ -66,8 +67,8 @@ const GenProductDataDemo = () => {
         >
           <SpaceBetween size="l">
             <ImageUploader
-              value={imageFiles}
-              setValue={(images) => setImageFiles(images)}
+              imageFiles={imageFiles}
+              setImageFiles={(images) => setImageFiles(images)}
             />
             <ProductMetadata
               value={productMetadata}

@@ -14,8 +14,10 @@ import FormField from "@cloudscape-design/components/form-field";
 import Header from "@cloudscape-design/components/header";
 import Input from "@cloudscape-design/components/input";
 import Textarea from "@cloudscape-design/components/textarea";
+import ProductImageCarousel from "../../ProductImageCarousel";
 
 export interface ReviewProductDataStepProps {
+  imageFiles: File[];
   productData?: Partial<ProductData>;
   setProductData?: React.Dispatch<React.SetStateAction<Partial<ProductData>>>;
   isLoading?: boolean;
@@ -31,6 +33,7 @@ const ReviewProductDataStep: React.FC<ReviewProductDataStepProps> = (
     case "success": {
       return (
         <SpaceBetween size="l">
+          <ProductImageCarousel imageFiles={props.imageFiles} />
           <Container
             header={
               <Header

@@ -11,7 +11,7 @@ import ProductMetadata from "../../GenProductData/ProductMetadata";
 
 export interface ProductInputStepProps {
   imageFiles: File[];
-  setImageFiles: (files: File[]) => void;
+  setImageFiles: React.Dispatch<React.SetStateAction<File[]>>;
   productMetadata: string;
   setProductMetadata: (metadata: string) => void;
 }
@@ -36,8 +36,8 @@ const ProductInputStep: React.FC<ProductInputStepProps> = ({
       >
         <SpaceBetween size="l">
           <ImageUploader
-            value={imageFiles}
-            setValue={(images) => setImageFiles(images)}
+            imageFiles={imageFiles}
+            setImageFiles={(images) => setImageFiles(images)}
           />
           <ProductMetadata
             value={productMetadata}
