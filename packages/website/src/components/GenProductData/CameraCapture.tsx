@@ -34,7 +34,9 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream>();
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedDevice, setSelectedDevice] = useState("");
+  const [selectedDevice, setSelectedDevice] = useState(
+    localStorage.getItem("selectedCameraDevice") || "",
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [windowHeight, setWindowHeight] = useState(0);
 
@@ -162,13 +164,14 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
   };
 
   const handleDeviceChange = (e: { detail: SelectProps.ChangeDetail }) => {
-    setSelectedDevice(e.detail.selectedOption.value || "");
+    const newDevice = e.detail.selectedOption.value || "";
+    setSelectedDevice(newDevice);
+    localStorage.setItem("selectedCameraDevice", newDevice);
     if (stream) {
       stopCamera();
       setTimeout(startCamera, 100);
     }
   };
-
   useEffect(() => {
     return () => {
       stopCamera();
