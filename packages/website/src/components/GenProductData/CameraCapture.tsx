@@ -71,7 +71,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
 
       setDevices(videoDevices);
 
-      if (videoDevices.length > 0) {
+      if (selectedDevice === "" && videoDevices.length > 0) {
         // Try to select a rear camera by default if on mobile
         const rearCamera = videoDevices.find(
           (device) =>
@@ -101,13 +101,15 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
   const startCamera = async () => {
     try {
       setIsLoading(true);
-      const constraints = {
+      const constraints: MediaStreamConstraints = {
         video: {
           deviceId: selectedDevice ? { exact: selectedDevice } : undefined,
           facingMode:
             !selectedDevice && /Mobi|Android/i.test(navigator.userAgent)
               ? "environment"
               : undefined,
+          width: { ideal: 1280 },
+          height: { ideal: 1280 },
         },
       };
 
