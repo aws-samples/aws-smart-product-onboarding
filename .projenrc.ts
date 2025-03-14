@@ -1,3 +1,8 @@
+/**
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: MIT-0
+ */
+
 import path from "node:path";
 import { monorepo } from "@aws/pdk";
 import { CloudscapeReactTsWebsiteProject } from "@aws/pdk/cloudscape-react-ts-website";

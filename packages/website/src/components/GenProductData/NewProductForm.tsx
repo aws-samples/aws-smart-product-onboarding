@@ -35,8 +35,8 @@ const NewProductForm = (props: {
       <Container>
         <SpaceBetween direction="vertical" size="l">
           <ImageUploader
-            value={props.imageFiles}
-            setValue={props.setImageFiles}
+            imageFiles={props.imageFiles}
+            setImageFiles={props.setImageFiles}
           />
           <ProductMetadata
             value={props.productMetadata}
