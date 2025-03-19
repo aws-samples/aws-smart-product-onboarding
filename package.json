@@ -50,6 +50,7 @@
   },
   "pnpm": {
     "overrides": {
+      "@babel/runtime-corejs3": "^7.26.10",
       "@babel/runtime": "^7.26.10",
       "@types/babel__traverse": "7.18.2",
       "@zkochan/js-yaml": "npm:js-yaml@4.1.0",
