@@ -77,6 +77,7 @@ project.package.addPackageResolutions(
   "micromatch@^4.0.8",
   "nth-check@^2.1.1",
   "postcss@^8.4.38",
+  "prismjs@^1.30.0",
   "semver@^7.6.2",
   "serialize-javascript@^6.0.2",
   "webpack@^5.94.0",

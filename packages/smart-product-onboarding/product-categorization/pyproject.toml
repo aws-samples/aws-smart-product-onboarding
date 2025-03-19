@@ -10,7 +10,7 @@ readme = "README.md"
   [tool.poetry.dependencies]
   cachetools = "^5.5.1"
   faker = "30.1.0"
-  jinja2 = "^3.1.6"
+  jinja2 = "^3.1.4"
   python = "^3.12"
 
     [tool.poetry.dependencies.amzn_smart_product_onboarding_api_python_runtime]
