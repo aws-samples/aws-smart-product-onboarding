@@ -78,6 +78,11 @@
       "type": "build"
     },
     {
+      "name": "@babel/runtime-corejs3",
+      "version": "^7.26.10",
+      "type": "override"
+    },
+    {
       "name": "@babel/runtime",
       "version": "^7.26.10",
       "type": "override"

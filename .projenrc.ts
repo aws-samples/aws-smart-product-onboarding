@@ -71,6 +71,7 @@ project.package.addPackageResolutions(
   `aws-cdk-lib@^${cdkVersion}`,
   "axios@^1.8.2",
   "@babel/runtime@^7.26.10",
+  "@babel/runtime-corejs3@^7.26.10",
   "cross-spawn@^7.0.5",
   "dompurify@^3.1.7",
   "esbuild@^0.25.0",
