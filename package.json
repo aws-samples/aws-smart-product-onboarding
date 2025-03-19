@@ -50,6 +50,7 @@
   },
   "pnpm": {
     "overrides": {
+      "@babel/runtime": "^7.26.10",
       "@types/babel__traverse": "7.18.2",
       "@zkochan/js-yaml": "npm:js-yaml@4.1.0",
       "aws-cdk-lib": "^2.178.1",
