@@ -53,7 +53,7 @@
       "@types/babel__traverse": "7.18.2",
       "@zkochan/js-yaml": "npm:js-yaml@4.1.0",
       "aws-cdk-lib": "^2.178.1",
-      "axios": "^1.7.4",
+      "axios": "^1.8.2",
       "cross-spawn": "^7.0.5",
       "dompurify": "^3.1.7",
       "esbuild": "^0.25.0",
