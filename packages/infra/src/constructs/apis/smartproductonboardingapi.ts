@@ -47,6 +47,7 @@ export interface SmartProductOnboardingAPIProps {
   readonly ssmParameterPrefix: string;
   readonly configurationBucket: s3.IBucket;
   readonly wordEmbeddingsPolicy: iam.IManagedPolicy;
+  readonly corsOrigin: string;
 }
 
 /**
@@ -277,7 +278,7 @@ export class SmartProductOnboardingAPI extends Construct {
       }),
       endpointTypes: [EndpointType.REGIONAL],
       corsOptions: {
-        allowOrigins: ["http://localhost:3000"],
+        allowOrigins: [props.corsOrigin],
         allowMethods: ["GET", "POST"],
       },
       integrations: {
@@ -314,14 +315,14 @@ export class SmartProductOnboardingAPI extends Construct {
     });
     this.api.api.addGatewayResponse("Default4XX", {
       responseHeaders: {
-        "Access-Control-Allow-Origin": "'http://localhost:3000'",
+        "Access-Control-Allow-Origin": `'${props.corsOrigin}'`,
         "Access-Control-Allow-Headers": "'*'",
       },
       type: ResponseType.DEFAULT_4XX,
     });
     this.api.api.addGatewayResponse("Default5XX", {
       responseHeaders: {
-        "Access-Control-Allow-Origin": "'http://localhost:3000'",
+        "Access-Control-Allow-Origin": `'${props.corsOrigin}'`,
         "Access-Control-Allow-Headers": "'*'",
       },
       type: ResponseType.DEFAULT_5XX,
