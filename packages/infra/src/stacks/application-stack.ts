@@ -34,6 +34,9 @@ export class ApplicationStack extends Stack {
       node: Stack.of(this).node,
     });
 
+    const corsOrigin =
+      this.node.tryGetContext("corsOrigin") ?? "http://localhost:3000";
+
     const ssmParameterPrefix =
       "/ProductCategorization" + (branchPrefix ? "/" + branchPrefix : "");
 
@@ -53,7 +56,7 @@ export class ApplicationStack extends Stack {
       cors: [
         {
           allowedHeaders: ["content-type"],
-          allowedOrigins: ["http://localhost:3000"],
+          allowedOrigins: [corsOrigin],
           allowedMethods: [
             s3.HttpMethods.GET,
             s3.HttpMethods.PUT,
@@ -86,7 +89,7 @@ export class ApplicationStack extends Stack {
     const outputBucket = new SecureBucket(this, "outputBucket", {
       cors: [
         {
-          allowedOrigins: ["http://localhost:3000"],
+          allowedOrigins: [corsOrigin],
           allowedMethods: [s3.HttpMethods.GET, s3.HttpMethods.HEAD],
         },
       ],
@@ -217,6 +220,7 @@ export class ApplicationStack extends Stack {
       ssmParameterPrefix: ssmParameterPrefix,
       configurationBucket: configurationBucket,
       wordEmbeddingsPolicy: wordEmbeddingsPolicy,
+      corsOrigin: corsOrigin,
     });
 
     const website = new Smartproductonboardingdemowebsite(this, "DemoWeb", {
