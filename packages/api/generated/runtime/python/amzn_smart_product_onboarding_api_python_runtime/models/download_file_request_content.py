@@ -31,7 +31,7 @@ class DownloadFileRequestContent(BaseModel):
     DownloadFileRequestContent
     """ # noqa: E501
     output_key: StrictStr = Field(alias="outputKey")
-    expiration: Optional[Annotated[int, Field(strict=True, le=15, ge=300)]] = Field(default=None, description="The expiration, in seconds for the generated URL")
+    expiration: Optional[Annotated[int, Field(strict=True, ge=15, le=300)]] = Field(default=None, description="The expiration, in seconds for the generated URL")
     __properties: ClassVar[List[str]] = ["outputKey", "expiration"]
 
 

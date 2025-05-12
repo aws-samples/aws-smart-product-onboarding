@@ -31,7 +31,7 @@ class UploadFileRequestContent(BaseModel):
     UploadFileRequestContent
     """ # noqa: E501
     file_name: StrictStr = Field(alias="fileName")
-    expiration: Optional[Annotated[int, Field(strict=True, le=15, ge=300)]] = Field(default=None, description="The expiration, in seconds for the generated URL")
+    expiration: Optional[Annotated[int, Field(strict=True, ge=15, le=300)]] = Field(default=None, description="The expiration, in seconds for the generated URL")
     __properties: ClassVar[List[str]] = ["fileName", "expiration"]
 
 

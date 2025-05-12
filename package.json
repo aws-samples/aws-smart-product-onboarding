@@ -22,7 +22,7 @@
     "synth-workspace": "pnpm exec projen"
   },
   "devDependencies": {
-    "@aws/pdk": "0.25.17",
+    "@aws/pdk": "0.26.7",
     "@types/node": "^18",
     "@typescript-eslint/eslint-plugin": "^7",
     "@typescript-eslint/parser": "^7",
@@ -54,12 +54,13 @@
       "@babel/runtime": "^7.26.10",
       "@types/babel__traverse": "7.18.2",
       "@zkochan/js-yaml": "npm:js-yaml@4.1.0",
-      "aws-cdk-lib": "^2.178.1",
+      "aws-cdk-lib": "^2.195.0",
       "axios": "^1.8.2",
       "cross-spawn": "^7.0.5",
       "dompurify": "^3.1.7",
       "esbuild": "^0.25.0",
       "fast-xml-parser": "^4.4.1",
+      "http-proxy-middleware": "^2.0.8",
       "micromatch": "^4.0.8",
       "nth-check": "^2.1.1",
       "postcss": "^8.4.38",
@@ -73,7 +74,7 @@
   },
   "engines": {
     "node": ">=16",
-    "pnpm": ">=8 <9"
+    "pnpm": ">=8"
   },
   "main": "lib/index.js",
   "license": "MIT-0",

@@ -2,7 +2,7 @@
   "dependencies": [
     {
       "name": "@aws/pdk",
-      "version": "0.25.17",
+      "version": "0.26.7",
       "type": "build"
     },
     {
@@ -99,7 +99,7 @@
     },
     {
       "name": "aws-cdk-lib",
-      "version": "^2.178.1",
+      "version": "^2.195.0",
       "type": "override"
     },
     {
@@ -125,6 +125,11 @@
     {
       "name": "fast-xml-parser",
       "version": "^4.4.1",
+      "type": "override"
+    },
+    {
+      "name": "http-proxy-middleware",
+      "version": "^2.0.8",
       "type": "override"
     },
     {
