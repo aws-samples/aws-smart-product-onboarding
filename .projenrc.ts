@@ -19,7 +19,7 @@ import {
 import { NodePackageManager } from "projen/lib/javascript";
 import { PythonProject } from "projen/lib/python";
 
-const cdkVersion = "2.178.1";
+const cdkVersion = "2.195.0";
 const pdkVersion = "0.26.7";
 const projectName = "smart-product-onboarding";
 const npmPrefix = "@aws-samples/";
@@ -77,6 +77,7 @@ project.package.addPackageResolutions(
   "dompurify@^3.1.7",
   "esbuild@^0.25.0",
   "fast-xml-parser@^4.4.1",
+  "http-proxy-middleware@^2.0.8",
   "micromatch@^4.0.8",
   "nth-check@^2.1.1",
   "postcss@^8.4.38",

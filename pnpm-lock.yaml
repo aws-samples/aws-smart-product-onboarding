@@ -9,12 +9,13 @@ overrides:
   '@babel/runtime': ^7.26.10
   '@types/babel__traverse': 7.18.2
   '@zkochan/js-yaml': npm:js-yaml@4.1.0
-  aws-cdk-lib: ^2.178.1
+  aws-cdk-lib: ^2.195.0
   axios: ^1.8.2
   cross-spawn: ^7.0.5
   dompurify: ^3.1.7
   esbuild: ^0.25.0
   fast-xml-parser: ^4.4.1
+  http-proxy-middleware: ^2.0.8
   micromatch: ^4.0.8
   nth-check: ^2.1.1
   postcss: ^8.4.38
@@ -33,7 +34,7 @@ importers:
         specifier: latest
         version: 2.186.0-alpha.0(aws-cdk-lib@2.195.0(constructs@10.4.2))(constructs@10.4.2)
       aws-cdk-lib:
-        specifier: ^2.178.1
+        specifier: ^2.195.0
         version: 2.195.0(constructs@10.4.2)
       cdk-nag:
         specifier: ^2.34.23
@@ -107,7 +108,7 @@ importers:
         specifier: ^18
         version: 18.19.100
       aws-cdk-lib:
-        specifier: ^2.178.1
+        specifier: ^2.195.0
         version: 2.195.0(constructs@10.4.2)
       cdk-nag:
         specifier: '*'
@@ -260,7 +261,7 @@ importers:
         specifier: ^0.1.583
         version: 0.1.583(aws-cdk-lib@2.195.0(constructs@10.4.2))(constructs@10.4.2)
       aws-cdk-lib:
-        specifier: ^2.178.1
+        specifier: ^2.195.0
         version: 2.195.0(constructs@10.4.2)
       cdk-nag:
         specifier: ^2.35.16
@@ -285,7 +286,7 @@ importers:
         specifier: ^7
         version: 7.18.0(eslint@8.57.1)(typescript@5.8.3)
       aws-cdk:
-        specifier: ^2.178.1
+        specifier: ^2.195.0
         version: 2.1014.0
       esbuild:
         specifier: ^0.25.0
@@ -472,14 +473,14 @@ packages:
     engines: {node: '>= 14.15.0'}
     deprecated: This package has been stabilized and moved to aws-cdk-lib
     peerDependencies:
-      aws-cdk-lib: ^2.178.1
+      aws-cdk-lib: ^2.195.0
       constructs: ^10.0.0
 
   '@aws-cdk/aws-lambda-python-alpha@2.178.2-alpha.0':
     resolution: {integrity: sha512-zSfMCHscVHntq7Lsnq6/ozjaujGa+q1XCmUku3mbmytTOixoB1WSVyixMSTOXuchPxaKlAFxoe75aPssFyY+Bw==}
     engines: {node: '>= 14.15.0'}
     peerDependencies:
-      aws-cdk-lib: ^2.178.1
+      aws-cdk-lib: ^2.195.0
       constructs: ^10.0.0
 
   '@aws-cdk/cloud-assembly-schema@41.2.0':
@@ -768,7 +769,7 @@ packages:
     hasBin: true
     peerDependencies:
       '@aws-cdk/aws-cognito-identitypool-alpha': ^2.163.1-alpha.0
-      aws-cdk-lib: ^2.178.1
+      aws-cdk-lib: ^2.195.0
       cdk-nag: ^2.31.0
       constructs: ^10.4.2
       projen: ^0.82.8
@@ -808,7 +809,7 @@ packages:
     hasBin: true
     peerDependencies:
       '@aws-cdk/aws-cognito-identitypool-alpha': ^2.163.1-alpha.0
-      aws-cdk-lib: ^2.178.1
+      aws-cdk-lib: ^2.195.0
       cdk-nag: ^2.31.0
       constructs: ^10.4.2
       projen: ^0.82.8
@@ -1713,7 +1714,7 @@ packages:
   '@dontirun/state-machine-semaphore@0.1.583':
     resolution: {integrity: sha512-NwK9qqwU0773BwLsGkCVwIvL0TBcjkzp3ewbrlDozk0zm8pcvxnpoO4ZchiQqpLd32QPfv0kisbR5ULsiPWzdA==}
     peerDependencies:
-      aws-cdk-lib: ^2.178.1
+      aws-cdk-lib: ^2.195.0
       constructs: ^10.0.5
 
   '@emnapi/core@1.4.3':
@@ -3868,7 +3869,7 @@ packages:
   cdk-nag@2.35.95:
     resolution: {integrity: sha512-TpsbuqHR/7reQ/CY2xhXPj0Cst1P6WyQHHJF+LKkmXezLYv8r9LsXOFzOzPnmgkY3nbC8wxrZKMa3676k5E7ZA==}
     peerDependencies:
-      aws-cdk-lib: ^2.178.1
+      aws-cdk-lib: ^2.195.0
       constructs: ^10.0.5
 
   chalk-template@1.1.0:
