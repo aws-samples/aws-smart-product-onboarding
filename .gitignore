@@ -36,6 +36,7 @@ jspm_packages/
 .venv
 .DS_Store
 __pycache__
+.pnpm-store
 !/.prettierignore
 !/.prettierrc.json
 !/.npmrc

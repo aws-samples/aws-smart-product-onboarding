@@ -80,10 +80,10 @@ The following table provides a sample cost breakdown for deploying this solution
 * NodeJS >= 18.0.0 and < 22
 * Python >= 3.12 preferably with [pyenv](https://github.com/pyenv/pyenv)
 * Poetry >= 1.5.1 and < 2
-* Pnpm >= 8.6.3 and < 9
+* Pnpm >= 8.6.3
 
 ```shell
-pip install poetry
+pip install poetry==1.8.5
 npm install -g pnpm@^8.15.9 aws-cdk
 ```
 

@@ -20,7 +20,7 @@ import { NodePackageManager } from "projen/lib/javascript";
 import { PythonProject } from "projen/lib/python";
 
 const cdkVersion = "2.178.1";
-const pdkVersion = "0.25.17";
+const pdkVersion = "0.26.7";
 const projectName = "smart-product-onboarding";
 const npmPrefix = "@aws-samples/";
 const pypiPrefix = "amzn-";
@@ -58,6 +58,7 @@ const project = new monorepo.MonorepoTsProject({
     ".venv",
     ".DS_Store",
     "__pycache__",
+    ".pnpm-store",
   ],
   prettier: true,
   license: "MIT-0",
@@ -85,6 +86,8 @@ project.package.addPackageResolutions(
   "webpack@^5.94.0",
   "ws@^8.17.1",
 );
+
+project.package.addEngine("pnpm", ">=8");
 
 const coreUtils = new PythonProject({
   parent: project,

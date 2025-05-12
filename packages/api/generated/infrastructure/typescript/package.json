@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@aws-samples/smart-product-onboarding-api-typescript-runtime": "0.0.0",
-    "@aws/pdk": "^0.25.17"
+    "@aws/pdk": "^0.26.7"
   },
   "main": "lib/index.js",
   "license": "Apache-2.0",

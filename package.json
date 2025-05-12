@@ -22,7 +22,7 @@
     "synth-workspace": "pnpm exec projen"
   },
   "devDependencies": {
-    "@aws/pdk": "0.25.17",
+    "@aws/pdk": "0.26.7",
     "@types/node": "^18",
     "@typescript-eslint/eslint-plugin": "^7",
     "@typescript-eslint/parser": "^7",
@@ -73,7 +73,7 @@
   },
   "engines": {
     "node": ">=16",
-    "pnpm": ">=8 <9"
+    "pnpm": ">=8"
   },
   "main": "lib/index.js",
   "license": "MIT-0",
