@@ -108,6 +108,11 @@
       "type": "override"
     },
     {
+      "name": "brace-expansion",
+      "version": "^1.1.12",
+      "type": "override"
+    },
+    {
       "name": "cross-spawn",
       "version": "^7.0.5",
       "type": "override"
@@ -128,6 +133,11 @@
       "type": "override"
     },
     {
+      "name": "form-data",
+      "version": "^3.0.4",
+      "type": "override"
+    },
+    {
       "name": "http-proxy-middleware",
       "version": "^2.0.8",
       "type": "override"
@@ -140,6 +150,11 @@
     {
       "name": "nth-check",
       "version": "^2.1.1",
+      "type": "override"
+    },
+    {
+      "name": "on-headers",
+      "version": "^1.1.0",
       "type": "override"
     },
     {
@@ -160,6 +175,11 @@
     {
       "name": "serialize-javascript",
       "version": "^6.0.2",
+      "type": "override"
+    },
+    {
+      "name": "webpack-dev-server",
+      "version": "^5.2.1",
       "type": "override"
     },
     {
