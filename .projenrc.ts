@@ -87,6 +87,8 @@ project.package.addPackageResolutions(
   "prismjs@^1.30.0",
   "semver@^7.6.2",
   "serialize-javascript@^6.0.2",
+  "sha.js@^2.4.12",
+  "tmp@^0.2.4",
   "webpack@^5.94.0",
   "webpack-dev-server@^5.2.1",
   "ws@^8.17.1",

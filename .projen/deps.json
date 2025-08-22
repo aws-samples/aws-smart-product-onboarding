@@ -178,6 +178,16 @@
       "type": "override"
     },
     {
+      "name": "sha.js",
+      "version": "^2.4.12",
+      "type": "override"
+    },
+    {
+      "name": "tmp",
+      "version": "^0.2.4",
+      "type": "override"
+    },
+    {
       "name": "webpack-dev-server",
       "version": "^5.2.1",
       "type": "override"
