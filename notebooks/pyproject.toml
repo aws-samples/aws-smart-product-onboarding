@@ -21,7 +21,7 @@ faiss-cpu = "^1.10.0"
 
 [tool.poetry.group.dev.dependencies]
 notebook = "^7.2.2"
-jupyterlab = "^4.3.0"
+jupyterlab = "^4.4.8"
 ipython = "^8.29.0"
 
 [tool.poetry.group.dev.dependencies.boto3-stubs-lite]
