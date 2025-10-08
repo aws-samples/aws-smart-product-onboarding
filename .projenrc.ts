@@ -70,7 +70,7 @@ const project = new monorepo.MonorepoTsProject({
 });
 project.package.addPackageResolutions(
   `aws-cdk-lib@^${cdkVersion}`,
-  "axios@^1.8.2",
+  "axios@^1.12.0",
   "@babel/runtime@^7.26.10",
   "@babel/runtime-corejs3@^7.26.10",
   "brace-expansion@^1.1.12",
