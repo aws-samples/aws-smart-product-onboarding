@@ -10,6 +10,11 @@
       "type": "build"
     },
     {
+      "name": "@types/handlebars",
+      "version": "^4.1.0",
+      "type": "build"
+    },
+    {
       "name": "@types/jest",
       "type": "build"
     },
@@ -104,6 +109,11 @@
     {
       "name": "fast-xml-parser",
       "version": "^4.3.6",
+      "type": "runtime"
+    },
+    {
+      "name": "handlebars",
+      "version": "^4.7.8",
       "type": "runtime"
     }
   ],

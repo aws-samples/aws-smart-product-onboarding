@@ -18,6 +18,7 @@
   "devDependencies": {
     "@aws/pdk": "^0",
     "@types/aws-lambda": "^8.10.145",
+    "@types/handlebars": "^4.1.0",
     "@types/jest": "^29.5.13",
     "@types/node": "^18",
     "@typescript-eslint/eslint-plugin": "^7",
@@ -41,7 +42,8 @@
     "@aws-sdk/client-bedrock-runtime": "^3.668.0",
     "@aws-sdk/client-s3": "^3.668.0",
     "@aws-sdk/client-ssm": "^3.679.0",
-    "fast-xml-parser": "^4.3.6"
+    "fast-xml-parser": "^4.3.6",
+    "handlebars": "^4.7.8"
   },
   "main": "lib/index.js",
   "license": "Apache-2.0",
@@ -63,10 +65,12 @@
     ],
     "coverageDirectory": "coverage",
     "coveragePathIgnorePatterns": [
-      "/node_modules/"
+      "/node_modules/",
+      ".integration.test.[jt]sx?"
     ],
     "testPathIgnorePatterns": [
-      "/node_modules/"
+      "/node_modules/",
+      ".integration.test.[jt]sx?"
     ],
     "watchPathIgnorePatterns": [
       "/node_modules/"
