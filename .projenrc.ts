@@ -90,7 +90,7 @@ project.package.addPackageResolutions(
   "sha.js@^2.4.12",
   "tmp@^0.2.4",
   "webpack@^5.94.0",
-  "webpack-dev-server@^5.2.1",
+  "webpack-dev-server@^4.15.1",
   "ws@^8.17.1",
 );
 
@@ -218,8 +218,9 @@ const api = new TypeSafeApiProject({
           "@aws-lambda-powertools/logger@^2.10.0",
           "@aws-lambda-powertools/parameters@^2.10.0",
           "fast-xml-parser@^4.3.6",
+          "handlebars@^4.7.8",
         ],
-        devDeps: ["esbuild@^0.25.0"],
+        devDeps: ["esbuild@^0.25.0", "@types/handlebars@^4.1.0"],
         runtimeVersion: NodeVersion.NODE_22,
         prettier: true,
       },
@@ -260,6 +261,16 @@ api.runtime.python?.packageTask.prependExec(
   `rsync -r ./README.md ./pyproject.toml ./poetry.lock ./${api.runtime.python?.moduleName} ${runtimeDest}/api`,
 );
 api.runtime.python?.packageTask.prependExec(`mkdir -p ${runtimeDest}/api`);
+
+// Copy templates to TypeScript Lambda handlers after build
+api.handlers.typescript?.packageTask.exec(
+  "cp -r src/templates dist/lambda/generate-product/ || true",
+);
+api.handlers.typescript?.packageTask.exec(
+  "cp -r src/templates dist/lambda/generate-product-sfn/ || true",
+);
+
+api.handlers.typescript?.jest?.addIgnorePattern("\.integration\.test\.[jt]sx?");
 
 metaclasses.addDependency(
   `${api.runtime.python?.moduleName}@{ path = "../api", develop = true }`,

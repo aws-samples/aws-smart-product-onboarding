@@ -28,25 +28,25 @@
     "@typescript-eslint/parser": "^7",
     "constructs": "^10.0.0",
     "eslint": "^8",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-import-resolver-typescript": "^3.7.0",
-    "eslint-plugin-import": "^2.31.0",
-    "eslint-plugin-prettier": "^5.2.1",
-    "npm-check-updates": "^16.14.20",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-prettier": "^5.5.4",
+    "npm-check-updates": "^19.0.0",
     "nx": "19.0.0",
-    "prettier": "^3.4.2",
+    "prettier": "^3.6.2",
     "projen": "^0.82.8",
     "syncpack": "^13",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.9.3"
   },
   "peerDependencies": {
     "nx": "^19"
   },
   "dependencies": {
     "@aws-cdk/aws-cognito-identitypool-alpha": "latest",
-    "aws-cdk-lib": "^2.195.0",
-    "cdk-nag": "^2.35.16"
+    "aws-cdk-lib": "^2.219.0",
+    "cdk-nag": "^2.37.49"
   },
   "pnpm": {
     "overrides": {
@@ -72,7 +72,7 @@
       "serialize-javascript": "^6.0.2",
       "sha.js": "^2.4.12",
       "tmp": "^0.2.4",
-      "webpack-dev-server": "^5.2.1",
+      "webpack-dev-server": "^4.15.1",
       "webpack": "^5.94.0",
       "wrap-ansi": "^7.0.0",
       "ws": "^8.17.1"

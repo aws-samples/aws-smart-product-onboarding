@@ -88,6 +88,12 @@
         },
         {
           "exec": "for f in $(ls dist/lambda); do mkdir dist/lambda/$(basename $f .js) && mv dist/lambda/$f dist/lambda/$(basename $f .js)/index.js; done"
+        },
+        {
+          "exec": "cp -r src/templates dist/lambda/generate-product/ || true"
+        },
+        {
+          "exec": "cp -r src/templates dist/lambda/generate-product-sfn/ || true"
         }
       ]
     },
@@ -144,7 +150,7 @@
           "exec": "pnpm i --no-frozen-lockfile"
         },
         {
-          "exec": "pnpm update @aws/pdk @types/aws-lambda @types/jest @types/node @typescript-eslint/eslint-plugin @typescript-eslint/parser esbuild eslint-config-prettier eslint-import-resolver-typescript eslint-plugin-import eslint-plugin-prettier eslint jest jest-junit prettier ts-jest typescript @aws-lambda-powertools/logger @aws-lambda-powertools/parameters @aws-samples/smart-product-onboarding-api-typescript-runtime @aws-sdk/client-bedrock-runtime @aws-sdk/client-s3 @aws-sdk/client-ssm fast-xml-parser"
+          "exec": "pnpm update @aws/pdk @types/aws-lambda @types/handlebars @types/jest @types/node @typescript-eslint/eslint-plugin @typescript-eslint/parser esbuild eslint-config-prettier eslint-import-resolver-typescript eslint-plugin-import eslint-plugin-prettier eslint jest jest-junit prettier ts-jest typescript @aws-lambda-powertools/logger @aws-lambda-powertools/parameters @aws-samples/smart-product-onboarding-api-typescript-runtime @aws-sdk/client-bedrock-runtime @aws-sdk/client-s3 @aws-sdk/client-ssm fast-xml-parser handlebars"
         },
         {
           "exec": "npx projen"

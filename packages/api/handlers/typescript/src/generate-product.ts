@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: MIT-0
  */
 
+import * as path from "path";
 import { Logger } from "@aws-lambda-powertools/logger";
 import {
   GenerateProductChainedHandlerFunction,
@@ -19,6 +20,7 @@ import {
 } from "@aws-sdk/client-bedrock-runtime";
 import { S3Client } from "@aws-sdk/client-s3";
 import { ProductGeneratorService } from "./services/productGenerator";
+import { TemplateService } from "./services/templateService";
 import { BadRequestError } from "./utils/exceptions";
 
 const logger = new Logger({ serviceName: "GenerateProduct" });
@@ -42,10 +44,16 @@ export const generateProduct: GenerateProductChainedHandlerFunction = async (
     throw Response.internalFailure({ message: "Internal server error" });
   }
 
+  // Initialize TemplateService with the templates directory
+  const templateService = new TemplateService(
+    path.join(__dirname, "templates"),
+  );
+
   const productGenerator = new ProductGeneratorService(
     new S3Client({}),
     new BedrockRuntimeClient({}),
     bucket,
+    templateService,
   );
 
   const model = request.input.body.model || defaultModel;

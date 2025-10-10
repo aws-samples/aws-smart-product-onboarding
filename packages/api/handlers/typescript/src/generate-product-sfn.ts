@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: MIT-0
  */
 
+import * as path from "path";
 import { Logger } from "@aws-lambda-powertools/logger";
 import { getParameter } from "@aws-lambda-powertools/parameters/ssm";
 import {
@@ -11,6 +12,7 @@ import {
 } from "@aws-sdk/client-bedrock-runtime";
 import { S3Client } from "@aws-sdk/client-s3";
 import { ProductGeneratorService } from "./services/productGenerator";
+import { TemplateService } from "./services/templateService";
 import { ProductData } from "./types";
 import {
   ModelResponseError,
@@ -46,10 +48,16 @@ export const handler = async (event: GenerateProductEvent) => {
     throw new Error("IMAGE_BUCKET environment variable not set!");
   }
 
+  // Initialize TemplateService with the templates directory
+  const templateService = new TemplateService(
+    path.join(__dirname, "templates"),
+  );
+
   const productGenerator = new ProductGeneratorService(
     new S3Client({}),
     new BedrockRuntimeClient({}),
     bucket,
+    templateService,
   );
 
   const configParamName = process.env.CONFIG_PARAM_NAME;

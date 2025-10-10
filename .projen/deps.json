@@ -189,7 +189,7 @@
     },
     {
       "name": "webpack-dev-server",
-      "version": "^5.2.1",
+      "version": "^4.15.1",
       "type": "override"
     },
     {

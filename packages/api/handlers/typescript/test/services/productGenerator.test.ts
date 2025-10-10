@@ -15,6 +15,8 @@ import {
   parseProductXml,
   preparePrompt,
 } from "../../src/services/productGenerator";
+import { TemplateService } from "../../src/services/templateService";
+import { ProductData } from "../../src/types";
 import {
   BadRequestError,
   ModelResponseError,
@@ -24,21 +26,37 @@ import {
 jest.mock("@aws-sdk/client-bedrock-runtime");
 jest.mock("@aws-sdk/client-s3");
 jest.mock("../../src/utils/logger");
+jest.mock("../../src/services/templateService");
 
 describe("ProductGeneratorService", () => {
   let service: ProductGeneratorService;
+  let serviceWithTemplate: ProductGeneratorService;
   let mockS3Client: jest.Mocked<S3Client>;
   let mockBedrockClient: jest.Mocked<BedrockRuntimeClient>;
+  let mockTemplateService: jest.Mocked<TemplateService>;
 
   beforeEach(() => {
     mockS3Client = new S3Client({}) as jest.Mocked<S3Client>;
     mockBedrockClient = new BedrockRuntimeClient(
       {},
     ) as jest.Mocked<BedrockRuntimeClient>;
+    mockTemplateService = new TemplateService(
+      "test-templates",
+    ) as jest.Mocked<TemplateService>;
+
+    // Service without template service (legacy mode)
     service = new ProductGeneratorService(
       mockS3Client,
       mockBedrockClient,
       "test-bucket",
+    );
+
+    // Service with template service
+    serviceWithTemplate = new ProductGeneratorService(
+      mockS3Client,
+      mockBedrockClient,
+      "test-bucket",
+      mockTemplateService,
     );
   });
 
@@ -97,6 +115,255 @@ describe("ProductGeneratorService", () => {
           content: [{ text: "test prompt" }],
         }),
       ).rejects.toThrow(ModelResponseError);
+    });
+  });
+
+  describe("generateProduct with template system", () => {
+    beforeEach(() => {
+      // Mock S3 getObject
+      (mockS3Client.send as jest.Mock).mockResolvedValue({
+        Body: {
+          transformToByteArray: () =>
+            Promise.resolve(new Uint8Array([1, 2, 3])),
+        },
+        ContentType: "image/jpeg",
+        ContentLength: 3,
+      });
+
+      // Mock Bedrock response
+      const mockResponse: ConverseCommandOutput = {
+        metrics: undefined,
+        stopReason: "stop_sequence",
+        output: {
+          message: {
+            role: "assistant",
+            content: [
+              {
+                text: "<title>Test Title</title><description>Test Description</description>",
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+        $metadata: {},
+      };
+      (mockBedrockClient.send as jest.Mock).mockResolvedValue(mockResponse);
+    });
+
+    it("should use template service when available", async () => {
+      const mockRenderedPrompt = "Rendered template prompt";
+      (mockTemplateService.render as jest.Mock).mockResolvedValue(
+        mockRenderedPrompt,
+      );
+
+      const result = await serviceWithTemplate.generateProduct({
+        imageKeys: ["test-image.jpg"],
+        language: "English",
+        descriptionLength: "short",
+        metadata: "test metadata",
+        examples: [
+          { title: "Example Title", description: "Example Description" },
+        ],
+        model: "test-model",
+        temperature: 0.7,
+      });
+
+      expect(mockTemplateService.render).toHaveBeenCalledWith(
+        "product-generation-xml-improved",
+        expect.objectContaining({
+          language: "English",
+          descriptionLength: "short",
+          paragraphCount: "one paragraph",
+          metadata: "test metadata",
+          imageCount: 1,
+          examples: {
+            formatted: expect.stringContaining("Example Title"),
+            items: [
+              { title: "Example Title", description: "Example Description" },
+            ],
+          },
+          conditionals: {
+            hasExamples: true,
+            hasMetadata: true,
+            hasDescriptionLength: true,
+            hasLanguage: true,
+            isMultipleImages: false,
+          },
+        }),
+      );
+
+      expect(result.productData).toEqual({
+        title: "Test Title",
+        description: "Test Description",
+      });
+    });
+
+    it("should fallback to legacy implementation when template service is not available", async () => {
+      const result = await service.generateProduct({
+        imageKeys: ["test-image.jpg"],
+        language: "English",
+        model: "test-model",
+        temperature: 0.7,
+      });
+
+      expect(result.productData).toEqual({
+        title: "Test Title",
+        description: "Test Description",
+      });
+      // Template service should not be called
+      expect(mockTemplateService.render).not.toHaveBeenCalled();
+    });
+
+    it("should handle template context with no optional parameters", async () => {
+      const mockRenderedPrompt = "Basic template prompt";
+      (mockTemplateService.render as jest.Mock).mockResolvedValue(
+        mockRenderedPrompt,
+      );
+
+      await serviceWithTemplate.generateProduct({
+        imageKeys: ["test-image.jpg"],
+        model: "test-model",
+        temperature: 0.7,
+      });
+
+      expect(mockTemplateService.render).toHaveBeenCalledWith(
+        "product-generation-xml-improved",
+        expect.objectContaining({
+          language: undefined,
+          descriptionLength: undefined,
+          paragraphCount: undefined,
+          metadata: undefined,
+          imageCount: 1,
+          conditionals: {
+            hasExamples: false,
+            hasMetadata: false,
+            hasDescriptionLength: false,
+            hasLanguage: false,
+            isMultipleImages: false,
+          },
+        }),
+      );
+    });
+
+    it("should handle multiple images correctly", async () => {
+      const mockRenderedPrompt = "Multiple images template prompt";
+      (mockTemplateService.render as jest.Mock).mockResolvedValue(
+        mockRenderedPrompt,
+      );
+
+      await serviceWithTemplate.generateProduct({
+        imageKeys: ["image1.jpg", "image2.jpg", "image3.jpg"],
+        model: "test-model",
+        temperature: 0.7,
+      });
+
+      expect(mockTemplateService.render).toHaveBeenCalledWith(
+        "product-generation-xml-improved",
+        expect.objectContaining({
+          imageCount: 3,
+          conditionals: expect.objectContaining({
+            isMultipleImages: true,
+          }),
+        }),
+      );
+    });
+
+    it("should handle all description lengths correctly", async () => {
+      const mockRenderedPrompt = "Template prompt with description length";
+      (mockTemplateService.render as jest.Mock).mockResolvedValue(
+        mockRenderedPrompt,
+      );
+
+      // Test short
+      await serviceWithTemplate.generateProduct({
+        imageKeys: ["test-image.jpg"],
+        descriptionLength: "short",
+        model: "test-model",
+        temperature: 0.7,
+      });
+
+      expect(mockTemplateService.render).toHaveBeenCalledWith(
+        "product-generation-xml-improved",
+        expect.objectContaining({
+          descriptionLength: "short",
+          paragraphCount: "one paragraph",
+        }),
+      );
+
+      // Test medium
+      await serviceWithTemplate.generateProduct({
+        imageKeys: ["test-image.jpg"],
+        descriptionLength: "medium",
+        model: "test-model",
+        temperature: 0.7,
+      });
+
+      expect(mockTemplateService.render).toHaveBeenCalledWith(
+        "product-generation-xml-improved",
+        expect.objectContaining({
+          descriptionLength: "medium",
+          paragraphCount: "three paragraphs",
+        }),
+      );
+
+      // Test long
+      await serviceWithTemplate.generateProduct({
+        imageKeys: ["test-image.jpg"],
+        descriptionLength: "long",
+        model: "test-model",
+        temperature: 0.7,
+      });
+
+      expect(mockTemplateService.render).toHaveBeenCalledWith(
+        "product-generation-xml-improved",
+        expect.objectContaining({
+          descriptionLength: "long",
+          paragraphCount: "five paragraphs",
+        }),
+      );
+    });
+
+    it("should handle empty examples array correctly", async () => {
+      const mockRenderedPrompt = "Template prompt without examples";
+      (mockTemplateService.render as jest.Mock).mockResolvedValue(
+        mockRenderedPrompt,
+      );
+
+      await serviceWithTemplate.generateProduct({
+        imageKeys: ["test-image.jpg"],
+        examples: [],
+        model: "test-model",
+        temperature: 0.7,
+      });
+
+      expect(mockTemplateService.render).toHaveBeenCalledWith(
+        "product-generation-xml-improved",
+        expect.objectContaining({
+          conditionals: expect.objectContaining({
+            hasExamples: false,
+          }),
+        }),
+      );
+
+      // Verify that examples property is not set when empty array is provided
+      const callArgs = (mockTemplateService.render as jest.Mock).mock
+        .calls[0][1];
+      expect(callArgs.examples).toBeUndefined();
+    });
+
+    it("should propagate template service errors", async () => {
+      const templateError = new Error("Template rendering failed");
+      (mockTemplateService.render as jest.Mock).mockRejectedValue(
+        templateError,
+      );
+
+      await expect(
+        serviceWithTemplate.generateProduct({
+          imageKeys: ["test-image.jpg"],
+          model: "test-model",
+          temperature: 0.7,
+        }),
+      ).rejects.toThrow("Template rendering failed");
     });
   });
 });
