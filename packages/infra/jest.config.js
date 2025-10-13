@@ -1,0 +1,31 @@
+module.exports = {
+  coverageProvider: "v8",
+  testMatch: [
+    "<rootDir>/src/**/__tests__/**/*.ts?(x)",
+    "<rootDir>/@(test|src)/**/*(*.)@(spec|test).ts?(x)",
+  ],
+  clearMocks: true,
+  collectCoverage: true,
+  coverageReporters: ["json", "lcov", "clover", "cobertura", "text"],
+  coverageDirectory: "coverage",
+  coveragePathIgnorePatterns: ["/node_modules/"],
+  testPathIgnorePatterns: ["/node_modules/"],
+  watchPathIgnorePatterns: ["/node_modules/"],
+  reporters: [
+    "default",
+    [
+      "jest-junit",
+      {
+        outputDirectory: "test-reports",
+      },
+    ],
+  ],
+  transform: {
+    "^.+\\.[t]sx?$": [
+      "ts-jest",
+      {
+        tsconfig: "tsconfig.dev.json",
+      },
+    ],
+  },
+};

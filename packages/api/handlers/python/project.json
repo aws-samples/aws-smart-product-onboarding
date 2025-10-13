@@ -1,97 +1,90 @@
 {
   "name": "amzn-smart-product-onboarding-api-python-handlers",
   "root": "packages/api/handlers/python",
+  "tags": ["python"],
   "targets": {
     "install": {
-      "dependsOn": [
-        "^install"
-      ],
+      "dependsOn": ["^install"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm dlx projen install",
-        "cwd": "packages/api/handlers/python"
-      }
-    },
-    "default": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen default",
-        "cwd": "packages/api/handlers/python"
-      }
-    },
-    "pre-compile": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen pre-compile",
-        "cwd": "packages/api/handlers/python"
-      }
-    },
-    "compile": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen compile",
-        "cwd": "packages/api/handlers/python"
-      }
-    },
-    "post-compile": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen post-compile",
-        "cwd": "packages/api/handlers/python"
-      }
-    },
-    "test": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen test",
-        "cwd": "packages/api/handlers/python"
-      }
-    },
-    "package": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen package",
-        "cwd": "packages/api/handlers/python"
-      }
-    },
-    "build": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen build",
-        "cwd": "packages/api/handlers/python"
+        "command": "poetry env use python$(pyenv latest 3 | cut -d '.' -f 1,2 || echo '') && poetry update && rm -f `poetry env info -p`/bin/projen `poetry env info -p`/bin/pdk",
+        "cwd": "packages/api/handlers/python",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
       }
     },
     "install:ci": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm dlx projen install:ci",
+        "command": "poetry env use python$(pyenv latest 3 | cut -d '.' -f 1,2 || echo '') && poetry check --lock && poetry install && rm -f `poetry env info -p`/bin/projen `poetry env info -p`/bin/pdk",
+        "cwd": "packages/api/handlers/python",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
+      }
+    },
+    "generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx --yes -p @aws/pdk@$AWS_PDK_VERSION type-safe-api generate --specPath ../../model/.api.json --outputPath . --templateDirs \"python-lambda-handlers\" --metadata '{\"srcDir\":\"amzn_smart_product_onboarding_api_python_handlers\",\"tstDir\":\"test\",\"runtimeModuleName\":\"amzn_smart_product_onboarding_api_python_runtime\",\"moduleName\":\"amzn_smart_product_onboarding_api_python_handlers\"}'",
+        "cwd": "packages/api/handlers/python",
+        "env": {
+          "AWS_PDK_VERSION": "0.26.7"
+        }
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "poetry run pytest test/ || ([ $? = 5 ] && exit 0 || exit $?)",
+        "cwd": "packages/api/handlers/python"
+      }
+    },
+    "package": {
+      "dependsOn": ["generate"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "poetry build && rm -rf dist/lambda && mkdir -p dist/lambda && cp -r amzn_smart_product_onboarding_api_python_handlers dist/lambda/amzn_smart_product_onboarding_api_python_handlers && poetry export --without-hashes --format=requirements.txt | sed -E 's/^-e[[:space:]]+//' > dist/lambda/requirements.txt && pip install -r dist/lambda/requirements.txt --target dist/lambda --upgrade --platform manylinux2014_x86_64 --only-binary :all: --python-version 3.13",
+        "cwd": "packages/api/handlers/python",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
+      }
+    },
+    "build": {
+      "dependsOn": ["generate", "test", "package"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "echo 'Build completed'",
         "cwd": "packages/api/handlers/python"
       }
     },
     "publish:test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm dlx projen publish:test",
-        "cwd": "packages/api/handlers/python"
+        "command": "poetry publish -r testpypi",
+        "cwd": "packages/api/handlers/python",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
       }
     },
     "publish": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm dlx projen publish",
-        "cwd": "packages/api/handlers/python"
-      }
-    },
-    "generate": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen generate",
-        "cwd": "packages/api/handlers/python"
+        "command": "poetry publish",
+        "cwd": "packages/api/handlers/python",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
       }
     }
   },
-  "implicitDependencies": [
-    "amzn-smart-product-onboarding-api-python-runtime"
-  ],
-  "//": "~~ Generated by projen. To modify, edit .projenrc.js and run \"npx projen\"."
+  "implicitDependencies": ["amzn-smart-product-onboarding-api-python-runtime"]
 }

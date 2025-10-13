@@ -1,91 +1,105 @@
 {
   "name": "amzn-smart-product-onboarding-metaclasses",
   "root": "packages/smart-product-onboarding/metaclasses",
+  "tags": ["python"],
   "targets": {
     "install": {
-      "dependsOn": [
-        "^install"
-      ],
+      "dependsOn": ["^install"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm dlx projen install",
-        "cwd": "packages/smart-product-onboarding/metaclasses"
-      }
-    },
-    "default": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen default",
-        "cwd": "packages/smart-product-onboarding/metaclasses"
-      }
-    },
-    "pre-compile": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen pre-compile",
-        "cwd": "packages/smart-product-onboarding/metaclasses"
-      }
-    },
-    "compile": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen compile",
-        "cwd": "packages/smart-product-onboarding/metaclasses"
-      }
-    },
-    "post-compile": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen post-compile",
-        "cwd": "packages/smart-product-onboarding/metaclasses"
-      }
-    },
-    "test": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen test",
-        "cwd": "packages/smart-product-onboarding/metaclasses"
-      }
-    },
-    "package": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen package",
-        "cwd": "packages/smart-product-onboarding/metaclasses"
-      }
-    },
-    "build": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen build",
-        "cwd": "packages/smart-product-onboarding/metaclasses"
+        "command": "poetry env use python$(pyenv latest 3 | cut -d '.' -f 1,2 || echo '') && poetry update && rm -f `poetry env info -p`/bin/projen `poetry env info -p`/bin/pdk",
+        "cwd": "packages/smart-product-onboarding/metaclasses",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
       }
     },
     "install:ci": {
+      "dependsOn": ["^install:ci"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm dlx projen install:ci",
+        "command": "poetry env use python$(pyenv latest 3 | cut -d '.' -f 1,2 || echo '') && poetry check --lock && poetry install && rm -f `poetry env info -p`/bin/projen `poetry env info -p`/bin/pdk",
+        "cwd": "packages/smart-product-onboarding/metaclasses",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
+      }
+    },
+    "test": {
+      "dependsOn": ["install"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "poetry run pytest",
+        "cwd": "packages/smart-product-onboarding/metaclasses",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
+      },
+      "inputs": [
+        "{projectRoot}/**/*.py",
+        "{projectRoot}/pyproject.toml",
+        "{projectRoot}/poetry.lock",
+        "!{projectRoot}/dist/**/*"
+      ],
+      "outputs": ["{projectRoot}/.pytest_cache"]
+    },
+    "package": {
+      "dependsOn": ["install"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "poetry build",
+        "cwd": "packages/smart-product-onboarding/metaclasses",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
+      },
+      "inputs": [
+        "{projectRoot}/**/*.py",
+        "{projectRoot}/pyproject.toml",
+        "{projectRoot}/poetry.lock",
+        "!{projectRoot}/dist/**/*"
+      ],
+      "outputs": ["{projectRoot}/dist"]
+    },
+    "build": {
+      "dependsOn": ["test", "package"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "echo 'Build completed successfully'",
         "cwd": "packages/smart-product-onboarding/metaclasses"
       }
     },
     "publish:test": {
+      "dependsOn": ["package"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm dlx projen publish:test",
-        "cwd": "packages/smart-product-onboarding/metaclasses"
+        "command": "poetry publish -r testpypi",
+        "cwd": "packages/smart-product-onboarding/metaclasses",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
       }
     },
     "publish": {
+      "dependsOn": ["package"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm dlx projen publish",
-        "cwd": "packages/smart-product-onboarding/metaclasses"
+        "command": "poetry publish",
+        "cwd": "packages/smart-product-onboarding/metaclasses",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
       }
     }
   },
   "implicitDependencies": [
     "amzn-smart-product-onboarding-core-utils",
     "amzn-smart-product-onboarding-api-python-runtime"
-  ],
-  "//": "~~ Generated by projen. To modify, edit .projenrc.js and run \"npx projen\"."
+  ]
 }
