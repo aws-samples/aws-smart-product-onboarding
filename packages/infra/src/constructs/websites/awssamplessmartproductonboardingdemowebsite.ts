@@ -8,7 +8,7 @@ import { StaticWebsite } from "@aws/pdk/static-website";
 import { Stack } from "aws-cdk-lib";
 import { NagSuppressions } from "cdk-nag";
 import { Construct } from "constructs";
-import { Smartproductonboardingapi } from "../apis/smartproductonboardingapi";
+import { SmartProductOnboardingAPI } from "../apis/smartproductonboardingapi";
 
 /**
  * Website construct props
@@ -17,7 +17,7 @@ export interface AwssamplessmartproductonboardingdemowebsiteProps {
   /**
    * Instance of an API to configure the website to integrate with
    */
-  readonly smartproductonboardingapi: Smartproductonboardingapi;
+  readonly smartproductonboardingapi: SmartProductOnboardingAPI;
 
   /**
    * Instance of the UserIdentity.

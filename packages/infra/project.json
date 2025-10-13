@@ -2,136 +2,154 @@
   "name": "@aws-samples/smart-product-onboarding-infra",
   "root": "packages/infra",
   "targets": {
-    "default": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm exec projen default",
-        "cwd": "packages/infra"
-      }
-    },
-    "pre-compile": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm exec projen pre-compile",
-        "cwd": "packages/infra"
-      }
-    },
     "compile": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm exec projen compile",
+        "command": "tsc --build",
         "cwd": "packages/infra"
-      }
-    },
-    "post-compile": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm exec projen post-compile",
-        "cwd": "packages/infra"
-      }
+      },
+      "inputs": ["{projectRoot}/src/**/*.ts", "{projectRoot}/tsconfig.json"],
+      "outputs": ["{projectRoot}/lib"]
     },
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm exec projen test",
-        "cwd": "packages/infra"
-      }
+        "commands": [
+          "jest --passWithNoTests --updateSnapshot",
+          "eslint --ext .ts,.tsx --fix --no-error-on-unmatched-pattern src test"
+        ],
+        "cwd": "packages/infra",
+        "parallel": false
+      },
+      "inputs": [
+        "{projectRoot}/src/**/*.ts",
+        "{projectRoot}/test/**/*.ts",
+        "{projectRoot}/tsconfig.dev.json"
+      ],
+      "outputs": ["{projectRoot}/coverage", "{projectRoot}/test-reports"],
+      "dependsOn": ["compile"]
     },
-    "package": {
+    "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm exec projen package",
+        "command": "eslint --ext .ts,.tsx --fix --no-error-on-unmatched-pattern src test",
         "cwd": "packages/infra"
-      }
-    },
-    "build": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm exec projen build",
-        "cwd": "packages/infra"
-      }
-    },
-    "test:watch": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm exec projen test:watch",
-        "cwd": "packages/infra"
-      }
-    },
-    "post-upgrade": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm exec projen post-upgrade",
-        "cwd": "packages/infra"
-      }
-    },
-    "upgrade": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm exec projen upgrade",
-        "cwd": "packages/infra"
-      }
-    },
-    "watch": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm exec projen watch",
-        "cwd": "packages/infra"
-      }
-    },
-    "eslint": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm exec projen eslint",
-        "cwd": "packages/infra"
-      }
+      },
+      "inputs": [
+        "{projectRoot}/src/**/*.ts",
+        "{projectRoot}/test/**/*.ts",
+        "{projectRoot}/.eslintrc.json"
+      ]
     },
     "synth": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm exec projen synth",
+        "command": "cdk synth",
         "cwd": "packages/infra"
-      }
+      },
+      "dependsOn": [
+        "@aws-samples/smart-product-onboarding-api-typescript-handlers:build",
+        "amzn-smart-product-onboarding-api-python-handlers:build",
+        "amzn-smart-product-onboarding-core-utils:build",
+        "amzn-smart-product-onboarding-product-categorization:build",
+        "amzn-smart-product-onboarding-metaclasses:build",
+        "compile"
+      ]
     },
     "synth:silent": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm exec projen synth:silent",
+        "command": "cdk synth -q",
         "cwd": "packages/infra"
-      }
+      },
+      "dependsOn": [
+        "@aws-samples/smart-product-onboarding-api-typescript-handlers:build",
+        "amzn-smart-product-onboarding-api-python-handlers:build",
+        "amzn-smart-product-onboarding-core-utils:build",
+        "amzn-smart-product-onboarding-product-categorization:build",
+        "amzn-smart-product-onboarding-metaclasses:build",
+        "compile"
+      ]
     },
     "deploy": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm exec projen deploy",
+        "command": "cdk deploy",
         "cwd": "packages/infra"
-      }
+      },
+      "dependsOn": ["synth"]
+    },
+    "deploy:dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cdk deploy --hotswap-fallback --require-approval never",
+        "cwd": "packages/infra"
+      },
+      "dependsOn": ["synth"]
     },
     "destroy": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm exec projen destroy",
+        "command": "cdk destroy",
         "cwd": "packages/infra"
       }
     },
     "diff": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm exec projen diff",
+        "command": "cdk diff",
+        "cwd": "packages/infra"
+      },
+      "dependsOn": ["synth"]
+    },
+    "watch": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": ["cdk deploy --hotswap", "cdk watch"],
+        "cwd": "packages/infra",
+        "parallel": false
+      },
+      "dependsOn": [
+        "@aws-samples/smart-product-onboarding-api-typescript-handlers:build",
+        "amzn-smart-product-onboarding-api-python-handlers:build",
+        "amzn-smart-product-onboarding-core-utils:build",
+        "amzn-smart-product-onboarding-product-categorization:build",
+        "amzn-smart-product-onboarding-metaclasses:build"
+      ]
+    },
+    "post-compile": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "nx run @aws-samples/smart-product-onboarding-infra:synth:silent",
+        "cwd": "packages/infra"
+      },
+      "dependsOn": ["compile"]
+    },
+    "package": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "echo 'CDK package step - no action needed'",
         "cwd": "packages/infra"
       }
     },
-    "bundle": {
+    "build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm exec projen bundle",
-        "cwd": "packages/infra"
-      }
+        "commands": [
+          "nx run @aws-samples/smart-product-onboarding-infra:compile",
+          "nx run @aws-samples/smart-product-onboarding-infra:post-compile",
+          "nx run @aws-samples/smart-product-onboarding-infra:test",
+          "nx run @aws-samples/smart-product-onboarding-infra:package"
+        ],
+        "cwd": "packages/infra",
+        "parallel": false
+      },
+      "dependsOn": ["^build"]
     },
-    "deploy:dev": {
+    "test:watch": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm exec projen deploy:dev",
+        "command": "jest --watch",
         "cwd": "packages/infra"
       }
     }
@@ -139,8 +157,9 @@
   "implicitDependencies": [
     "amzn-smart-product-onboarding-api-python-handlers",
     "@aws-samples/smart-product-onboarding-api-typescript-handlers",
+    "amzn-smart-product-onboarding-core-utils",
     "amzn-smart-product-onboarding-product-categorization",
-    "amzn-smart-product-onboarding-metaclasses"
-  ],
-  "//": "~~ Generated by projen. To modify, edit .projenrc.js and run \"npx projen\"."
+    "amzn-smart-product-onboarding-metaclasses",
+    "amzn-smart-product-onboarding-api-python-runtime"
+  ]
 }

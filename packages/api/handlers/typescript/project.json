@@ -2,100 +2,107 @@
   "name": "@aws-samples/smart-product-onboarding-api-typescript-handlers",
   "root": "packages/api/handlers/typescript",
   "targets": {
-    "default": {
+    "generate": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm exec projen default",
+        "command": "npx --yes -p @aws/pdk@$AWS_PDK_VERSION type-safe-api generate --specPath ../../model/.api.json --outputPath . --templateDirs \"typescript-lambda-handlers\" --metadata '{\"srcDir\":\"src\",\"tstDir\":\"test\",\"runtimePackageName\":\"@aws-samples/smart-product-onboarding-api-typescript-runtime\"}'",
         "cwd": "packages/api/handlers/typescript"
-      }
-    },
-    "pre-compile": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm exec projen pre-compile",
-        "cwd": "packages/api/handlers/typescript"
+      },
+      "env": {
+        "AWS_PDK_VERSION": "0.26.7"
       }
     },
     "compile": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm exec projen compile",
+        "command": "tsc --build",
         "cwd": "packages/api/handlers/typescript"
-      }
-    },
-    "post-compile": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm exec projen post-compile",
-        "cwd": "packages/api/handlers/typescript"
-      }
+      },
+      "inputs": ["{projectRoot}/src/**/*.ts", "{projectRoot}/tsconfig.json"],
+      "outputs": ["{projectRoot}/lib"],
+      "dependsOn": ["generate"]
     },
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm exec projen test",
+        "commands": [
+          "jest --passWithNoTests --updateSnapshot",
+          "eslint --ext .ts,.tsx --fix --no-error-on-unmatched-pattern src test"
+        ],
+        "cwd": "packages/api/handlers/typescript",
+        "parallel": false
+      },
+      "inputs": [
+        "{projectRoot}/src/**/*.ts",
+        "{projectRoot}/test/**/*.ts",
+        "{projectRoot}/tsconfig.dev.json",
+        "{projectRoot}/.eslintrc.json"
+      ],
+      "outputs": ["{projectRoot}/coverage", "{projectRoot}/test-reports"],
+      "dependsOn": ["compile"]
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "eslint --ext .ts,.tsx --fix --no-error-on-unmatched-pattern src test",
         "cwd": "packages/api/handlers/typescript"
-      }
+      },
+      "inputs": [
+        "{projectRoot}/src/**/*.ts",
+        "{projectRoot}/test/**/*.ts",
+        "{projectRoot}/.eslintrc.json"
+      ]
     },
     "package": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm exec projen package",
-        "cwd": "packages/api/handlers/typescript"
-      }
+        "commands": [
+          "mkdir -p dist/js",
+          "pnpm pack --pack-destination dist/js",
+          "mkdir -p dist/lambda && rm -rf dist/lambda/*",
+          "esbuild --bundle src/*.ts --platform=node --outdir=dist/lambda --target=node22",
+          "for f in $(ls dist/lambda); do mkdir dist/lambda/$(basename $f .js) && mv dist/lambda/$f dist/lambda/$(basename $f .js)/index.js; done",
+          "cp -r src/templates dist/lambda/generate-product/ || true",
+          "cp -r src/templates dist/lambda/generate-product-sfn/ || true"
+        ],
+        "cwd": "packages/api/handlers/typescript",
+        "parallel": false
+      },
+      "inputs": ["{projectRoot}/lib/**/*", "{projectRoot}/src/templates/**/*"],
+      "outputs": ["{projectRoot}/dist"],
+      "dependsOn": ["compile"]
     },
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm exec projen build",
+        "command": "echo 'Build completed successfully'",
         "cwd": "packages/api/handlers/typescript"
-      }
+      },
+      "dependsOn": ["generate", "compile", "test", "package"]
     },
     "test:watch": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm exec projen test:watch",
-        "cwd": "packages/api/handlers/typescript"
-      }
-    },
-    "post-upgrade": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm exec projen post-upgrade",
-        "cwd": "packages/api/handlers/typescript"
-      }
-    },
-    "upgrade": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm exec projen upgrade",
+        "command": "jest --watch",
         "cwd": "packages/api/handlers/typescript"
       }
     },
     "watch": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm exec projen watch",
+        "command": "tsc --build -w",
         "cwd": "packages/api/handlers/typescript"
       }
     },
-    "eslint": {
+    "post-compile": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm exec projen eslint",
-        "cwd": "packages/api/handlers/typescript"
-      }
-    },
-    "generate": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm exec projen generate",
+        "command": "echo 'Post-compile completed'",
         "cwd": "packages/api/handlers/typescript"
       }
     }
   },
   "implicitDependencies": [
     "@aws-samples/smart-product-onboarding-api-typescript-runtime"
-  ],
-  "//": "~~ Generated by projen. To modify, edit .projenrc.js and run \"npx projen\"."
+  ]
 }

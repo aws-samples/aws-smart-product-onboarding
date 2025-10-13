@@ -13,6 +13,7 @@ The Smart Product Onboarding accelerator demonstrates an innovative approach to 
 ![Light bulb attributes](documentation/images/lightbulb%20-%20attributes.png)
 
 ## Architecture
+
 ![Architecture Overview](documentation/diagrams/architecture-Overview.png)
 
 [Detailed diagrams](architecture.md#architecture)
@@ -46,7 +47,7 @@ We recommend creating a budget through [AWS Cost Explorer](http://aws.amazon.com
 The following table provides a sample cost breakdown for deploying this solution with the default parameters in the **US East (N. Virginia)** Region for **one month**.
 
 | **AWS Service**                       | **Usage**                                                                                                          | **Cost [USD]** |
-|:--------------------------------------|:-------------------------------------------------------------------------------------------------------------------|----------------|
+| :------------------------------------ | :----------------------------------------------------------------------------------------------------------------- | -------------- |
 | Amazon Bedrock                        | Generate Product Data from Images - Average 6,000 input tokens and 200 output tokens. **Anthropic Claude 3 Haiku** | 175.00         |
 | Amazon Bedrock                        | Metaclass - Average 350 input tokens and 10 output tokens). **Amazon Nova Micro**                                  | 1.37           |
 | Amazon Bedrock                        | Categorize Products - Average 20,200 input tokens and 525 output tokens). **Anthropic Claude 3 Haiku**             | 570.63         |
@@ -68,46 +69,42 @@ The following table provides a sample cost breakdown for deploying this solution
 | AWS Systems Manager                   | Parameter Store                                                                                                    | 0.00           |
 | **Total monthly infrastructure cost** |                                                                                                                    | **2,179.80**   |
 
-
 ## Deployment and Development
 
 ### Prerequisites
 
-* Configure the AWS Credentials in your environment. Refer to [Authentication and access](https://docs.aws.amazon.com/sdkref/latest/guide/access.html).
-* Download and install AWS CLI. Refer to [Installing the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
-* Install and configure AWS CDK. Refer to Installing the [AWS CDK](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html). 
-* Download and install Docker. Refer to [Docker](https://www.docker.com/products/docker-desktop/).
-* NodeJS >= 18.0.0 and < 22
-* Python >= 3.12 preferably with [pyenv](https://github.com/pyenv/pyenv)
-* Poetry >= 1.5.1 and < 2
-* Pnpm >= 8.6.3
+- Configure the AWS Credentials in your environment. Refer to [Authentication and access](https://docs.aws.amazon.com/sdkref/latest/guide/access.html).
+- Download and install AWS CLI. Refer to [Installing the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
+- Install and configure AWS CDK. Refer to Installing the [AWS CDK](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html).
+- Download and install Docker. Refer to [Docker](https://www.docker.com/products/docker-desktop/).
+- NodeJS >= 18.0.0 and < 22
+- Python >= 3.12 preferably with [pyenv](https://github.com/pyenv/pyenv)
+- Poetry >= 1.5.1 and < 2
+- Pnpm >= 8.6.3
 
 ```shell
 pip install poetry==1.8.5
 npm install -g pnpm@^8.15.9 aws-cdk
 ```
 
+### Build and Deploy
 
-### First build
-
-You may need to login to docker for `public.ecr.aws`.
+The entire build and deployment can be done with just a few commands:
 
 ```shell
-aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+pnpm install
+cd packages/infra && cdk bootstrap && cd ../..              # First time only
+pnpm exec nx run @aws-samples/smart-product-onboarding-infra:deploy        # Deploy to AWS (~15-20 min)
 ```
 
-```shell
-pnpm i
-pnpm pdk install:ci
-pnpm pdk build
-```
+The deploy command will automatically trigger the necessary builds and then deploy the infrastructure.
 
-### Deploy
+#### Subsequent Deployments
+
+After the first deployment, you only need:
 
 ```shell
-pushd packages/infra
-pnpm cdk bootstrap
-pnpm cdk deploy smart-product-onboarding
+pnpm exec nx run @aws-samples/smart-product-onboarding-infra:deploy
 ```
 
 #### Deploy with Cross-Account access to Bedrock
@@ -116,7 +113,7 @@ If you need to use Bedrock in Cross-Account setting (e.g. because the service qu
 can optionally define a context variable containing the ARN of an IAM Role in this other account.
 
 ```shell
-pnpm cdk deploy smart-product-onboarding --context BEDROCK_XACCT_ROLE=<ARN_OF_ROLE>
+cd packages/infra && cdk deploy smart-product-onboarding --context BEDROCK_XACCT_ROLE=<ARN_OF_ROLE>
 ```
 
 Remember to configure the trust relationship in the other account to allow our roles to assume them by adding our
@@ -124,26 +121,38 @@ account as a principal in the trust policy.
 
 Also note that if you choose to use Bedrock Cross-Account consumption metrics will show up in the other account.
 
-### Modify project
+### Development Commands
 
-To change the project settings, edit `.projenrc.ts`
-
-and run
+Build all packages:
 
 ```shell
-pnpm pdk
+pnpm build
+```
+
+Run tests:
+
+```shell
+pnpm test
+```
+
+Lint code:
+
+```shell
+pnpm lint
 ```
 
 ### Update Code
 
+After making changes, redeploy with:
+
 ```shell
-pnpm pdk build
-pushd packages/infra
-pnpm cdk deploy smart-product-onboarding
-popd
+pnpm exec nx run @aws-samples/smart-product-onboarding-infra:deploy
 ```
 
+This will automatically build all dependencies and deploy the updated infrastructure.
+
 ## Cleanup
+
 In the event that you decide to stop using the accelerator, we recommend that you follow a tear down procedure. Most of the services used have no cost when there is no active use with the notable exception of storage in S3, DynamoDB, and CloudWatch Logs. AWS CloudFormation via CDK will tear down all resources except for Amazon S3 buckets and AWS CloudWatch Logs log groups with data.
 
 1. On the AWS CloudFormation console or using AWS CDK in the terminal, destroy the stacks that were deployed. Some of the S3 buckets will remain as they will not be empty.
@@ -153,11 +162,60 @@ In the event that you decide to stop using the accelerator, we recommend that yo
 5. After a day, go back and delete the buckets.
 
 ## Configuration
+
 After deployment, the accelerator needs to be configured for your category tree and attribute schema using the [notebooks](notebooks/README.md).
 
+## Troubleshooting
 
+### Common Build Issues
+
+**Nx cache issues:**
+
+```shell
+# Clear Nx cache if builds are failing unexpectedly
+pnpm exec nx reset
+```
+
+**TypeScript compilation errors:**
+
+```shell
+# Clean and rebuild TypeScript packages
+pnpm exec nx run-many --target=clean --all
+pnpm build
+```
+
+**CDK deployment issues:**
+
+```shell
+pnpm exec nx run @aws-samples/smart-product-onboarding-infra:synth    # Test synthesis
+pnpm exec nx run @aws-samples/smart-product-onboarding-infra:deploy   # Deploy with automatic builds
+```
+
+**Poetry virtual environment issues:**
+
+```shell
+# Reset Poetry virtual environments
+cd packages/smart-product-onboarding/core-utils
+poetry env remove --all
+poetry install
+```
+
+**Docker build failures:**
+
+```shell
+# Re-authenticate with ECR if Docker builds fail
+aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+```
+
+### Performance Tips
+
+- Use `pnpm exec nx run-many --target=build --parallel=3` to limit parallel builds if experiencing memory issues
+- Run `pnpm exec nx show projects` to see all available projects and their dependencies
+- Use `pnpm exec nx graph` to visualize the project dependency graph
+- Use `pnpm exec nx run @aws-samples/smart-product-onboarding-infra:deploy:dev` for faster development deployments with hotswap
 
 ## Demo
+
 This accelerator includes a web app in [packages/website/](packages/website/README.md#smart-product-onboarding---demo-website) with two demos to showcase the Smart Product Onboarding functionality:
 
 ### 1. Smart Product Onboarding
@@ -207,7 +265,9 @@ For detailed information on CSV format and image requirements, click the info ic
 Remember to review and potentially edit the AI-generated content before using it in a production environment.
 
 ## Security Guideline
+
 Please see the [security guidelines](documentation/security.md#security).
 
 ## Content Security Legal Disclaimer
+
 Sample code, software libraries, command line tools, proofs of concept, templates, or other related technology are provided as AWS Content or Third-Party Content under the AWS Customer Agreement, or the relevant written agreement between you and AWS (whichever applies). You should not use this AWS Content or Third-Party Content in your production accounts, or on production or other critical data. You are responsible for testing, securing, and optimizing the AWS Content or Third-Party Content, such as sample code, as appropriate for production grade use based on your specific quality control practices and standards. Deploying AWS Content or Third-Party Content may incur AWS charges for creating or using AWS chargeable resources, such as running Amazon EC2 instances or using Amazon S3 storage.

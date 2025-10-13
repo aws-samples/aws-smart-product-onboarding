@@ -1,91 +1,90 @@
 {
   "name": "amzn-smart-product-onboarding-product-categorization",
   "root": "packages/smart-product-onboarding/product-categorization",
+  "tags": ["python"],
   "targets": {
     "install": {
-      "dependsOn": [
-        "^install"
-      ],
+      "dependsOn": ["^install"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm dlx projen install",
-        "cwd": "packages/smart-product-onboarding/product-categorization"
-      }
-    },
-    "default": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen default",
-        "cwd": "packages/smart-product-onboarding/product-categorization"
-      }
-    },
-    "pre-compile": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen pre-compile",
-        "cwd": "packages/smart-product-onboarding/product-categorization"
-      }
-    },
-    "compile": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen compile",
-        "cwd": "packages/smart-product-onboarding/product-categorization"
-      }
-    },
-    "post-compile": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen post-compile",
-        "cwd": "packages/smart-product-onboarding/product-categorization"
-      }
-    },
-    "test": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen test",
-        "cwd": "packages/smart-product-onboarding/product-categorization"
-      }
-    },
-    "package": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen package",
-        "cwd": "packages/smart-product-onboarding/product-categorization"
-      }
-    },
-    "build": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen build",
-        "cwd": "packages/smart-product-onboarding/product-categorization"
+        "command": "poetry env use python$(pyenv latest 3 | cut -d '.' -f 1,2 || echo '') && poetry update && rm -f `poetry env info -p`/bin/projen `poetry env info -p`/bin/pdk",
+        "cwd": "packages/smart-product-onboarding/product-categorization",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
       }
     },
     "install:ci": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm dlx projen install:ci",
+        "command": "poetry env use python$(pyenv latest 3 | cut -d '.' -f 1,2 || echo '') && poetry check --lock && poetry install && rm -f `poetry env info -p`/bin/projen `poetry env info -p`/bin/pdk",
+        "cwd": "packages/smart-product-onboarding/product-categorization",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "poetry run pytest",
+        "cwd": "packages/smart-product-onboarding/product-categorization",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
+      }
+    },
+    "package": {
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "echo 'Package completed via build target'",
         "cwd": "packages/smart-product-onboarding/product-categorization"
       }
     },
-    "publish:test": {
+    "build": {
+      "dependsOn": ["test"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm dlx projen publish:test",
-        "cwd": "packages/smart-product-onboarding/product-categorization"
+        "command": "poetry build",
+        "cwd": "packages/smart-product-onboarding/product-categorization",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        },
+        "outputs": ["{projectRoot}/dist"]
       }
     },
     "publish": {
+      "dependsOn": ["package"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm dlx projen publish",
-        "cwd": "packages/smart-product-onboarding/product-categorization"
+        "command": "poetry publish",
+        "cwd": "packages/smart-product-onboarding/product-categorization",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
+      }
+    },
+    "publish:test": {
+      "dependsOn": ["package"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "poetry publish --repository testpypi",
+        "cwd": "packages/smart-product-onboarding/product-categorization",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
       }
     }
   },
   "implicitDependencies": [
     "amzn-smart-product-onboarding-core-utils",
     "amzn-smart-product-onboarding-api-python-runtime"
-  ],
-  "//": "~~ Generated by projen. To modify, edit .projenrc.js and run \"npx projen\"."
+  ]
 }

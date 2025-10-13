@@ -1,97 +1,90 @@
 {
   "name": "amzn-smart-product-onboarding-api-python-runtime",
   "root": "packages/api/generated/runtime/python",
+  "tags": ["python"],
   "targets": {
     "install": {
-      "dependsOn": [
-        "^install"
-      ],
+      "dependsOn": ["^install"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm dlx projen install",
-        "cwd": "packages/api/generated/runtime/python"
-      }
-    },
-    "default": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen default",
-        "cwd": "packages/api/generated/runtime/python"
-      }
-    },
-    "pre-compile": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen pre-compile",
-        "cwd": "packages/api/generated/runtime/python"
-      }
-    },
-    "compile": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen compile",
-        "cwd": "packages/api/generated/runtime/python"
-      }
-    },
-    "post-compile": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen post-compile",
-        "cwd": "packages/api/generated/runtime/python"
-      }
-    },
-    "test": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen test",
-        "cwd": "packages/api/generated/runtime/python"
-      }
-    },
-    "package": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen package",
-        "cwd": "packages/api/generated/runtime/python"
-      }
-    },
-    "build": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen build",
-        "cwd": "packages/api/generated/runtime/python"
+        "command": "poetry env use python$(pyenv latest 3 | cut -d '.' -f 1,2 || echo '') && mkdir -p amzn_smart_product_onboarding_api_python_runtime && touch amzn_smart_product_onboarding_api_python_runtime/__init__.py README.md && poetry update && rm -f `poetry env info -p`/bin/projen `poetry env info -p`/bin/pdk",
+        "cwd": "packages/api/generated/runtime/python",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
       }
     },
     "install:ci": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm dlx projen install:ci",
+        "command": "poetry env use python$(pyenv latest 3 | cut -d '.' -f 1,2 || echo '') && mkdir -p amzn_smart_product_onboarding_api_python_runtime && touch amzn_smart_product_onboarding_api_python_runtime/__init__.py README.md && poetry check --lock && poetry install && rm -f `poetry env info -p`/bin/projen `poetry env info -p`/bin/pdk",
+        "cwd": "packages/api/generated/runtime/python",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
+      }
+    },
+    "generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx --yes -p @aws/pdk@$AWS_PDK_VERSION type-safe-api generate --specPath ../../../model/.api.json --outputPath . --templateDirs \"python\" --metadata '{\"srcDir\":\"amzn_smart_product_onboarding_api_python_runtime\",\"moduleName\":\"amzn_smart_product_onboarding_api_python_runtime\",\"projectName\":\"amzn-smart-product-onboarding-api-python-runtime\"}'",
+        "cwd": "packages/api/generated/runtime/python",
+        "env": {
+          "AWS_PDK_VERSION": "0.26.7"
+        }
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "echo 'No tests defined for runtime package'",
+        "cwd": "packages/api/generated/runtime/python"
+      }
+    },
+    "package": {
+      "dependsOn": ["generate"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "mkdir -p ../../../../smart-product-onboarding/api && rsync -r ./README.md ./pyproject.toml ./poetry.lock ./amzn_smart_product_onboarding_api_python_runtime ../../../../smart-product-onboarding/api && chmod -R u+w ../../../../smart-product-onboarding/api && poetry build",
+        "cwd": "packages/api/generated/runtime/python",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
+      }
+    },
+    "build": {
+      "dependsOn": ["generate", "test", "package"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "echo 'Build completed'",
         "cwd": "packages/api/generated/runtime/python"
       }
     },
     "publish:test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm dlx projen publish:test",
-        "cwd": "packages/api/generated/runtime/python"
+        "command": "poetry publish -r testpypi",
+        "cwd": "packages/api/generated/runtime/python",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
       }
     },
     "publish": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm dlx projen publish",
-        "cwd": "packages/api/generated/runtime/python"
-      }
-    },
-    "generate": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "pnpm dlx projen generate",
-        "cwd": "packages/api/generated/runtime/python"
+        "command": "poetry publish",
+        "cwd": "packages/api/generated/runtime/python",
+        "env": {
+          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
+          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
+        }
       }
     }
   },
-  "implicitDependencies": [
-    "@aws-samples/smart-product-onboarding-api-model"
-  ],
-  "//": "~~ Generated by projen. To modify, edit .projenrc.js and run \"npx projen\"."
+  "implicitDependencies": ["@aws-samples/smart-product-onboarding-api-model"]
 }
