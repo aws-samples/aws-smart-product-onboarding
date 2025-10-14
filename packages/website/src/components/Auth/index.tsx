@@ -5,7 +5,6 @@
 
 import { CognitoAuth } from "@aws-northstar/ui";
 import React, { useContext } from "react";
-import Config from "../../config.json";
 import { RuntimeConfigContext } from "../RuntimeContext";
 
 /**
@@ -22,7 +21,7 @@ const Auth: React.FC<any> = ({ children }) => {
     runtimeContext?.region &&
     runtimeContext?.identityPoolId ? (
     <CognitoAuth
-      header={Config.applicationName}
+      header={runtimeContext.applicationName || "Smart Product Onboarding"}
       userPoolId={runtimeContext.userPoolId}
       clientId={runtimeContext.userPoolWebClientId}
       region={runtimeContext.region}

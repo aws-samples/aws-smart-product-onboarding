@@ -13,24 +13,37 @@
     "run-many": "nx run-many",
     "test": "nx run-many --target=test --output-style=stream --nx-bail",
     "watch": "nx run-many --target=watch --output-style=stream --skip-nx-cache --nx-ignore-cycles --nx-bail",
-    "install:ci": "pnpm i --frozen-lockfile && nx run-many --target=install:ci --output-style=stream --nx-bail"
+    "install:ci": "pnpm i --frozen-lockfile && nx run-many --target=install:ci --output-style=stream --nx-bail",
+    "dev": "nx run @aws-samples/smart-product-onboarding-demo-website:serve --output-style=stream"
   },
   "devDependencies": {
     "@aws/pdk": "0.26.7",
+    "@nx/js": "19.8.4",
+    "@nx/vite": "19.8.4",
+    "@nx/web": "19.8.4",
+    "@swc-node/register": "~1.9.1",
+    "@swc/core": "~1.5.7",
+    "@swc/helpers": "~0.5.11",
     "@types/node": "^18",
     "@typescript-eslint/eslint-plugin": "^7",
     "@typescript-eslint/parser": "^7",
+    "@vitejs/plugin-react": "^5.0.4",
+    "@vitest/ui": "^3.2.4",
     "eslint": "^8",
     "eslint-config-prettier": "^10.1.8",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-prettier": "^5.5.4",
+    "jsdom": "~22.1.0",
     "npm-check-updates": "^19.0.0",
-    "nx": "19.0.0",
+    "nx": "21.6.4",
     "prettier": "^3.6.2",
     "syncpack": "^13",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^7.1.9",
+    "vite-plugin-dts": "~3.8.1",
+    "vitest": "^3.2.4"
   },
   "peerDependencies": {
     "nx": "^19"
@@ -42,32 +55,7 @@
   },
   "pnpm": {
     "overrides": {
-      "@babel/runtime-corejs3": "^7.26.10",
-      "@babel/runtime": "^7.26.10",
-      "@types/babel__traverse": "7.18.2",
-      "@zkochan/js-yaml": "npm:js-yaml@4.1.0",
-      "aws-cdk-lib": "^2.195.0",
-      "axios": "^1.12.0",
-      "brace-expansion": "^1.1.12",
-      "cross-spawn": "^7.0.5",
-      "dompurify": "^3.1.7",
-      "esbuild": "^0.25.0",
-      "fast-xml-parser": "^4.4.1",
-      "form-data": "^3.0.4",
-      "http-proxy-middleware": "^2.0.8",
-      "micromatch": "^4.0.8",
-      "nth-check": "^2.1.1",
-      "on-headers": "^1.1.0",
-      "postcss": "^8.4.38",
-      "prismjs": "^1.30.0",
-      "semver": "^7.6.2",
-      "serialize-javascript": "^6.0.2",
-      "sha.js": "^2.4.12",
-      "tmp": "^0.2.4",
-      "webpack-dev-server": "^4.15.1",
-      "webpack": "^5.94.0",
-      "wrap-ansi": "^7.0.0",
-      "ws": "^8.17.1"
+      "semver": "^7.6.2"
     }
   },
   "engines": {
