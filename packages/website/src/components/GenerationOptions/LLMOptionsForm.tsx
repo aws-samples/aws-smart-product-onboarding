@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: MIT-0
  */
 
+import { GenProductRequestContentDescriptionLengthEnum } from "@aws-samples/smart-product-onboarding-api-typescript-react-query-hooks";
 import {
   Input,
   Select,
@@ -14,7 +15,6 @@ import FormField from "@cloudscape-design/components/form-field";
 import { useState } from "react";
 import "./llmoptions.css";
 import DescriptionLengthSelector from "../DescriptionLengthSelector";
-import { GenProductRequestContentDescriptionLengthEnum } from "@aws-samples/smart-product-onboarding-api-typescript-react-query-hooks";
 
 export const BedrockModels: SelectProps.Option[] = [
   {

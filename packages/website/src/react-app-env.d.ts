@@ -3,4 +3,4 @@
  * SPDX-License-Identifier: MIT-0
  */
 
-/// <reference types="react-scripts" />
+/// <reference types="vite/client" />

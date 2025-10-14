@@ -124,7 +124,10 @@ const App: React.FC = () => {
         tools={helpPanelContent[helpPanelTopic]}
         navigation={
           <SideNavigation
-            header={{ text: Config.applicationName, href: "/" }}
+            header={{
+              text: Config?.applicationName || "Smart Product Onboarding",
+              href: "/",
+            }}
             activeHref={activeHref}
             onFollow={onNavigate}
             items={NavItems}

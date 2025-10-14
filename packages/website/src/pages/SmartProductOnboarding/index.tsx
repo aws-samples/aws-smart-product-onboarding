@@ -39,7 +39,9 @@ const SmartProductOnboarding: React.FC = () => {
   const { addFlashItem, setHelpPanelTopic, makeHelpPanelHandler } =
     useGlobalUIContext();
 
-  setHelpPanelTopic("smart-onboarding:overview");
+  useEffect(() => {
+    setHelpPanelTopic("smart-onboarding:overview");
+  }, [setHelpPanelTopic]);
 
   const {
     imageFiles,

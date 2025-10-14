@@ -112,6 +112,15 @@
       "env": {
         "AWS_PDK_VERSION": "0.26.7"
       }
+    },
+    "@nx/vite:test": {
+      "cache": true,
+      "inputs": ["default", "^default"]
+    },
+    "@nx/vite:build": {
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": ["default", "^default"]
     }
   },
   "tasksRunnerOptions": {

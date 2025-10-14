@@ -1,7 +1,13 @@
 {
   "name": "@aws-samples/smart-product-onboarding-demo-website",
-  "root": "packages/website",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/website/src",
+  "projectType": "application",
+  "tags": [],
   "targets": {
+    "build": {
+      "dependsOn": ["lint", "compile", "bundle", "test"]
+    },
     "pre-compile": {
       "executor": "nx:run-commands",
       "options": {
@@ -9,7 +15,7 @@
           "rm -rf public/smart-product-onboarding-api",
           "mkdir -p public/smart-product-onboarding-api && cp ../api/model/.api.json public/smart-product-onboarding-api/api.json"
         ],
-        "cwd": "packages/website",
+        "cwd": "{projectRoot}",
         "parallel": false
       },
       "inputs": ["{projectRoot}/../api/model/.api.json"],
@@ -17,106 +23,92 @@
     },
     "compile": {
       "executor": "nx:run-commands",
-      "options": {
-        "command": "react-scripts build",
-        "cwd": "packages/website"
-      },
       "dependsOn": ["pre-compile"],
-      "inputs": [
-        "default",
-        "^default",
-        "{projectRoot}/public/**/*",
-        "{projectRoot}/src/**/*",
-        "{projectRoot}/tsconfig.json",
-        "{projectRoot}/package.json"
-      ],
-      "outputs": ["{projectRoot}/build"]
-    },
-    "post-compile": {
-      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/dist"],
       "options": {
-        "command": "echo 'Post-compile step completed'",
-        "cwd": "packages/website"
+        "command": "tsc --build tsconfig.json",
+        "cwd": "{projectRoot}"
       }
     },
-    "test": {
-      "executor": "nx:run-commands",
+    "bundle": {
+      "executor": "@nx/vite:build",
+      "dependsOn": ["pre-compile"],
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
       "options": {
-        "commands": [
-          "eslint --ext .ts,.tsx --fix --no-error-on-unmatched-pattern src test build-tools",
-          "react-scripts test --watchAll=false --passWithNoTests"
-        ],
-        "cwd": "packages/website",
-        "parallel": false
+        "outputPath": "dist/packages/website/bundle"
       },
-      "inputs": [
-        "default",
-        "{projectRoot}/src/**/*",
-        "{projectRoot}/test/**/*",
-        "{projectRoot}/.eslintrc.json",
-        "{projectRoot}/tsconfig.json"
-      ]
-    },
-    "package": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "echo 'Package step completed'",
-        "cwd": "packages/website"
-      },
-      "dependsOn": ["compile"]
-    },
-    "build": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "echo 'Build completed - use compile target for React build'",
-        "cwd": "packages/website"
-      },
-      "dependsOn": ["compile", "test"]
-    },
-    "post-upgrade": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "echo 'Post-upgrade step completed'",
-        "cwd": "packages/website"
-      }
-    },
-    "upgrade": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "echo 'Upgrade functionality not implemented in direct Nx management'",
-        "cwd": "packages/website"
-      }
-    },
-    "watch": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "tsc --build -w",
-        "cwd": "packages/website"
+      "configurations": {
+        "development": {
+          "mode": "development"
+        },
+        "production": {
+          "mode": "production"
+        }
       }
     },
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint --ext .ts,.tsx --fix --no-error-on-unmatched-pattern src test build-tools",
-        "cwd": "packages/website"
-      },
-      "inputs": [
-        "default",
-        "{projectRoot}/src/**/*",
-        "{projectRoot}/test/**/*",
-        "{projectRoot}/.eslintrc.json",
-        "{projectRoot}/tsconfig.json"
-      ]
+        "command": "eslint 'src/**/*.{ts,tsx,js,jsx}'",
+        "cwd": "{projectRoot}"
+      }
     },
-    "dev": {
+    "lint:fix": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "react-scripts start",
-        "cwd": "packages/website"
+        "command": "eslint 'src/**/*.{ts,tsx,js,jsx}' --fix",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "preview": {
+      "dependsOn": ["build"],
+      "executor": "@nx/vite:preview-server",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "@aws-samples/smart-product-onboarding-demo-website:bundle"
       },
-      "env": {
-        "ESLINT_NO_DEV_ERRORS": "true",
-        "TSC_COMPILE_ON_ERROR": "true"
+      "configurations": {
+        "development": {
+          "buildTarget": "@aws-samples/smart-product-onboarding-demo-website:bundle:development"
+        },
+        "production": {
+          "buildTarget": "@aws-samples/smart-product-onboarding-demo-website:bundle:production"
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nx/vite:dev-server",
+      "dependsOn": ["pre-compile"],
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "@aws-samples/smart-product-onboarding-demo-website:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "@aws-samples/smart-product-onboarding-demo-website:bundle:development",
+          "hmr": true
+        },
+        "production": {
+          "buildTarget": "@aws-samples/smart-product-onboarding-demo-website:bundle:production",
+          "hmr": false
+        }
+      }
+    },
+    "serve-static": {
+      "executor": "@nx/web:file-server",
+      "dependsOn": ["build"],
+      "options": {
+        "buildTarget": "@aws-samples/smart-product-onboarding-demo-website:bundle",
+        "spa": true
+      }
+    },
+    "test": {
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
+      "options": {
+        "passWithNoTests": true,
+        "reportsDirectory": "../../coverage/packages/website"
       }
     }
   }

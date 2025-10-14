@@ -121,26 +121,6 @@ account as a principal in the trust policy.
 
 Also note that if you choose to use Bedrock Cross-Account consumption metrics will show up in the other account.
 
-### Development Commands
-
-Build all packages:
-
-```shell
-pnpm build
-```
-
-Run tests:
-
-```shell
-pnpm test
-```
-
-Lint code:
-
-```shell
-pnpm lint
-```
-
 ### Update Code
 
 After making changes, redeploy with:
