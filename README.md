@@ -143,7 +143,7 @@ In the event that you decide to stop using the accelerator, we recommend that yo
 
 ## Configuration
 
-After deployment, the accelerator needs to be configured for your category tree and attribute schema using the [notebooks](notebooks/README.md).
+After deployment, the accelerator needs to be configured for your category tree and attribute schema using the [notebooks](notebooks/README.md). To facilitate demos, there is an automated configuration script you could use instead.
 
 ## Troubleshooting
 
