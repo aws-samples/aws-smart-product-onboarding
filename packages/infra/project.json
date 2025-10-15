@@ -124,21 +124,6 @@
         "amzn-smart-product-onboarding-metaclasses:build"
       ]
     },
-    "post-compile": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "nx run @aws-samples/smart-product-onboarding-infra:synth:silent",
-        "cwd": "packages/infra"
-      },
-      "dependsOn": ["compile"]
-    },
-    "package": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "echo 'CDK package step - no action needed'",
-        "cwd": "packages/infra"
-      }
-    },
     "build": {
       "executor": "nx:run-commands",
       "options": {
@@ -160,13 +145,5 @@
         "cwd": "packages/infra"
       }
     }
-  },
-  "implicitDependencies": [
-    "amzn-smart-product-onboarding-api-python-handlers",
-    "@aws-samples/smart-product-onboarding-api-typescript-handlers",
-    "amzn-smart-product-onboarding-core-utils",
-    "amzn-smart-product-onboarding-product-categorization",
-    "amzn-smart-product-onboarding-metaclasses",
-    "amzn-smart-product-onboarding-api-python-runtime"
-  ]
+  }
 }
