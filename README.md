@@ -77,7 +77,7 @@ The following table provides a sample cost breakdown for deploying this solution
 - Download and install AWS CLI. Refer to [Installing the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
 - Install and configure AWS CDK. Refer to Installing the [AWS CDK](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html).
 - Download and install Docker. Refer to [Docker](https://www.docker.com/products/docker-desktop/).
-- NodeJS >= 18.0.0 and < 22
+- NodeJS >= 18.0.0 and <= 22
 - Python >= 3.12 preferably with [pyenv](https://github.com/pyenv/pyenv)
 - Poetry >= 1.5.1 and < 2
 - Pnpm >= 8.6.3
@@ -93,7 +93,7 @@ The entire build and deployment can be done with just a few commands:
 
 ```shell
 pnpm install
-cd packages/infra && cdk bootstrap && cd ../..              # First time only
+pnpm exec nx run @aws-samples/smart-product-onboarding-infra:bootstrap     # First time only
 pnpm exec nx run @aws-samples/smart-product-onboarding-infra:deploy        # Deploy to AWS (~15-20 min)
 ```
 

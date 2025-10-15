@@ -14,7 +14,7 @@ include = [
   include = "amzn_smart_product_onboarding_api_python_handlers"
 
   [tool.poetry.dependencies]
-  python = "^3.13"
+  python = "^3.12"
 
     [tool.poetry.dependencies.amzn-smart-product-onboarding-api-python-runtime]
     path = "../../generated/runtime/python"

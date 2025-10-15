@@ -41,6 +41,13 @@
         "{projectRoot}/.eslintrc.json"
       ]
     },
+    "bootstrap": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cdk bootstrap",
+        "cwd": "packages/infra"
+      }
+    },
     "synth": {
       "executor": "nx:run-commands",
       "options": {
