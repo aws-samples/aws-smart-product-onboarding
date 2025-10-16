@@ -81,7 +81,7 @@
     "deploy": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "cdk deploy",
+        "command": "cdk deploy --require-approval never",
         "cwd": "packages/infra"
       },
       "dependsOn": ["synth"]
