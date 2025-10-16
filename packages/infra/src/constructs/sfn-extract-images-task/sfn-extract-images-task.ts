@@ -37,7 +37,7 @@ export class ExtractImagesTaskFunction extends lambda.DockerImageFunction {
           "smart-product-onboarding",
         ),
         {
-          platform: ecr_assets.Platform.LINUX_ARM64,
+          platform: ecr_assets.Platform.LINUX_AMD64,
           cmd: [
             "amzn_smart_product_onboarding_product_categorization.aws_lambda.images_extractor.handler",
           ],
@@ -48,7 +48,7 @@ export class ExtractImagesTaskFunction extends lambda.DockerImageFunction {
       },
       timeout: Duration.seconds(600),
       memorySize: 768,
-      architecture: lambda.Architecture.ARM_64,
+      architecture: lambda.Architecture.X86_64,
     });
 
     props.imagesBucket.grantReadWrite(this);

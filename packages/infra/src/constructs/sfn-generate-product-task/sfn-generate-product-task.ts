@@ -104,7 +104,7 @@ export class SfnGenerateProduct extends sfn.StateMachineFragment {
     this.function = new SfnGenerateProductFunction(this, "Function", {
       timeout: Duration.seconds(60),
       memorySize: 512,
-      architecture: lambda.Architecture.ARM_64,
+      architecture: lambda.Architecture.X86_64,
       environment: {
         IMAGE_BUCKET: props.imagesBucket.bucketName,
         BEDROCK_MODEL_ID: "us.amazon.nova-lite-v1:0",
