@@ -55,7 +55,7 @@ export class ClassificationTaskFunction extends lambda.DockerImageFunction {
         BEDROCK_MODEL_ID: "us.anthropic.claude-3-haiku-20240307-v1:0",
       },
       timeout: props.timeout ? props.timeout : Duration.minutes(10),
-      reservedConcurrentExecutions: 40,
+      // reservedConcurrentExecutions: 40,
       memorySize: 512,
       architecture: lambda.Architecture.X86_64,
     });

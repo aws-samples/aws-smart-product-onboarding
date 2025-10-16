@@ -53,7 +53,7 @@ export class AttributeExtractionTaskFunction extends lambda.DockerImageFunction 
         BEDROCK_MODEL_ID: "us.amazon.nova-premier-v1:0",
       },
       timeout: props.timeout ? props.timeout : Duration.minutes(2),
-      reservedConcurrentExecutions: 40,
+      // reservedConcurrentExecutions: 40,
       memorySize: 512,
       architecture: lambda.Architecture.X86_64,
     });
