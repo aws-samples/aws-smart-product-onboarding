@@ -40,7 +40,7 @@ export class MetaclassTaskFunction extends lambda.DockerImageFunction {
         ),
         {
           file: "metaclasses.Dockerfile",
-          platform: ecr_assets.Platform.LINUX_ARM64,
+          platform: ecr_assets.Platform.LINUX_AMD64,
           cmd: props.cmd,
         },
       ),
@@ -51,7 +51,7 @@ export class MetaclassTaskFunction extends lambda.DockerImageFunction {
       },
       timeout: props.timeout ? props.timeout : Duration.seconds(900),
       memorySize: 512,
-      architecture: lambda.Architecture.ARM_64,
+      architecture: lambda.Architecture.X86_64,
     });
 
     this.addToRolePolicy(

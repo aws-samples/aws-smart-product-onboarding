@@ -41,7 +41,7 @@ export class ClassificationTaskFunction extends lambda.DockerImageFunction {
           "smart-product-onboarding",
         ),
         {
-          platform: ecr_assets.Platform.LINUX_ARM64,
+          platform: ecr_assets.Platform.LINUX_AMD64,
           cmd: props.cmd
             ? props.cmd
             : [
@@ -57,7 +57,7 @@ export class ClassificationTaskFunction extends lambda.DockerImageFunction {
       timeout: props.timeout ? props.timeout : Duration.minutes(10),
       reservedConcurrentExecutions: 40,
       memorySize: 512,
-      architecture: lambda.Architecture.ARM_64,
+      architecture: lambda.Architecture.X86_64,
     });
 
     this.role?.addToPrincipalPolicy(

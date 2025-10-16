@@ -114,7 +114,7 @@ export class SmartProductOnboardingAPI extends Construct {
           BEDROCK_MODEL_ID: "us.anthropic.claude-3-haiku-20240307-v1:0",
         },
         memorySize: 512,
-        architecture: lambda.Architecture.ARM_64,
+        architecture: lambda.Architecture.X86_64,
       },
     );
     props.inputBucket.grantRead(generateProductFunction);
