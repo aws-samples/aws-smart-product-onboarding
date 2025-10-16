@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT-0
 
 import io
+import os
 import zipfile
 from unittest.mock import Mock, patch
 
@@ -15,6 +16,19 @@ from amzn_smart_product_onboarding_product_categorization.images_extractor impor
     is_supported_image,
     get_content_type,
 )
+
+
+def create_test_bucket(s3_client, bucket_name):
+    """Create S3 bucket with proper region configuration for tests."""
+    region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+    
+    if region == "us-east-1":
+        s3_client.create_bucket(Bucket=bucket_name)
+    else:
+        s3_client.create_bucket(
+            Bucket=bucket_name,
+            CreateBucketConfiguration={"LocationConstraint": region}
+        )
 
 
 @pytest.fixture()
@@ -106,7 +120,7 @@ def test_images_extractor_integration(test_zip_file):
     # Setup
     s3_client: S3Client = boto3.client("s3")
     bucket = "test-bucket"
-    s3_client.create_bucket(Bucket=bucket)
+    create_test_bucket(s3_client, bucket)
 
     # Create and upload test zip
     s3_client.put_object(Bucket=bucket, Key="test.zip", Body=test_zip_file.getvalue())
@@ -137,7 +151,7 @@ def test_images_extractor_integration_empty_zip():
     # Setup
     s3_client: S3Client = boto3.client("s3")
     bucket = "test-bucket"
-    s3_client.create_bucket(Bucket=bucket)
+    create_test_bucket(s3_client, bucket)
 
     # Create empty zip
     empty_zip = io.BytesIO()
