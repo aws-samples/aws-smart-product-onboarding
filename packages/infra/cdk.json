@@ -4,7 +4,6 @@
     "wordVectorsUrl": "https://dl.fbaipublicfiles.com/fasttext/vectors-english/crawl-300d-2M.vec.zip"
   },
   "output": "cdk.out",
-  "build": "nx run @aws-samples/smart-product-onboarding-infra:compile",
   "watch": {
     "include": ["src/**/*.ts", "test/**/*.ts"],
     "exclude": [

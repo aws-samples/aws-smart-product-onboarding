@@ -7,7 +7,7 @@
       "dependsOn": ["^install"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "poetry env use python$(pyenv latest 3 | cut -d '.' -f 1,2 || echo '') && poetry update && rm -f `poetry env info -p`/bin/projen `poetry env info -p`/bin/pdk",
+        "command": "poetry env use python$(pyenv latest 3 | cut -d '.' -f 1,2 || echo '') && poetry check --lock && poetry install",
         "cwd": "packages/smart-product-onboarding/metaclasses",
         "env": {
           "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
@@ -15,11 +15,10 @@
         }
       }
     },
-    "install:ci": {
-      "dependsOn": ["^install:ci"],
+    "update": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "poetry env use python$(pyenv latest 3 | cut -d '.' -f 1,2 || echo '') && poetry check --lock && poetry install && rm -f `poetry env info -p`/bin/projen `poetry env info -p`/bin/pdk",
+        "command": "poetry env use python$(pyenv latest 3 | cut -d '.' -f 1,2 || echo '') && poetry update",
         "cwd": "packages/smart-product-onboarding/metaclasses",
         "env": {
           "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
