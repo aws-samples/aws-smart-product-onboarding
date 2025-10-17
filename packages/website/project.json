@@ -23,7 +23,10 @@
     },
     "compile": {
       "executor": "nx:run-commands",
-      "dependsOn": ["pre-compile"],
+      "dependsOn": [
+        "pre-compile",
+        "@aws-samples/smart-product-onboarding-api-typescript-react-query-hooks:build"
+      ],
       "outputs": ["{projectRoot}/dist"],
       "options": {
         "command": "tsc --build tsconfig.json",
@@ -32,7 +35,10 @@
     },
     "bundle": {
       "executor": "@nx/vite:build",
-      "dependsOn": ["pre-compile"],
+      "dependsOn": [
+        "pre-compile",
+        "@aws-samples/smart-product-onboarding-api-typescript-react-query-hooks:build"
+      ],
       "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
       "options": {
@@ -79,7 +85,10 @@
     },
     "serve": {
       "executor": "@nx/vite:dev-server",
-      "dependsOn": ["pre-compile"],
+      "dependsOn": [
+        "pre-compile",
+        "@aws-samples/smart-product-onboarding-api-typescript-react-query-hooks:build"
+      ],
       "defaultConfiguration": "development",
       "options": {
         "buildTarget": "@aws-samples/smart-product-onboarding-demo-website:build"
