@@ -47,7 +47,7 @@
       "dependsOn": ["generate"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "poetry build && rm -rf dist/lambda && mkdir -p dist/lambda && cp -r amzn_smart_product_onboarding_api_python_handlers dist/lambda/amzn_smart_product_onboarding_api_python_handlers && poetry export --without-hashes --format=requirements.txt | sed -E 's/^-e[[:space:]]+//' > dist/lambda/requirements.txt && pip install -r dist/lambda/requirements.txt --target dist/lambda --upgrade --platform manylinux2014_x86_64 --only-binary :all: --python-version 3.13",
+        "command": "poetry build && rm -rf dist/lambda && mkdir -p dist/lambda && cp -r amzn_smart_product_onboarding_api_python_handlers dist/lambda/amzn_smart_product_onboarding_api_python_handlers && poetry export --without-hashes --format=requirements.txt | sed -E 's/^-e[[:space:]]+//' > dist/lambda/requirements.txt && poetry run pip install -r dist/lambda/requirements.txt --target dist/lambda --upgrade --platform manylinux2014_x86_64 --only-binary :all: --python-version 3.13",
         "cwd": "packages/api/handlers/python",
         "env": {
           "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
