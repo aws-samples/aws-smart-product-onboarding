@@ -118,7 +118,7 @@ export const useProductGeneration = (
           await putFile(
             url,
             image.data,
-            new Headers({ "Content-type": image.type }),
+            new Headers({ "Content-Type": image.type }),
           );
           return objectKey;
         } catch (e) {
