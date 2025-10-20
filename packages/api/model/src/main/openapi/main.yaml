@@ -419,15 +419,18 @@ components:
           default: 0.7
         model:
           type: string
-          description: The model to use for the LLM. Currently, only Anthropic Claude 3 and Amazon Nova variants are supported.
-          default: us.anthropic.claude-3-haiku-20240307-v1:0
+          description: The model to use for the LLM. Currently, only Anthropic Claude and Amazon Nova multimodal variants are supported. Global inference profiles are used where available for optimal performance.
+          default: us.amazon.nova-lite-v1:0
           enum:
+            - us.amazon.nova-lite-v1:0
+            - us.amazon.nova-pro-v1:0
             - us.anthropic.claude-3-haiku-20240307-v1:0
+            - us.anthropic.claude-3-sonnet-20240229-v1:0
             - us.anthropic.claude-3-5-sonnet-20240620-v1:0
             - us.anthropic.claude-3-5-sonnet-20241022-v2:0
-            - us.anthropic.claude-3-sonnet-20240229-v1:0
-            - us.amazon.nova-pro-v1:0
-            - us.amazon.nova-lite-v1:0
+            - us.anthropic.claude-3-7-sonnet-20250219-v1:0
+            - global.anthropic.claude-haiku-4-5-20251001-v1:0
+            - global.anthropic.claude-sonnet-4-5-20250929-v1:0
         examples:
           type: array
           description: Examples of good product descriptions with the desired tone and language.

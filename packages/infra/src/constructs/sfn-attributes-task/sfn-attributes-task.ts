@@ -50,7 +50,7 @@ export class AttributeExtractionTaskFunction extends lambda.DockerImageFunction 
       ),
       environment: {
         CONFIG_BUCKET_NAME: props.configBucket.bucketName,
-        BEDROCK_MODEL_ID: "us.anthropic.claude-3-5-sonnet-20240620-v1:0",
+        BEDROCK_MODEL_ID: "us.amazon.nova-premier-v1:0",
       },
       timeout: props.timeout ? props.timeout : Duration.minutes(2),
       reservedConcurrentExecutions: 40,

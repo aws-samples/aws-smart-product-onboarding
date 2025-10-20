@@ -107,7 +107,7 @@ export class SfnGenerateProduct extends sfn.StateMachineFragment {
       architecture: lambda.Architecture.ARM_64,
       environment: {
         IMAGE_BUCKET: props.imagesBucket.bucketName,
-        BEDROCK_MODEL_ID: "us.anthropic.claude-3-haiku-20240307-v1:0",
+        BEDROCK_MODEL_ID: "us.amazon.nova-lite-v1:0",
       },
     });
 
