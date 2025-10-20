@@ -1,9 +1,11 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
-from typing import Literal, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from boto3 import Session
 import botocore.exceptions
+import botocore.config
+
 
 if TYPE_CHECKING:
     from mypy_boto3_stepfunctions import SFNClient
@@ -29,7 +31,12 @@ def get_dynamodb_resource() -> DynamoDBServiceResource:
 
 
 def get_s3_client() -> S3Client:
-    return Session().client("s3")
+    return Session().client(
+        "s3",
+        config=botocore.config.Config(
+            signature_version="s3v4", s3={"addressing_style": "virtual"}
+        ),
+    )
 
 
 def create_presigned_url(
@@ -56,17 +63,15 @@ def create_presigned_url(
     :return: None if error.
     """
 
-    params = {
-        "Bucket": bucket_name,
-        "Key": object_key,
-    }
+    params = {"Bucket": bucket_name, "Key": object_key}
 
     if content_type is not None:
         params["ContentType"] = content_type
-        params["ServerSideEncryption"] = "AES256"
 
     try:
-        url = client.generate_presigned_url(ClientMethod=client_method, Params=params, ExpiresIn=expiration)
+        url = client.generate_presigned_url(
+            ClientMethod=client_method, Params=params, ExpiresIn=expiration
+        )
     except botocore.exceptions.ClientError as e:
         logger.error(e)
         raise
