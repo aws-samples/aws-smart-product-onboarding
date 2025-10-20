@@ -24,7 +24,7 @@ const logger = new Logger({ serviceName: "GenerateProduct" });
 
 const defaultTemperature = 0.1;
 const defaultModel =
-  process.env.BEDROCK_MODEL_ID || "anthropic.claude-3-haiku-20240307-v1:0";
+  process.env.BEDROCK_MODEL_ID || "us.amazon.nova-lite-v1:0";
 
 interface ProductGeneratorConfig {
   temperature?: number;

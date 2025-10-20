@@ -38,7 +38,7 @@ Each component of the Smart Product Onboarding accelerator is designed to work i
 
 ## Cost
 
-You are responsible for the cost of the AWS services used while running this accelerator. As of this revision, the cost for running this construct with the default settings in the US East (N. Virginia) Region is approximately $2,201.07 per month with 100,000 products onboarded per month. We assume that on average each product will have five 1 megapixel images.
+You are responsible for the cost of the AWS services used while running this accelerator. As of this revision, the cost for running this construct with the default settings in the US East (N. Virginia) Region is approximately $1,846.87 per month with 100,000 products onboarded per month. We assume that on average each product will have five 1 megapixel images.
 
 The costs shown represent pricing without consideration of AWS free tier benefits.
 
@@ -48,10 +48,10 @@ The following table provides a sample cost breakdown for deploying this solution
 
 | **AWS Service**                       | **Usage**                                                                                                          | **Cost [USD]** |
 | :------------------------------------ | :----------------------------------------------------------------------------------------------------------------- | -------------- |
-| Amazon Bedrock                        | Generate Product Data from Images - Average 6,000 input tokens and 200 output tokens. **Anthropic Claude 3 Haiku** | 175.00         |
+| Amazon Bedrock                        | Generate Product Data from Images - Average 6,000 input tokens and 200 output tokens. **Amazon Nova Lite**         | 40.80          |
 | Amazon Bedrock                        | Metaclass - Average 350 input tokens and 10 output tokens). **Amazon Nova Micro**                                  | 1.37           |
 | Amazon Bedrock                        | Categorize Products - Average 20,200 input tokens and 525 output tokens). **Anthropic Claude 3 Haiku**             | 570.63         |
-| Amazon Bedrock                        | Extract Attributes - Average 2,650 input tokens and 350 output tokens). **Anthropic Claude 3.5 Sonnet**            | 1,320.00       |
+| Amazon Bedrock                        | Extract Attributes - Average 2,650 input tokens and 350 output tokens). **Amazon Nova Premier**                    | 1,100.00       |
 | AWS Lambda                            | Generate Product Data from Images                                                                                  | 3.35           |
 | AWS Lambda                            | Metaclass                                                                                                          | 3.32           |
 | AWS Lambda                            | Categorize Products                                                                                                | 8.02           |
@@ -67,7 +67,7 @@ The following table provides a sample cost breakdown for deploying this solution
 | Amazon Cognito                        | Demo users - 100 Monthly Active Users on Plus feature plan                                                         | 2.00           |
 | AWS Web Application Firewall          | Protect API Gateway                                                                                                | 0.60           |
 | AWS Systems Manager                   | Parameter Store                                                                                                    | 0.00           |
-| **Total monthly infrastructure cost** |                                                                                                                    | **2,179.80**   |
+| **Total monthly infrastructure cost** |                                                                                                                    | **1,825.60**   |
 
 ## Deployment and Development
 

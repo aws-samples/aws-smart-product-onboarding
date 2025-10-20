@@ -110,7 +110,7 @@ class AttributesExtractor:
         )
 
         self.model_id = (
-            "anthropic.claude-3-5-sonnet-20240620-v1:0"
+            "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
             if model_id is None
             else model_id
         )

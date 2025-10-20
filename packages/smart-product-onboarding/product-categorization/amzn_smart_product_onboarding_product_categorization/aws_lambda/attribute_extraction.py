@@ -27,11 +27,7 @@ logger.name = "AttributeExtraction"
 
 CONFIG_BUCKET_NAME = os.getenv("CONFIG_BUCKET_NAME")
 CONFIG_BUCKET = LAMBDA_S3_RESOURCE.Bucket(CONFIG_BUCKET_NAME)
-MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-3-5-sonnet-20240620-v1:0")
-
-if os.getenv("BEDROCK_XACCT_ROLE") and MODEL_ID[:3] != "us.":
-    # when using cross-acct roles we would like to use CRIS (Cross-Region Inference)
-    MODEL_ID = "us." + MODEL_ID
+MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "us.amazon.nova-premier-v1:0")
 
 
 @event_parser(model=ExtractAttributesRequest)
