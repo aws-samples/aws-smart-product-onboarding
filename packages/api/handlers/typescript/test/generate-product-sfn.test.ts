@@ -64,7 +64,7 @@ describe("Lambda Handler", () => {
     expect(
       ProductGeneratorService.prototype.generateProduct,
     ).toHaveBeenCalledWith({
-      model: "anthropic.claude-3-haiku-20240307-v1:0",
+      model: "us.amazon.nova-lite-v1:0",
       temperature: 0.1,
       imageKeys: event.images,
       language: undefined,
@@ -182,7 +182,7 @@ describe("Lambda Handler", () => {
     expect(
       ProductGeneratorService.prototype.generateProduct,
     ).toHaveBeenCalledWith({
-      model: "anthropic.claude-3-haiku-20240307-v1:0",
+      model: "us.amazon.nova-lite-v1:0",
       temperature: 0.1,
       imageKeys: ["prefix/image1.jpg"],
       language: undefined,
