@@ -98,15 +98,31 @@ Prior to deploying the accelerator, you must subscribe to the models listed abov
 
 ### Build and Deploy
 
-The entire build and deployment can be done with just a few commands:
+#### First Time Setup
 
-```shell
-pnpm install
-pnpm exec nx run @aws-samples/smart-product-onboarding-infra:bootstrap     # First time only
-pnpm exec nx run @aws-samples/smart-product-onboarding-infra:deploy        # Deploy to AWS (~15-20 min)
-```
+1. **Install dependencies:**
 
-The deploy command will automatically trigger the necessary builds and then deploy the infrastructure.
+   ```shell
+   pnpm install
+   ```
+
+2. **Bootstrap CDK (first time only):**
+
+   If you haven't used CDK in your AWS account and region before, you need to bootstrap it:
+
+   ```shell
+   # Replace with your account ID and desired region
+   cdk bootstrap aws://123456789012/us-east-1
+   ```
+
+   **Note:** You only need to bootstrap once per AWS account/region combination. If you've already used CDK in your target account and region, you can skip this step.
+
+3. **Deploy the infrastructure:**
+   ```shell
+   pnpm exec nx run @aws-samples/smart-product-onboarding-infra:deploy        # Deploy to AWS (~15-20 min)
+   ```
+
+The deploy command will automatically build all necessary packages and then deploy the infrastructure.
 
 #### Subsequent Deployments
 
