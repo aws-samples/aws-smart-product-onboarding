@@ -67,13 +67,13 @@ export class ClassificationTaskFunction extends lambda.DockerImageFunction {
           Stack.of(this).formatArn({
             service: "bedrock",
             resource: "inference-profile",
-            resourceName: "us.anthropic.claude-*",
+            resourceName: "*.anthropic.claude-*",
             arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
           }),
           Stack.of(this).formatArn({
             service: "bedrock",
             resource: "inference-profile",
-            resourceName: "us.amazon.nova-*",
+            resourceName: "*.amazon.nova-*",
             arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
           }),
           Stack.of(this).formatArn({
@@ -82,7 +82,7 @@ export class ClassificationTaskFunction extends lambda.DockerImageFunction {
             resourceName: "anthropic.claude-*",
             arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
             account: "",
-            region: "us-*",
+            region: "*",
           }),
           Stack.of(this).formatArn({
             service: "bedrock",
@@ -90,7 +90,7 @@ export class ClassificationTaskFunction extends lambda.DockerImageFunction {
             resourceName: "amazon.nova-*",
             arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
             account: "",
-            region: "us-*",
+            region: "*",
           }),
         ],
       }),

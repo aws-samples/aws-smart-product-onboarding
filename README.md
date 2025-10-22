@@ -46,28 +46,28 @@ We recommend creating a budget through [AWS Cost Explorer](http://aws.amazon.com
 
 The following table provides a sample cost breakdown for deploying this solution with the default parameters in the **US East (N. Virginia)** Region for **one month**.
 
-| **AWS Service**                       | **Usage**                                                                                                          | **Cost [USD]** |
-| :------------------------------------ | :----------------------------------------------------------------------------------------------------------------- | -------------- |
-| Amazon Bedrock                        | Generate Product Data from Images - Average 6,000 input tokens and 200 output tokens. **Amazon Nova Lite**         | 40.80          |
-| Amazon Bedrock                        | Metaclass - Average 350 input tokens and 10 output tokens). **Amazon Nova Micro**                                  | 1.37           |
-| Amazon Bedrock                        | Categorize Products - Average 20,200 input tokens and 525 output tokens). **Anthropic Claude 3 Haiku**             | 570.63         |
-| Amazon Bedrock                        | Extract Attributes - Average 2,650 input tokens and 350 output tokens). **Amazon Nova Premier**                    | 1,100.00       |
-| AWS Lambda                            | Generate Product Data from Images                                                                                  | 3.35           |
-| AWS Lambda                            | Metaclass                                                                                                          | 3.32           |
-| AWS Lambda                            | Categorize Products                                                                                                | 8.02           |
-| AWS Lambda                            | Extract Attributes                                                                                                 | 33.35          |
-| AWS Lambda                            | API handlers and workflow orchestration functions                                                                  | 1.00           |
-| AWS Step Functions                    | Batch Onboarding                                                                                                   | 25.90          |
-| Amazon Simple Storage Service         | Input, output, and configuration storage                                                                           | 15.62          |
-| Amazon DynamoDB                       | Metaclass word vector store                                                                                        | 1.56           |
-| Amazon DynamoDB                       | Process status                                                                                                     | 2.51           |
-| AWS API Gateway                       | API                                                                                                                | 1.02           |
-| Amazon CloudWatch                     | Service metrics and logs                                                                                           | 9.55           |
-| AWS X-Ray                             | API Gateway, Lambda, and Step Functions tracing                                                                    | 5.00           |
-| Amazon Cognito                        | Demo users - 100 Monthly Active Users on Plus feature plan                                                         | 2.00           |
-| AWS Web Application Firewall          | Protect API Gateway                                                                                                | 0.60           |
-| AWS Systems Manager                   | Parameter Store                                                                                                    | 0.00           |
-| **Total monthly infrastructure cost** |                                                                                                                    | **1,825.60**   |
+| **AWS Service**                       | **Usage**                                                                                                  | **Cost [USD]** |
+| :------------------------------------ | :--------------------------------------------------------------------------------------------------------- | -------------- |
+| Amazon Bedrock                        | Generate Product Data from Images - Average 6,000 input tokens and 200 output tokens. **Amazon Nova Lite** | 40.80          |
+| Amazon Bedrock                        | Metaclass - Average 350 input tokens and 10 output tokens). **Amazon Nova Micro**                          | 1.37           |
+| Amazon Bedrock                        | Categorize Products - Average 20,200 input tokens and 525 output tokens). **Anthropic Claude 3 Haiku**     | 570.63         |
+| Amazon Bedrock                        | Extract Attributes - Average 2,650 input tokens and 350 output tokens). **Amazon Nova Premier**            | 1,100.00       |
+| AWS Lambda                            | Generate Product Data from Images                                                                          | 3.35           |
+| AWS Lambda                            | Metaclass                                                                                                  | 3.32           |
+| AWS Lambda                            | Categorize Products                                                                                        | 8.02           |
+| AWS Lambda                            | Extract Attributes                                                                                         | 33.35          |
+| AWS Lambda                            | API handlers and workflow orchestration functions                                                          | 1.00           |
+| AWS Step Functions                    | Batch Onboarding                                                                                           | 25.90          |
+| Amazon Simple Storage Service         | Input, output, and configuration storage                                                                   | 15.62          |
+| Amazon DynamoDB                       | Metaclass word vector store                                                                                | 1.56           |
+| Amazon DynamoDB                       | Process status                                                                                             | 2.51           |
+| AWS API Gateway                       | API                                                                                                        | 1.02           |
+| Amazon CloudWatch                     | Service metrics and logs                                                                                   | 9.55           |
+| AWS X-Ray                             | API Gateway, Lambda, and Step Functions tracing                                                            | 5.00           |
+| Amazon Cognito                        | Demo users - 100 Monthly Active Users on Plus feature plan                                                 | 2.00           |
+| AWS Web Application Firewall          | Protect API Gateway                                                                                        | 0.60           |
+| AWS Systems Manager                   | Parameter Store                                                                                            | 0.00           |
+| **Total monthly infrastructure cost** |                                                                                                            | **1,825.60**   |
 
 ## Deployment and Development
 
@@ -86,6 +86,15 @@ The following table provides a sample cost breakdown for deploying this solution
 pip install poetry==1.8.5
 npm install -g pnpm@^8.15.9 aws-cdk
 ```
+
+#### Amazon Bedrock Marketplace Model Subscriptions
+
+This accelerator requires access to the following models from the Bedrock marketplace:
+
+- Anthropic Claude 3 Haiku
+  You can optionally enable and use any other models.
+
+Prior to deploying the accelerator, you must subscribe to the models listed above. The simplest way to subscribe is to chat with the models you want to use in the Bedrock Chat Playground in the AWS Console. For more details, see [Simplified model access in Amazon Bedrock](https://aws.amazon.com/blogs/security/simplified-amazon-bedrock-model-access/).
 
 ### Build and Deploy
 
