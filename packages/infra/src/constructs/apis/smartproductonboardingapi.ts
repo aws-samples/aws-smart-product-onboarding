@@ -126,13 +126,13 @@ export class SmartProductOnboardingAPI extends Construct {
           Stack.of(this).formatArn({
             service: "bedrock",
             resource: "inference-profile",
-            resourceName: "us.anthropic.claude-*",
+            resourceName: "*.anthropic.claude-*",
             arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
           }),
           Stack.of(this).formatArn({
             service: "bedrock",
             resource: "inference-profile",
-            resourceName: "us.amazon.nova-*",
+            resourceName: "*.amazon.nova-*",
             arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
           }),
           Stack.of(this).formatArn({
@@ -141,7 +141,7 @@ export class SmartProductOnboardingAPI extends Construct {
             resourceName: "anthropic.claude-*",
             arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
             account: "",
-            region: "us-*",
+            region: "*",
           }),
           Stack.of(this).formatArn({
             service: "bedrock",
@@ -149,7 +149,7 @@ export class SmartProductOnboardingAPI extends Construct {
             resourceName: "amazon.nova-*",
             arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
             account: "",
-            region: "us-*",
+            region: "*",
           }),
         ],
         actions: [

@@ -138,5 +138,8 @@
         ]
       }
     }
+  },
+  "tui": {
+    "enabled": false
   }
 }
