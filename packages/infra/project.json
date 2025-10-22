@@ -41,21 +41,6 @@
         "{projectRoot}/.eslintrc.json"
       ]
     },
-    "bootstrap": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "cdk bootstrap",
-        "cwd": "packages/infra"
-      },
-      "dependsOn": [
-        "@aws-samples/smart-product-onboarding-api-typescript-handlers:build",
-        "amzn-smart-product-onboarding-api-python-handlers:build",
-        "amzn-smart-product-onboarding-core-utils:build",
-        "amzn-smart-product-onboarding-product-categorization:build",
-        "amzn-smart-product-onboarding-metaclasses:build",
-        "compile"
-      ]
-    },
     "synth": {
       "executor": "nx:run-commands",
       "options": {
