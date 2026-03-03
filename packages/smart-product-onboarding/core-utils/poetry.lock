@@ -1042,18 +1042,18 @@ files = [
 
 [[package]]
 name = "joserfc"
-version = "1.4.2"
+version = "1.6.3"
 description = "The ultimate Python library for JOSE RFCs, including JWS, JWE, JWK, JWA, JWT"
 optional = false
 python-versions = ">=3.9"
 groups = ["dev"]
 files = [
-    {file = "joserfc-1.4.2-py3-none-any.whl", hash = "sha256:b15a5ea3a464c37e8006105665c159a288892fa73856fa40be60266dbc20b49d"},
-    {file = "joserfc-1.4.2.tar.gz", hash = "sha256:1b4cebf769eeb8105d2e3433cae49e7217c83e4abf8493e91e7d0f0ad3579fdd"},
+    {file = "joserfc-1.6.3-py3-none-any.whl", hash = "sha256:6beab3635358cbc565cb94fb4c53d0557e6d10a15b933e2134939351590bda9a"},
+    {file = "joserfc-1.6.3.tar.gz", hash = "sha256:c00c2830db969b836cba197e830e738dd9dda0955f1794e55d3c636f17f5c9a6"},
 ]
 
 [package.dependencies]
-cryptography = "*"
+cryptography = ">=45.0.1"
 
 [package.extras]
 drafts = ["pycryptodome"]
