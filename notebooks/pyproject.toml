@@ -10,7 +10,7 @@ package-mode = false
 python = "^3.12"
 boto3 = "^1.35.40"
 inflect = "^7.4.0"
-nltk = "^3.9.1"
+nltk = "^3.9.3"
 pympler = "^1.1"
 numpy = "^2.2.2"
 amzn-smart-product-onboarding-metaclasses = { path = "../packages/smart-product-onboarding/metaclasses", develop = true }
