@@ -1,0 +1,60 @@
+# API Handlers Package - Lambda function implementations
+
+[project]
+name = "amzn-smart-product-onboarding-api-handlers"
+version = "0.0.0"
+description = "API handlers for Smart Product Onboarding Lambda functions"
+requires-python = ">=3.12,<4"
+readme = "README.md"
+dependencies = [
+    "amzn-smart-product-onboarding-api-runtime",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["amzn_smart_product_onboarding_api_python_handlers"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[dependency-groups]
+dev = [
+    "pytest>=7.4.3",
+    "boto3-stubs-lite[dynamodb,s3,stepfunctions]>=1.35.37",
+    "moto[all]>=5.0.16",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+exclude = [
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv", 
+    "dist",
+]
+
+line-length = 120
+indent-width = 4
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F", 
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]
+ignore = []
+
+fixable = ["ALL"]
+unfixable = []

@@ -21,7 +21,7 @@
 
 ## Python Stack
 
-- **Poetry** - Python dependency management
+- **uv** - Python dependency management and project management
 - **Python 3.12+** - Required runtime version
 - **Pydantic** - Data validation and serialization
 - **boto3** - AWS SDK
@@ -95,9 +95,8 @@ pnpm cdk deploy smart-product-onboarding --context BEDROCK_XACCT_ROLE=<ARN_OF_RO
 
 ```bash
 cd notebooks
-poetry install --no-root
-poetry shell
-jupyter notebook
+uv sync
+uv run jupyter notebook
 ```
 
 ### Website Development
@@ -113,7 +112,7 @@ pnpm pdk dev
 
 - Node.js >= 18.0.0 and < 22
 - Python >= 3.12
-- Poetry >= 1.5.1 and < 2
+- uv >= 0.5.0 - Python package and project manager
 - pnpm >= 8.6.3
 - AWS CLI configured
 - Docker Desktop

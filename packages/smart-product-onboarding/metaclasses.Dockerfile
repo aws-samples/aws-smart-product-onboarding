@@ -7,25 +7,68 @@ FROM public.ecr.aws/lambda/python:3.13 AS embeddings
 RUN dnf install -y gcc g++
 RUN --mount=type=cache,target=/root/.cache pip install nltk~=3.9.1
 
-RUN python -m nltk.downloader -d /usr/local/share/nltk_data punkt
-RUN python -m nltk.downloader -d /usr/local/share/nltk_data punkt_tab
-RUN python -m nltk.downloader -d /usr/local/share/nltk_data stopwords
+# Download NLTK data with retry logic and skip punkt_tab if it fails
+RUN python -m nltk.downloader -d /usr/local/share/nltk_data punkt || \
+    (sleep 5 && python -m nltk.downloader -d /usr/local/share/nltk_data punkt)
+RUN python -m nltk.downloader -d /usr/local/share/nltk_data stopwords || \
+    (sleep 5 && python -m nltk.downloader -d /usr/local/share/nltk_data stopwords)
 
-FROM public.ecr.aws/lambda/python:3.13 AS build
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim AS build
 
-ENV POETRY_CACHE_DIR=/root/.cache/poetry
-RUN --mount=type=cache,target=/root/.cache pip install poetry~=1.8.3
+# Set environment variables for uv
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
 
 # Add local dependencies
 RUN mkdir /src
 WORKDIR /src
 
-COPY . /src/
-# Install the package
-WORKDIR /src/metaclasses
-RUN --mount=type=cache,target=/root/.cache poetry build
-RUN --mount=type=cache,target=/root/.cache poetry run pip cache remove 'amzn_smart_product_onboarding_*'
-RUN --mount=type=cache,target=/root/.cache poetry run pip install -t ${LAMBDA_TASK_ROOT} /src/metaclasses/dist/*.whl
+# Copy workspace configuration
+COPY pyproject.toml uv.lock ./
+COPY README.md ./
+
+# Copy workspace packages
+COPY core-utils/ ./core-utils/
+COPY api/runtime/ ./api/runtime/
+COPY metaclasses/ ./metaclasses/
+
+# Install dependencies and build package
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --package amzn-smart-product-onboarding-metaclasses
+
+# Export requirements and install for Lambda
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv export --package amzn-smart-product-onboarding-metaclasses --no-emit-workspace --frozen --no-dev --no-editable -o requirements.txt
+
+# Install to Lambda task root with proper platform targeting
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install \
+    --no-installer-metadata \
+    --compile-bytecode \
+    --target /var/task \
+    --python-platform aarch64-unknown-linux-gnu \
+    --python-version 3.13 \
+    -r requirements.txt
+
+# Build and install workspace packages as wheels
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv build --package amzn-smart-product-onboarding-core-utils --out-dir /tmp/wheels
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv build --package amzn-smart-product-onboarding-api-runtime --out-dir /tmp/wheels
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv build --package amzn-smart-product-onboarding-metaclasses --out-dir /tmp/wheels
+
+# Install workspace packages from wheels
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install \
+    --no-installer-metadata \
+    --compile-bytecode \
+    --target /var/task \
+    --python-platform aarch64-unknown-linux-gnu \
+    --python-version 3.13 \
+    /tmp/wheels/*.whl
 
 FROM public.ecr.aws/lambda/python:3.13
 WORKDIR ${LAMBDA_TASK_ROOT}

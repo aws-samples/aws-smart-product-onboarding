@@ -12,22 +12,22 @@ You can run the notebooks locally or in Sagemaker Studio.
 
 ### Local Environment
 
-1. Install Poetry (if not already installed):
+1. Install uv (if not already installed):
 
 ```
-pip install poetry>=1.5.1,<1.9
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 2. From this directory(_notebooks/_), install dependencies:
 
 ```
-poetry install --no-root
+uv sync
 ```
 
 3. Activate the virtual environment:
 
 ```
-poetry shell
+source .venv/bin/activate
 ```
 
 4. Launch jupyter:
@@ -40,16 +40,16 @@ jupyter notebook
 
 1. Open a new terminal in SageMaker Studio Jupyterlab.
 
-2. Install Poetry:
+2. Install uv:
 
 ```
-pip install poetry>=1.5.1,<1.9
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 3. From this directory(_notebooks/_), install dependencies:
 
 ```
-POETRY_VIRTUALENVS_CREATE=false poetry install --no-root
+UV_PROJECT_ENVIRONMENT=$CONDA_PREFIX uv sync
 ```
 
 ## Running the Configuration
@@ -72,10 +72,10 @@ Run the automated configuration script:
 # 2. Save it in the notebooks/data/ directory
 
 # 3. Run the configuration script
-poetry run python configure_categorization.py --gpc-file "data/GPC as of November 2024 v20241202 GB.json"
+uv run python configure_categorization.py --gpc-file "data/GPC as of November 2024 v20241202 GB.json"
 
 # To skip embeddings processing (if already done):
-poetry run python configure_categorization.py --gpc-file "data/GPC as of November 2024 v20241202 GB.json" --skip-embeddings
+uv run python configure_categorization.py --gpc-file "data/GPC as of November 2024 v20241202 GB.json" --skip-embeddings
 ```
 
 The script will:

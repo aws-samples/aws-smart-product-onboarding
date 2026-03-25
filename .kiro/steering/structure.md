@@ -70,7 +70,8 @@ This is a **Projen-managed monorepo** using Nx for build orchestration and pnpm 
 
 #### API Runtime (`api/`)
 
-- Copied from `packages/api/generated/runtime/python/`
+- Generated directly from `packages/api/generated/runtime/python/` into workspace
+- Contains `api/runtime/` (generated) and `api/handlers/` (Lambda handlers)
 - Used by Lambda handlers for API interactions
 
 ## Configuration Workflow
@@ -81,7 +82,7 @@ This is a **Projen-managed monorepo** using Nx for build orchestration and pnpm 
 
 - `1 - category tree prep.ipynb` - Prepare category hierarchies
 - `2 - metaclasses generation.ipynb` - Generate word vectors
-- Uses Poetry for Python dependency management
+- Uses uv for Python dependency management
 
 ### 2. Sample Data (`samples/`)
 
@@ -106,8 +107,8 @@ samples/
 ### Python Package Dependencies
 
 - `core-utils` is a dependency of other Python packages
-- `api` runtime is copied to `smart-product-onboarding/api/`
-- Use Poetry for Python dependency management
+- `api` runtime is generated directly to `smart-product-onboarding/api/runtime/`
+- Use uv for Python dependency management (workspace at `packages/smart-product-onboarding/`)
 
 ### API Development
 

@@ -41,7 +41,7 @@ __pycache__
 !/tsconfig.dev.json
 !/src/
 /lib
-/dist/
+dist/
 !/.eslintrc.json
 .nx/*
 !.nx/plugins

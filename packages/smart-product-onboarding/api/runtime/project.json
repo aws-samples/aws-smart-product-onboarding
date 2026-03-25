@@ -1,0 +1,49 @@
+{
+  "name": "amzn-smart-product-onboarding-api-python-runtime",
+  "root": "packages/smart-product-onboarding/api/runtime",
+  "tags": ["python"],
+  "targets": {
+    "install": {
+      "dependsOn": ["^install"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv sync",
+        "cwd": "packages/smart-product-onboarding"
+      }
+    },
+    "generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx --yes -p @aws/pdk@$AWS_PDK_VERSION type-safe-api generate --specPath ../../../api/model/.api.json --outputPath . --templateDirs \"python\" --metadata '{\"srcDir\":\"amzn_smart_product_onboarding_api_runtime\",\"moduleName\":\"amzn_smart_product_onboarding_api_runtime\",\"projectName\":\"amzn-smart-product-onboarding-api-python-runtime\"}'",
+        "cwd": "packages/smart-product-onboarding/api/runtime",
+        "env": {
+          "AWS_PDK_VERSION": "0.26.7"
+        }
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "echo 'No tests defined for runtime package'",
+        "cwd": "packages/smart-product-onboarding/api/runtime"
+      }
+    },
+    "package": {
+      "dependsOn": ["generate"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "echo 'Runtime package generated in workspace'",
+        "cwd": "packages/smart-product-onboarding/api/runtime"
+      }
+    },
+    "build": {
+      "dependsOn": ["generate", "test", "package"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "echo 'Build completed'",
+        "cwd": "packages/smart-product-onboarding/api/runtime"
+      }
+    }
+  },
+  "implicitDependencies": ["@aws-samples/smart-product-onboarding-api-model"]
+}

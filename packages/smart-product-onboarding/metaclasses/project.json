@@ -7,59 +7,49 @@
       "dependsOn": ["^install"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "poetry env use python$(pyenv latest 3 | cut -d '.' -f 1,2 || echo '') && poetry check --lock && poetry install",
-        "cwd": "packages/smart-product-onboarding/metaclasses",
-        "env": {
-          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
-          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
-        }
+        "command": "uv sync",
+        "cwd": "packages/smart-product-onboarding"
       }
     },
     "update": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "poetry env use python$(pyenv latest 3 | cut -d '.' -f 1,2 || echo '') && poetry update",
-        "cwd": "packages/smart-product-onboarding/metaclasses",
-        "env": {
-          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
-          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
-        }
+        "command": "uv lock --upgrade",
+        "cwd": "packages/smart-product-onboarding"
       }
     },
     "test": {
-      "dependsOn": ["install"],
+      "dependsOn": [
+        "install",
+        "amzn-smart-product-onboarding-api-python-runtime:generate"
+      ],
       "executor": "nx:run-commands",
       "options": {
-        "command": "poetry run pytest",
-        "cwd": "packages/smart-product-onboarding/metaclasses",
-        "env": {
-          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
-          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
-        }
+        "command": "uv run --package amzn-smart-product-onboarding-metaclasses pytest metaclasses/tests/",
+        "cwd": "packages/smart-product-onboarding"
       },
       "inputs": [
         "{projectRoot}/**/*.py",
         "{projectRoot}/pyproject.toml",
-        "{projectRoot}/poetry.lock",
+        "{workspaceRoot}/packages/smart-product-onboarding/uv.lock",
         "!{projectRoot}/dist/**/*"
       ],
       "outputs": ["{projectRoot}/.pytest_cache"]
     },
     "package": {
-      "dependsOn": ["install"],
+      "dependsOn": [
+        "install",
+        "amzn-smart-product-onboarding-api-python-runtime:generate"
+      ],
       "executor": "nx:run-commands",
       "options": {
-        "command": "poetry build",
-        "cwd": "packages/smart-product-onboarding/metaclasses",
-        "env": {
-          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
-          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
-        }
+        "command": "uv build --package amzn-smart-product-onboarding-metaclasses",
+        "cwd": "packages/smart-product-onboarding"
       },
       "inputs": [
         "{projectRoot}/**/*.py",
         "{projectRoot}/pyproject.toml",
-        "{projectRoot}/poetry.lock",
+        "{workspaceRoot}/packages/smart-product-onboarding/uv.lock",
         "!{projectRoot}/dist/**/*"
       ],
       "outputs": ["{projectRoot}/dist"]
@@ -76,29 +66,18 @@
       "dependsOn": ["package"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "poetry publish -r testpypi",
-        "cwd": "packages/smart-product-onboarding/metaclasses",
-        "env": {
-          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
-          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
-        }
+        "command": "uv publish --publish-url https://test.pypi.org/legacy/ dist/*",
+        "cwd": "packages/smart-product-onboarding/metaclasses"
       }
     },
     "publish": {
       "dependsOn": ["package"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "poetry publish",
-        "cwd": "packages/smart-product-onboarding/metaclasses",
-        "env": {
-          "VIRTUAL_ENV": "$(env -u VIRTUAL_ENV poetry env info -p || echo '')",
-          "PATH": "$(echo $(env -u VIRTUAL_ENV poetry env info -p || echo '')/bin:$PATH)"
-        }
+        "command": "uv publish dist/*",
+        "cwd": "packages/smart-product-onboarding/metaclasses"
       }
     }
   },
-  "implicitDependencies": [
-    "amzn-smart-product-onboarding-core-utils",
-    "amzn-smart-product-onboarding-api-python-runtime"
-  ]
+  "implicitDependencies": ["amzn-smart-product-onboarding-core-utils"]
 }
