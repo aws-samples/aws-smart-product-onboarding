@@ -32,8 +32,6 @@ jobs:
         run: pip install "poetry<2"
       - name: Setup uv
         uses: astral-sh/setup-uv@v6
-      - name: Configure Poetry
-        run: poetry config virtualenvs.in-project true
       - name: Install dependencies
         run: pnpm install:ci
       - name: CDK Synth
