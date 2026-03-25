@@ -1,0 +1,29 @@
+name: PR Build
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Setup Python 3.13
+        run: pyenv install 3.13 && pyenv global 3.13
+      - name: Install Poetry
+        run: pip install "poetry<2"
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+      - name: Configure Poetry
+        run: poetry config virtualenvs.in-project true
+      - name: Install dependencies
+        run: pnpm install:ci
+      - name: CDK Synth
+        run: npx nx run @aws-samples/smart-product-onboarding-infra:synth
