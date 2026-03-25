@@ -17,6 +17,10 @@ jobs:
         with:
           node-version: '22'
           cache: pnpm
+      - name: Install Python build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libbz2-dev libreadline-dev libsqlite3-dev libffi-dev liblzma-dev libncurses-dev zlib1g-dev libssl-dev
       - name: Install pyenv
         run: |
           curl -fsSL https://pyenv.run | bash
