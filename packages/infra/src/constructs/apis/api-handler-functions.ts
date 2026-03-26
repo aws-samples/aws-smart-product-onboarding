@@ -6,6 +6,7 @@
 import { Construct } from "constructs";
 import { Duration } from "aws-cdk-lib";
 import {
+  Architecture,
   Code,
   Function,
   Runtime,
@@ -43,6 +44,7 @@ export class CreateBatchExecutionFunction extends Function {
           "smart-product-onboarding/api/handlers/dist/lambda",
         ),
       ),
+      architecture: Architecture.ARM_64,
       tracing: Tracing.ACTIVE,
       timeout: Duration.seconds(30),
       ...props,
@@ -75,6 +77,7 @@ export class DownloadFileFunction extends Function {
           "smart-product-onboarding/api/handlers/dist/lambda",
         ),
       ),
+      architecture: Architecture.ARM_64,
       tracing: Tracing.ACTIVE,
       timeout: Duration.seconds(30),
       ...props,
@@ -111,6 +114,7 @@ export class GetBatchExecutionFunction extends Function {
           "smart-product-onboarding/api/handlers/dist/lambda",
         ),
       ),
+      architecture: Architecture.ARM_64,
       tracing: Tracing.ACTIVE,
       timeout: Duration.seconds(30),
       ...props,
@@ -147,6 +151,7 @@ export class ListBatchExecutionsFunction extends Function {
           "smart-product-onboarding/api/handlers/dist/lambda",
         ),
       ),
+      architecture: Architecture.ARM_64,
       tracing: Tracing.ACTIVE,
       timeout: Duration.seconds(30),
       ...props,
@@ -179,6 +184,7 @@ export class UploadFileFunction extends Function {
           "smart-product-onboarding/api/handlers/dist/lambda",
         ),
       ),
+      architecture: Architecture.ARM_64,
       tracing: Tracing.ACTIVE,
       timeout: Duration.seconds(30),
       ...props,

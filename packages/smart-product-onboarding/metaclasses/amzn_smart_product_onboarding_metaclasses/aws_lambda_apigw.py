@@ -4,14 +4,14 @@
 import json
 import os
 
-from amzn_smart_product_onboarding_api_python_runtime import MetaclassResponseContent
-from amzn_smart_product_onboarding_api_python_runtime.api.operation_config import (
+from amzn_smart_product_onboarding_api_runtime import MetaclassResponseContent
+from amzn_smart_product_onboarding_api_runtime.api.operation_config import (
     metaclass_handler,
     MetaclassOperationResponses,
     MetaclassRequest,
 )
-from amzn_smart_product_onboarding_api_python_runtime.interceptors import INTERCEPTORS
-from amzn_smart_product_onboarding_api_python_runtime.response import Response
+from amzn_smart_product_onboarding_api_runtime.interceptors import INTERCEPTORS
+from amzn_smart_product_onboarding_api_runtime.response import Response
 from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import (
     LAMBDA_BEDROCK_RUNTIME_CLIENT,
 )
