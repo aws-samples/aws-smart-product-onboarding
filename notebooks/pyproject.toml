@@ -13,6 +13,7 @@ dependencies = [
     "pandas>=2.2.3",
     "amazon-ion>=0.13.0",
     "faiss-cpu>=1.10.0",
+    "amzn-smart-product-onboarding-metaclasses",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -77,3 +78,6 @@ constraint-dependencies = [
     "nbconvert>=7.17.0",
     "urllib3>=2.6.3",
 ]
+
+[tool.uv.sources]
+amzn-smart-product-onboarding-metaclasses = { path = "../packages/smart-product-onboarding/metaclasses", editable = true }
