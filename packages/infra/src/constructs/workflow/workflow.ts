@@ -38,10 +38,14 @@ export interface CategorizationWorkflowProps {
   readonly metaclassTaskFunction: lambda.IFunction;
   readonly classificationTaskFunction: lambda.IFunction;
   readonly attributeExtractionTaskFunction: lambda.IFunction;
+  readonly appConfigApplicationId?: string;
+  readonly appConfigEnvironmentId?: string;
+  readonly appConfigConfigurationProfileId?: string;
 }
 
 export class CategorizationWorkflow extends Construct {
   readonly stateMachine: sfn.StateMachine;
+  readonly generateProductFunction: lambda.IFunction;
 
   constructor(
     scope: Construct,
@@ -129,8 +133,13 @@ export class CategorizationWorkflow extends Construct {
       "GenerateProductTask",
       {
         imagesBucket: props.inputBucket,
+        appConfigApplicationId: props.appConfigApplicationId,
+        appConfigEnvironmentId: props.appConfigEnvironmentId,
+        appConfigConfigurationProfileId: props.appConfigConfigurationProfileId,
       },
     );
+
+    this.generateProductFunction = generateProduct.function;
 
     generateProduct.next(categorization);
 

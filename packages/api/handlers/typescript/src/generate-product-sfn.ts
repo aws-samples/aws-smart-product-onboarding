@@ -11,6 +11,7 @@ import {
   ThrottlingException,
 } from "@aws-sdk/client-bedrock-runtime";
 import { S3Client } from "@aws-sdk/client-s3";
+import { AppConfigClient } from "./services/appConfigClient";
 import { ProductGeneratorService } from "./services/productGenerator";
 import { TemplateService } from "./services/templateService";
 import { ProductData } from "./types";
@@ -21,6 +22,12 @@ import {
 } from "./utils/exceptions";
 
 const logger = new Logger({ serviceName: "GenerateProduct" });
+
+const appConfigClient = new AppConfigClient(
+  process.env.APPCONFIG_APPLICATION_ID || "",
+  process.env.APPCONFIG_ENVIRONMENT_ID || "",
+  process.env.APPCONFIG_CONFIGURATION_PROFILE_ID || "",
+);
 
 const defaultTemperature = 0.1;
 const defaultModel = process.env.BEDROCK_MODEL_ID || "us.amazon.nova-lite-v1:0";
@@ -66,12 +73,17 @@ export const handler = async (event: GenerateProductEvent) => {
       )
     : {};
   const {
-    temperature = defaultTemperature,
-    model = defaultModel,
+    temperature: ssmTemperature = defaultTemperature,
+    model: ssmModel = defaultModel,
     language = undefined,
     descriptionLength = "medium",
     examples = [],
   } = config || {};
+
+  // AppConfig values override SSM's model and temperature
+  const appConfig = await appConfigClient.getConfiguration("productGeneration");
+  const model = appConfig?.modelId ?? ssmModel;
+  const temperature = appConfig?.temperature ?? ssmTemperature;
 
   const imageKeys = event.images.map((image) =>
     event.prefix ? `${event.prefix}/${image}` : image,

@@ -20,6 +20,9 @@ import { Construct } from "constructs";
 export interface ClassificationTaskFunctionProps {
   configBucket: s3.IBucket;
   ssmParameterPrefix: string;
+  appConfigApplicationId?: string;
+  appConfigEnvironmentId?: string;
+  appConfigConfigurationProfileId?: string;
   cmd?: string[];
   timeout?: Duration;
 }
@@ -53,6 +56,16 @@ export class ClassificationTaskFunction extends lambda.DockerImageFunction {
         CONFIG_BUCKET_NAME: props.configBucket.bucketName,
         CONFIG_PATHS_PARAM: props.ssmParameterPrefix + "/CategorizationConfig",
         BEDROCK_MODEL_ID: "us.anthropic.claude-3-haiku-20240307-v1:0",
+        ...(props.appConfigApplicationId && {
+          APPCONFIG_APPLICATION_ID: props.appConfigApplicationId,
+        }),
+        ...(props.appConfigEnvironmentId && {
+          APPCONFIG_ENVIRONMENT_ID: props.appConfigEnvironmentId,
+        }),
+        ...(props.appConfigConfigurationProfileId && {
+          APPCONFIG_CONFIGURATION_PROFILE_ID:
+            props.appConfigConfigurationProfileId,
+        }),
       },
       timeout: props.timeout ? props.timeout : Duration.minutes(10),
       reservedConcurrentExecutions: 40,

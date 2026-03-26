@@ -19,11 +19,18 @@ import {
   ValidationException,
 } from "@aws-sdk/client-bedrock-runtime";
 import { S3Client } from "@aws-sdk/client-s3";
+import { AppConfigClient } from "./services/appConfigClient";
 import { ProductGeneratorService } from "./services/productGenerator";
 import { TemplateService } from "./services/templateService";
 import { BadRequestError } from "./utils/exceptions";
 
 const logger = new Logger({ serviceName: "GenerateProduct" });
+
+const appConfigClient = new AppConfigClient(
+  process.env.APPCONFIG_APPLICATION_ID || "",
+  process.env.APPCONFIG_ENVIRONMENT_ID || "",
+  process.env.APPCONFIG_CONFIGURATION_PROFILE_ID || "",
+);
 
 const defaultTemperature = 0.1;
 const defaultModel =
@@ -56,12 +63,17 @@ export const generateProduct: GenerateProductChainedHandlerFunction = async (
     templateService,
   );
 
-  const model = request.input.body.model || defaultModel;
+  // AppConfig values override env var defaults; request body values take precedence over all
+  const appConfig = await appConfigClient.getConfiguration("productGeneration");
+  const model = request.input.body.model || appConfig?.modelId || defaultModel;
   if (!model) {
     logger.error("model variable not set");
     throw Response.internalFailure({ message: "Internal server error" });
   }
-  const temperature = request.input.body.temperature || defaultTemperature;
+  const temperature =
+    request.input.body.temperature ??
+    appConfig?.temperature ??
+    defaultTemperature;
   if (isNaN(temperature)) {
     logger.error("temperature not set");
     throw Response.internalFailure({ message: "Internal server error" });

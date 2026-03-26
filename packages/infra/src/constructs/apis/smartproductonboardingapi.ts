@@ -10,13 +10,6 @@ import {
   GenerateProductFunction,
 } from "@aws-samples/smart-product-onboarding-api-typescript-infra";
 import {
-  CreateBatchExecutionFunction,
-  DownloadFileFunction,
-  GetBatchExecutionFunction,
-  ListBatchExecutionsFunction,
-  UploadFileFunction,
-} from "./api-handler-functions";
-import {
   ArnFormat,
   aws_iam as iam,
   aws_lambda as lambda,
@@ -29,6 +22,13 @@ import { EndpointType, ResponseType } from "aws-cdk-lib/aws-apigateway";
 import { Effect, PolicyDocument, PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { NagSuppressions } from "cdk-nag";
 import { Construct } from "constructs";
+import {
+  CreateBatchExecutionFunction,
+  DownloadFileFunction,
+  GetBatchExecutionFunction,
+  ListBatchExecutionsFunction,
+  UploadFileFunction,
+} from "./api-handler-functions";
 import { ApiPersistence } from "../api-persistence/api-persistence";
 import { AttributeExtractionTaskFunction } from "../sfn-attributes-task/sfn-attributes-task";
 import { ClassificationTaskFunction } from "../sfn-classification-task/sfn-classification-task";
@@ -50,6 +50,9 @@ export interface SmartProductOnboardingAPIProps {
   readonly configurationBucket: s3.IBucket;
   readonly wordEmbeddingsPolicy: iam.IManagedPolicy;
   readonly corsOrigin: string;
+  readonly appConfigApplicationId?: string;
+  readonly appConfigEnvironmentId?: string;
+  readonly appConfigConfigurationProfileId?: string;
 }
 
 /**
@@ -60,6 +63,11 @@ export class SmartProductOnboardingAPI extends Construct {
    * API instance
    */
   public readonly api: Api;
+
+  public readonly metaclassFunction: MetaclassTaskFunction;
+  public readonly categorizeProductFunction: ClassificationTaskFunction;
+  public readonly extractAttributesFunction: AttributeExtractionTaskFunction;
+  public readonly generateProductFunction: lambda.IFunction;
 
   constructor(
     scope: Construct,
@@ -75,6 +83,9 @@ export class SmartProductOnboardingAPI extends Construct {
         ssmParameterPrefix: props.ssmParameterPrefix,
         configBucket: props.configurationBucket,
         wordEmbeddingsPolicy: props.wordEmbeddingsPolicy,
+        appConfigApplicationId: props.appConfigApplicationId,
+        appConfigEnvironmentId: props.appConfigEnvironmentId,
+        appConfigConfigurationProfileId: props.appConfigConfigurationProfileId,
         cmd: [
           "amzn_smart_product_onboarding_metaclasses.aws_lambda_apigw.handler",
         ],
@@ -88,6 +99,9 @@ export class SmartProductOnboardingAPI extends Construct {
       {
         ssmParameterPrefix: props.ssmParameterPrefix,
         configBucket: props.configurationBucket,
+        appConfigApplicationId: props.appConfigApplicationId,
+        appConfigEnvironmentId: props.appConfigEnvironmentId,
+        appConfigConfigurationProfileId: props.appConfigConfigurationProfileId,
         cmd: [
           "amzn_smart_product_onboarding_product_categorization.aws_lambda.categorization_apigw.handler",
         ],
@@ -100,6 +114,9 @@ export class SmartProductOnboardingAPI extends Construct {
       "ExtractAttributesFunction",
       {
         configBucket: props.configurationBucket,
+        appConfigApplicationId: props.appConfigApplicationId,
+        appConfigEnvironmentId: props.appConfigEnvironmentId,
+        appConfigConfigurationProfileId: props.appConfigConfigurationProfileId,
         cmd: [
           "amzn_smart_product_onboarding_product_categorization.aws_lambda.attribute_extraction_apigw.handler",
         ],
@@ -114,12 +131,27 @@ export class SmartProductOnboardingAPI extends Construct {
         environment: {
           IMAGE_BUCKET: props.inputBucket.bucketName,
           BEDROCK_MODEL_ID: "us.anthropic.claude-3-haiku-20240307-v1:0",
+          ...(props.appConfigApplicationId && {
+            APPCONFIG_APPLICATION_ID: props.appConfigApplicationId,
+          }),
+          ...(props.appConfigEnvironmentId && {
+            APPCONFIG_ENVIRONMENT_ID: props.appConfigEnvironmentId,
+          }),
+          ...(props.appConfigConfigurationProfileId && {
+            APPCONFIG_CONFIGURATION_PROFILE_ID:
+              props.appConfigConfigurationProfileId,
+          }),
         },
         memorySize: 512,
         architecture: lambda.Architecture.ARM_64,
       },
     );
     props.inputBucket.grantRead(generateProductFunction);
+
+    this.metaclassFunction = metaclassFunction;
+    this.categorizeProductFunction = categorizeProductFunction;
+    this.extractAttributesFunction = extractAttributesFunction;
+    this.generateProductFunction = generateProductFunction;
 
     generateProductFunction.addToRolePolicy(
       new PolicyStatement({

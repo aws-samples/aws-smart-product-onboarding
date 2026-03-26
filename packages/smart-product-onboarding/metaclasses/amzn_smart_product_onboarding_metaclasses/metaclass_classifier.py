@@ -5,25 +5,25 @@ import os
 from typing import TYPE_CHECKING
 
 import jinja2
-
 from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import (
-    get_model_response,
     build_full_response,
+    get_model_response,
 )
 from amzn_smart_product_onboarding_core_utils.exceptions import ModelResponseError
 from amzn_smart_product_onboarding_core_utils.logger import logger
 from amzn_smart_product_onboarding_core_utils.models import (
     MetaclassPrediction,
-    WordFinding,
     Product,
+    WordFinding,
 )
-from amzn_smart_product_onboarding_metaclasses.VectorRepository import VectorRepository
+
 from amzn_smart_product_onboarding_metaclasses.category_vector_index import (
     CategoryVectorIndex,
 )
 from amzn_smart_product_onboarding_metaclasses.text_cleaner import TextCleaner
+from amzn_smart_product_onboarding_metaclasses.VectorRepository import VectorRepository
 
-MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "us.amazon.nova-micro-v1:0")
+DEFAULT_MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "us.amazon.nova-micro-v1:0")
 
 if TYPE_CHECKING:
     from mypy_boto3_bedrock_runtime import (
@@ -46,6 +46,8 @@ class MetaclassClassifier:
         word_map: dict[str, list[str]],
         bedrock: "BedrockRuntimeClient",
         language: str = "english",
+        model_id: str | None = None,
+        temperature: float = 0,
     ):
         self.category_vector_index = category_vector_index
         self.word_embeddings = word_embeddings_repo
@@ -53,6 +55,8 @@ class MetaclassClassifier:
         self.word_map = word_map
         self.bedrock = bedrock
         self.language = language
+        self.model_id = model_id or DEFAULT_MODEL_ID
+        self.temperature = temperature
 
     def create_rephrase_prompt(
         self,
@@ -63,9 +67,7 @@ class MetaclassClassifier:
         template = (
             #  amazonq-ignore-next-line
             jinja2.Environment(  # nosec B701 - template output is not used on a website
-                loader=jinja2.FileSystemLoader(
-                    os.path.join(os.path.dirname(__file__), "prompt_templates")
-                ),
+                loader=jinja2.FileSystemLoader(os.path.join(os.path.dirname(__file__), "prompt_templates")),
                 trim_blocks=True,
                 lstrip_blocks=True,
             ).get_template("rephrase.jinja2")
@@ -83,9 +85,7 @@ class MetaclassClassifier:
         response_open = '{"normalized_title": "'
         response_close = '"}'
 
-        product_text = "\n".join(
-            [product.title, product.short_description or "", product.description]
-        )
+        product_text = "\n".join([product.title, product.short_description or "", product.description])
         prompt = self.create_rephrase_prompt(product_text)
         messages = [
             {
@@ -100,10 +100,11 @@ class MetaclassClassifier:
 
         response = get_model_response(
             self.bedrock,
-            MODEL_ID,
+            self.model_id,
             messages,
             response_open,
             response_close,
+            temperature=self.temperature,
         )
         logger.info({"usage": response["usage"]})
         text = build_full_response(response, response_open, response_close)
@@ -127,15 +128,13 @@ class MetaclassClassifier:
             words = words[:WORD_LIMIT]
 
         word_findings: list[WordFinding] = []
-        logger.debug(f"Step1. Evaluate exact match from category list")
+        logger.debug("Step1. Evaluate exact match from category list")
         word_findings.extend(self.evaluate_text_category_list(words))
 
         for f in word_findings:
             words.remove(f.word)
 
-        logger.debug(
-            f"Step2. Evaluate embeddings matches from category list word by word"
-        )
+        logger.debug("Step2. Evaluate embeddings matches from category list word by word")
         word_findings.extend(self.get_closest_category_words(words))
 
         if not len(word_findings):

@@ -15,9 +15,9 @@ from tenacity import (
 )
 
 from amzn_smart_product_onboarding_core_utils.exceptions import (
+    ModelResponseError,
     RateLimitError,
     RetryableError,
-    ModelResponseError,
 )
 from amzn_smart_product_onboarding_core_utils.logger import logger
 
@@ -26,9 +26,9 @@ if TYPE_CHECKING:
     # It is also only ever used as type-hints, so we can import it during TYPE_CHECKING only
     from mypy_boto3_bedrock_runtime import (
         BedrockRuntimeClient,
-        MessageTypeDef,
-        MessageOutputTypeDef,
         ConverseResponseTypeDef,
+        MessageOutputTypeDef,
+        MessageTypeDef,
     )
 else:
     BedrockRuntimeClient = object
@@ -42,9 +42,7 @@ if os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
     client_kwargs = {"region_name": os.getenv("AWS_REGION", "us-east-1")}
 
     if BEDROCK_XACCT_ROLE:
-        sts = boto3.client(
-            "sts", config=Config(retries={"max_attempts": 3, "mode": "adaptive"})
-        )
+        sts = boto3.client("sts", config=Config(retries={"max_attempts": 3, "mode": "adaptive"}))
 
         response = sts.assume_role(
             RoleArn=BEDROCK_XACCT_ROLE,
@@ -52,9 +50,7 @@ if os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
         )
 
         client_kwargs["aws_access_key_id"] = response["Credentials"]["AccessKeyId"]
-        client_kwargs["aws_secret_access_key"] = response["Credentials"][
-            "SecretAccessKey"
-        ]
+        client_kwargs["aws_secret_access_key"] = response["Credentials"]["SecretAccessKey"]
         client_kwargs["aws_session_token"] = response["Credentials"]["SessionToken"]
 
         # x-acct region
@@ -110,6 +106,7 @@ def get_model_response(
     messages: list[Union["MessageTypeDef", "MessageOutputTypeDef"]],
     response_open: str = None,
     response_close: str = None,
+    temperature: float = 0,
 ) -> "ConverseResponseTypeDef":
     if response_open:
         messages.append(
@@ -119,7 +116,7 @@ def get_model_response(
             },
         )
     inference_config = {
-        "temperature": 0,
+        "temperature": temperature,
         "stopSequences": [],
     }
     if response_close:
@@ -142,9 +139,7 @@ def extract_response_text(response: dict) -> str:
         raise ModelResponseError("Failed to get prediction from response")
 
 
-def build_full_response(
-    response: dict, response_open: str = "", response_close: str = ""
-) -> str:
+def build_full_response(response: dict, response_open: str = "", response_close: str = "") -> str:
     text = extract_response_text(response)
     if response["stopReason"] == "stop_sequence":
         return response_open + text + response_close
