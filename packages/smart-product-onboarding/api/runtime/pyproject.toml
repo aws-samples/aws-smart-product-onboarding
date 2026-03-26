@@ -11,7 +11,7 @@ dependencies = [
     "aenum>=3.1.11",
     "pydantic>=2.5.2", 
     "python-dateutil~=2.8.2",
-    "urllib3~=1.26.7",
+    "urllib3>=2.6.3",
     "aws-lambda-powertools[tracer,aws-sdk]>=2.28.0",
 ]
 
