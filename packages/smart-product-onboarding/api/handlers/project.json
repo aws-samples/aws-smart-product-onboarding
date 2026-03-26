@@ -5,8 +5,7 @@
   "targets": {
     "install": {
       "dependsOn": [
-        "^install",
-        "amzn-smart-product-onboarding-api-python-runtime:generate"
+        "^install"
       ],
       "executor": "nx:run-commands",
       "options": {

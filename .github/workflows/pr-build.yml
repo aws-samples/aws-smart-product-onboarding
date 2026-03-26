@@ -19,6 +19,6 @@ jobs:
         with:
           python-version: '3.13'
       - name: Install dependencies
-        run: pnpm install:ci
+        run: pnpm install
       - name: CDK Synth
         run: npx nx run @aws-samples/smart-product-onboarding-infra:synth
