@@ -1,6 +1,13 @@
 # UV Workspace Configuration for Smart Product Onboarding
 # This is the root workspace configuration that manages all Python packages
 
+[tool.uv]
+constraint-dependencies = [
+    "multipart>=1.3.1",
+    "joserfc>=1.6.3",
+    "cryptography>=46.0.5",
+]
+
 [tool.uv.workspace]
 members = [
     "api/runtime",
