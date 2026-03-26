@@ -1,0 +1,65 @@
+{
+  "name": "amzn-smart-product-onboarding-api-python-handlers",
+  "root": "packages/smart-product-onboarding/api/handlers",
+  "tags": ["python"],
+  "targets": {
+    "install": {
+      "dependsOn": [
+        "^install"
+      ],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv sync",
+        "cwd": "packages/smart-product-onboarding"
+      }
+    },
+
+    "test": {
+      "dependsOn": [
+        "amzn-smart-product-onboarding-api-python-runtime:generate"
+      ],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run --package amzn-smart-product-onboarding-api-handlers pytest api/handlers/test/ || ([ $? = 5 ] && exit 0 || exit $?)",
+        "cwd": "packages/smart-product-onboarding"
+      }
+    },
+    "package": {
+      "dependsOn": [
+        "amzn-smart-product-onboarding-api-python-runtime:generate"
+      ],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "../../scripts/package-lambda.sh",
+        "cwd": "packages/smart-product-onboarding/api/handlers"
+      },
+      "configurations": {
+        "python313-arm64": {
+          "env": {
+            "PYTHON_VERSION": "3.13",
+            "PLATFORM": "aarch64-unknown-linux-gnu"
+          }
+        },
+        "python313-x86": {
+          "env": {
+            "PYTHON_VERSION": "3.13",
+            "PLATFORM": "x86_64-unknown-linux-gnu"
+          }
+        }
+      },
+      "defaultConfiguration": "python313-arm64"
+    },
+    "build": {
+      "dependsOn": [
+        "amzn-smart-product-onboarding-api-python-runtime:generate",
+        "test",
+        "package"
+      ],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "echo 'Build completed'",
+        "cwd": "packages/smart-product-onboarding/api/handlers"
+      }
+    }
+  }
+}

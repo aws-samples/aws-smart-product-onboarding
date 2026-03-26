@@ -7,13 +7,15 @@ import { UserIdentity } from "@aws/pdk/identity";
 import { Authorizers, Integrations } from "@aws/pdk/type-safe-api";
 import {
   Api,
+  GenerateProductFunction,
+} from "@aws-samples/smart-product-onboarding-api-typescript-infra";
+import {
   CreateBatchExecutionFunction,
   DownloadFileFunction,
-  GenerateProductFunction,
   GetBatchExecutionFunction,
   ListBatchExecutionsFunction,
   UploadFileFunction,
-} from "@aws-samples/smart-product-onboarding-api-typescript-infra";
+} from "./api-handler-functions";
 import {
   ArnFormat,
   aws_iam as iam,

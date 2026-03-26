@@ -17,8 +17,7 @@
     "python": [
       "{projectRoot}/**/*.py",
       "{projectRoot}/pyproject.toml",
-      "{projectRoot}/poetry.lock",
-      "{projectRoot}/poetry.toml"
+      "{projectRoot}/uv.lock"
     ]
   },
   "targetDefaults": {
@@ -88,7 +87,7 @@
     "install": {
       "inputs": [
         "{projectRoot}/pyproject.toml",
-        "{projectRoot}/poetry.lock",
+        "{projectRoot}/uv.lock",
         "{projectRoot}/package.json",
         "{projectRoot}/pnpm-lock.yaml"
       ],

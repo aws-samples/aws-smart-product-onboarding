@@ -1,39 +1,64 @@
 
-[tool.poetry]
+[project]
 name = "amzn-smart-product-onboarding-core-utils"
 version = "0.1.0"
-description = ""
-authors = [ "AWS Latam PACE <aws-latam-pace@amazon.com>" ]
+description = "Core utilities for Smart Product Onboarding"
+requires-python = ">=3.12,<4"
 readme = "README.md"
-
-  [tool.poetry.dependencies]
-  boto3 = "^1.35.37"
-  lxml = "^5.3.0"
-  pydantic = "^2.9.2"
-  python = "^3.12"
-  tenacity = "^9.0.0"
-
-[tool.poetry.group.dev.dependencies]
-black = "^24.10.0"
-mypy = "^1.11.2"
-pytest = "7.4.3"
-
-  [tool.poetry.group.dev.dependencies.boto3-stubs-lite]
-  version = "^1.35.37"
-  extras = [
-  "bedrock-runtime",
-  "dynamodb",
-  "firehose",
-  "s3",
-  "sagemaker-a2i-runtime",
-  "ssm",
-  "stepfunctions"
+dependencies = [
+    "boto3>=1.35.37",
+    "lxml>=5.3.0",
+    "pydantic>=2.9.2",
+    "tenacity>=9.0.0",
 ]
 
-  [tool.poetry.group.dev.dependencies.moto]
-  version = "^5.0.16"
-  extras = [ "all" ]
+[tool.hatch.build.targets.wheel]
+packages = ["amzn_smart_product_onboarding_core_utils"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[dependency-groups]
+dev = [
+    "ruff>=0.8.2",
+    "pytest>=8.3.5",
+    "mypy>=1.11.2",
+    "boto3-stubs-lite[bedrock-runtime,dynamodb,firehose,s3,sagemaker-a2i-runtime,ssm,stepfunctions]>=1.35.37",
+    "moto[all]>=5.0.16",
+]
 
 [build-system]
-requires = [ "poetry-core" ]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+exclude = [
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "dist",
+]
+
+line-length = 120
+indent-width = 4
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]
+ignore = []
+
+fixable = ["ALL"]
+unfixable = []

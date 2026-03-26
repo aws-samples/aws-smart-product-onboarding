@@ -79,11 +79,11 @@ The following table provides a sample cost breakdown for deploying this solution
 - Download and install Docker. Refer to [Docker](https://www.docker.com/products/docker-desktop/).
 - NodeJS >= 18.0.0 and <= 22
 - Python >= 3.12 preferably with [pyenv](https://github.com/pyenv/pyenv)
-- Poetry >= 1.5.1 and < 2
+- [uv](https://docs.astral.sh/uv/) >= 0.5.0
 - Pnpm >= 8.6.3
 
 ```shell
-pip install poetry==1.8.5
+curl -LsSf https://astral.sh/uv/install.sh | sh
 npm install -g pnpm@^8.15.9 aws-cdk
 ```
 
@@ -196,13 +196,13 @@ pnpm exec nx run @aws-samples/smart-product-onboarding-infra:synth    # Test syn
 pnpm exec nx run @aws-samples/smart-product-onboarding-infra:deploy   # Deploy with automatic builds
 ```
 
-**Poetry virtual environment issues:**
+**Python virtual environment issues:**
 
 ```shell
-# Reset Poetry virtual environments
-cd packages/smart-product-onboarding/core-utils
-poetry env remove --all
-poetry install
+# Reset uv virtual environment
+cd packages/smart-product-onboarding
+rm -rf .venv
+uv sync
 ```
 
 **Docker build failures:**

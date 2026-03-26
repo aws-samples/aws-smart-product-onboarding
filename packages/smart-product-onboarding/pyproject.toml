@@ -1,0 +1,96 @@
+# UV Workspace Configuration for Smart Product Onboarding
+# This is the root workspace configuration that manages all Python packages
+
+[tool.uv.workspace]
+members = [
+    "api/runtime",
+    "api/handlers", 
+    "core-utils",
+    "metaclasses",
+    "product-categorization"
+]
+
+[tool.uv.sources]
+# Workspace package sources for cross-package dependencies
+amzn-smart-product-onboarding-core-utils = { workspace = true }
+amzn-smart-product-onboarding-metaclasses = { workspace = true }
+amzn-smart-product-onboarding-product-categorization = { workspace = true }
+amzn-smart-product-onboarding-api-handlers = { workspace = true }
+amzn-smart-product-onboarding-api-runtime = { workspace = true }
+
+[dependency-groups]
+dev = [
+    # Code formatting and linting
+    "ruff>=0.8.2",
+    # Testing framework
+    "pytest>=8.3.5",
+    "pytest-sugar>=1.0.0",
+    # Type checking
+    "mypy>=1.11.2",
+    # AWS development tools
+    "boto3-stubs-lite[bedrock-runtime,dynamodb,firehose,s3,sagemaker-a2i-runtime,ssm,stepfunctions,textract]>=1.37.31",
+    "moto[all]>=5.0.16",
+    # Environment management
+    "python-dotenv>=1.1.0",
+]
+
+[tool.ruff]
+exclude = [
+    ".ruff_cache",
+    ".svn", 
+    ".tox",
+    ".venv",
+    "dist",
+    # Generated API runtime files
+    "api/runtime/**/*.py",
+]
+
+line-length = 120
+indent-width = 4
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes  
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B", 
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]
+ignore = []
+
+fixable = ["ALL"]
+unfixable = []
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests as integration tests",
+]
+testpaths = ["*/tests", "tests"]
+addopts = "-m 'not integration' --import-mode=importlib"
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+# Ignore generated API runtime
+[[tool.mypy.overrides]]
+module = "amzn_smart_product_onboarding_api_runtime.*"
+ignore_errors = true

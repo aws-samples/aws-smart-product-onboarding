@@ -1,22 +1,62 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-FROM public.ecr.aws/lambda/python:3.13 AS build
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim AS build
 
-ENV POETRY_CACHE_DIR=/root/.cache/poetry
-RUN --mount=type=cache,target=/root/.cache pip install poetry~=1.8.3
+# Set environment variables for uv
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
 
 # Add local dependencies
 RUN mkdir /src
 WORKDIR /src
 
-COPY . /src/
+# Copy workspace configuration
+COPY pyproject.toml uv.lock ./
+COPY README.md ./
 
-# Install the package
-WORKDIR /src/product-categorization
-RUN --mount=type=cache,target=/root/.cache poetry build
-RUN --mount=type=cache,target=/root/.cache poetry run pip cache remove 'amzn_smart_product_onboarding_*'
-RUN --mount=type=cache,target=/root/.cache poetry run pip install -t ${LAMBDA_TASK_ROOT} /src/product-categorization/dist/*.whl
+# Copy workspace packages
+COPY core-utils/ ./core-utils/
+COPY api/runtime/ ./api/runtime/
+COPY product-categorization/ ./product-categorization/
+
+# Install dependencies and build package
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --package amzn-smart-product-onboarding-product-categorization
+
+# Export requirements and install for Lambda
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv export --package amzn-smart-product-onboarding-product-categorization --no-emit-workspace --frozen --no-dev --no-editable -o requirements.txt
+
+# Install to Lambda task root with proper platform targeting
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install \
+    --no-installer-metadata \
+    --compile-bytecode \
+    --target /var/task \
+    --python-platform aarch64-unknown-linux-gnu \
+    --python-version 3.13 \
+    -r requirements.txt
+
+# Build and install workspace packages as wheels
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv build --package amzn-smart-product-onboarding-core-utils --out-dir /tmp/wheels
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv build --package amzn-smart-product-onboarding-api-runtime --out-dir /tmp/wheels
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv build --package amzn-smart-product-onboarding-product-categorization --out-dir /tmp/wheels
+
+# Install workspace packages from wheels
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install \
+    --no-installer-metadata \
+    --compile-bytecode \
+    --target /var/task \
+    --python-platform aarch64-unknown-linux-gnu \
+    --python-version 3.13 \
+    /tmp/wheels/*.whl
 
 FROM public.ecr.aws/lambda/python:3.13
 WORKDIR ${LAMBDA_TASK_ROOT}

@@ -1,41 +1,72 @@
-[tool.poetry]
+[project]
 name = "notebooks"
 version = "0.1.0"
-description = ""
-authors = ["Jeff Strunk <strunkjd@amazon.com>"]
+description = "Configuration notebooks for Smart Product Onboarding"
+requires-python = ">=3.12,<4"
 readme = "README.md"
-package-mode = false
+dependencies = [
+    "boto3>=1.35.40",
+    "inflect>=7.4.0",
+    "nltk>=3.9.1",
+    "pympler>=1.1",
+    "numpy>=2.2.2",
+    "pandas>=2.2.3",
+    "amazon-ion>=0.13.0",
+    "faiss-cpu>=1.10.0",
+]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-boto3 = "^1.35.40"
-inflect = "^7.4.0"
-nltk = "^3.9.1"
-pympler = "^1.1"
-numpy = "^2.2.2"
-amzn-smart-product-onboarding-metaclasses = { path = "../packages/smart-product-onboarding/metaclasses", develop = true }
-pandas = "^2.2.3"
-amazon-ion = "^0.13.0"
-faiss-cpu = "^1.10.0"
+[tool.hatch.build.targets.wheel]
+packages = ["notebooks"]
 
+[tool.hatch.metadata]
+allow-direct-references = true
 
-[tool.poetry.group.dev.dependencies]
-notebook = "^7.2.2"
-jupyterlab = "^4.4.8"
-ipython = "^8.29.0"
-
-[tool.poetry.group.dev.dependencies.boto3-stubs-lite]
-version = "^1.35.37"
-extras = [
-    "bedrock-runtime",
-    "dynamodb",
-    "firehose",
-    "s3",
-    "sagemaker-a2i-runtime",
-    "ssm",
-    "stepfunctions"
+[dependency-groups]
+dev = [
+    # Jupyter and notebook dependencies
+    "notebook>=7.2.2",
+    "jupyterlab>=4.4.8",
+    "ipython>=8.29.0",
+    
+    # AWS type stubs
+    "boto3-stubs-lite[bedrock-runtime,dynamodb,firehose,s3,sagemaker-a2i-runtime,ssm,stepfunctions]>=1.35.37",
+    
+    # Code formatting and linting
+    "ruff>=0.8.2",
 ]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+exclude = [
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "dist",
+]
+
+line-length = 120
+indent-width = 4
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]
+ignore = []
+
+fixable = ["ALL"]
+unfixable = []
