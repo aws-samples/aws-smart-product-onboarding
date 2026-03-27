@@ -1,7 +1,6 @@
 /*
  * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * SPDX-License-Identifier: LicenseRef-.amazon.com.-AmznSL-1.0
- * Licensed under the Amazon Software License  http://aws.amazon.com/asl/
+ * SPDX-License-Identifier: MIT-0
  */
 
 import { aws_s3 as s3, Duration, RemovalPolicy } from "aws-cdk-lib";
