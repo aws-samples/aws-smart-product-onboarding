@@ -5,15 +5,14 @@
 
 import * as path from "path";
 import { Logger } from "@aws-lambda-powertools/logger";
-import { getParameter } from "@aws-lambda-powertools/parameters/ssm";
 import {
   BedrockRuntimeClient,
   ThrottlingException,
 } from "@aws-sdk/client-bedrock-runtime";
 import { S3Client } from "@aws-sdk/client-s3";
+import { AppConfigClient } from "./services/appConfigClient";
 import { ProductGeneratorService } from "./services/productGenerator";
 import { TemplateService } from "./services/templateService";
-import { ProductData } from "./types";
 import {
   ModelResponseError,
   RateLimitError,
@@ -22,16 +21,14 @@ import {
 
 const logger = new Logger({ serviceName: "GenerateProduct" });
 
+const appConfigClient = new AppConfigClient(
+  process.env.APPCONFIG_APPLICATION_ID || "",
+  process.env.APPCONFIG_ENVIRONMENT_ID || "",
+  process.env.APPCONFIG_CONFIGURATION_PROFILE_ID || "",
+);
+
 const defaultTemperature = 0.1;
 const defaultModel = process.env.BEDROCK_MODEL_ID || "us.amazon.nova-lite-v1:0";
-
-interface ProductGeneratorConfig {
-  temperature?: number;
-  model?: string;
-  language?: string;
-  descriptionLength?: string;
-  examples?: ProductData[];
-}
 
 interface GenerateProductEvent {
   images: string[];
@@ -59,19 +56,12 @@ export const handler = async (event: GenerateProductEvent) => {
     templateService,
   );
 
-  const configParamName = process.env.CONFIG_PARAM_NAME;
-  const config: ProductGeneratorConfig = configParamName
-    ? JSON.parse(
-        (await getParameter(configParamName, { maxAge: Infinity })) || "{}",
-      )
-    : {};
-  const {
-    temperature = defaultTemperature,
-    model = defaultModel,
-    language = undefined,
-    descriptionLength = "medium",
-    examples = [],
-  } = config || {};
+  const appConfig = await appConfigClient.getConfiguration("productGeneration");
+  const model = appConfig?.modelId ?? defaultModel;
+  const temperature = appConfig?.temperature ?? defaultTemperature;
+  const language = appConfig?.language;
+  const descriptionLength = appConfig?.descriptionLength ?? "medium";
+  const examples = appConfig?.examples ?? [];
 
   const imageKeys = event.images.map((image) =>
     event.prefix ? `${event.prefix}/${image}` : image,

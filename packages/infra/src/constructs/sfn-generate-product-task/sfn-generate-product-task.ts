@@ -91,6 +91,9 @@ export class SfnGenerateProductFunction extends lambda.Function {
  */
 export interface SfnGenerateProductProps {
   imagesBucket: s3.IBucket;
+  appConfigApplicationId?: string;
+  appConfigEnvironmentId?: string;
+  appConfigConfigurationProfileId?: string;
 }
 
 export class SfnGenerateProduct extends sfn.StateMachineFragment {
@@ -108,6 +111,16 @@ export class SfnGenerateProduct extends sfn.StateMachineFragment {
       environment: {
         IMAGE_BUCKET: props.imagesBucket.bucketName,
         BEDROCK_MODEL_ID: "us.amazon.nova-lite-v1:0",
+        ...(props.appConfigApplicationId && {
+          APPCONFIG_APPLICATION_ID: props.appConfigApplicationId,
+        }),
+        ...(props.appConfigEnvironmentId && {
+          APPCONFIG_ENVIRONMENT_ID: props.appConfigEnvironmentId,
+        }),
+        ...(props.appConfigConfigurationProfileId && {
+          APPCONFIG_CONFIGURATION_PROFILE_ID:
+            props.appConfigConfigurationProfileId,
+        }),
       },
     });
 

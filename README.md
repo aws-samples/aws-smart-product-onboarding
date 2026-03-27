@@ -67,6 +67,7 @@ The following table provides a sample cost breakdown for deploying this solution
 | Amazon Cognito                        | Demo users - 100 Monthly Active Users on Plus feature plan                                                 | 2.00           |
 | AWS Web Application Firewall          | Protect API Gateway                                                                                        | 0.60           |
 | AWS Systems Manager                   | Parameter Store                                                                                            | 0.00           |
+| AWS AppConfig                         | Runtime AI model configuration                                                                             | 0.00           |
 | **Total monthly infrastructure cost** |                                                                                                            | **1,825.60**   |
 
 ## Deployment and Development
@@ -169,6 +170,43 @@ In the event that you decide to stop using the accelerator, we recommend that yo
 ## Configuration
 
 After deployment, the accelerator needs to be configured for your category tree and attribute schema using the [notebooks](notebooks/README.md). To facilitate demos, there is an automated configuration script you could use instead.
+
+### Runtime AI Model Configuration
+
+The accelerator uses AWS AppConfig for runtime configuration of AI model settings. This allows you to change model IDs, temperatures, and product generation options without redeploying infrastructure.
+
+After deployment, you can deploy a configuration document to AppConfig via the AWS Console or CLI. The configuration is a JSON document with the following structure:
+
+```json
+{
+  "productGeneration": {
+    "modelId": "us.amazon.nova-lite-v1:0",
+    "temperature": 0.1,
+    "language": "English",
+    "descriptionLength": "medium",
+    "examples": []
+  },
+  "metaclassClassification": {
+    "modelId": "us.amazon.nova-micro-v1:0",
+    "temperature": 0
+  },
+  "productCategorization": {
+    "modelId": "us.anthropic.claude-3-haiku-20240307-v1:0",
+    "temperature": 0
+  },
+  "attributeExtraction": {
+    "modelId": "us.amazon.nova-premier-v1:0",
+    "temperature": 0
+  }
+}
+```
+
+The `productGeneration` section supports additional optional fields:
+- `language` — output language for generated titles and descriptions
+- `descriptionLength` — `"short"`, `"medium"`, or `"long"`
+- `examples` — up to 10 example products (each with `title` and `description`) for few-shot style guidance
+
+All components fall back to their default model IDs and temperatures if no AppConfig configuration is deployed.
 
 ## Troubleshooting
 

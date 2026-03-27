@@ -1,7 +1,6 @@
 /*
  * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * SPDX-License-Identifier: LicenseRef-.amazon.com.-AmznSL-1.0
- * Licensed under the Amazon Software License  http://aws.amazon.com/asl/
+ * SPDX-License-Identifier: MIT-0
  */
 
 import { UserIdentity } from "@aws/pdk/identity";
@@ -20,6 +19,7 @@ import { NagSuppressions } from "cdk-nag";
 import { Construct } from "constructs";
 import { ApiPersistence } from "../constructs/api-persistence/api-persistence";
 import { SmartProductOnboardingAPI } from "../constructs/apis/smartproductonboardingapi";
+import { AppConfigConstruct } from "../constructs/appconfig/appconfig";
 import { SecureBucket } from "../constructs/secure-bucket";
 import { AttributeExtractionTaskFunction } from "../constructs/sfn-attributes-task/sfn-attributes-task";
 import { ClassificationTaskFunction } from "../constructs/sfn-classification-task/sfn-classification-task";
@@ -129,6 +129,11 @@ export class ApplicationStack extends Stack {
       stringValue: wordEmbeddingsPolicy.managedPolicyArn,
     });
 
+    const appConfig = new AppConfigConstruct(this, "AppConfig", {
+      applicationName: "SmartProductOnboarding",
+      environmentName: "default",
+    });
+
     const metaclassTaskFunction = new MetaclassTaskFunction(
       this,
       "MetaclassTaskFunction",
@@ -136,6 +141,9 @@ export class ApplicationStack extends Stack {
         ssmParameterPrefix: ssmParameterPrefix,
         configBucket: configurationBucket,
         wordEmbeddingsPolicy: wordEmbeddingsPolicy,
+        appConfigApplicationId: appConfig.applicationId,
+        appConfigEnvironmentId: appConfig.environmentId,
+        appConfigConfigurationProfileId: appConfig.configurationProfileId,
       },
     );
 
@@ -145,6 +153,9 @@ export class ApplicationStack extends Stack {
       {
         ssmParameterPrefix: ssmParameterPrefix,
         configBucket: configurationBucket,
+        appConfigApplicationId: appConfig.applicationId,
+        appConfigEnvironmentId: appConfig.environmentId,
+        appConfigConfigurationProfileId: appConfig.configurationProfileId,
       },
     );
 
@@ -153,6 +164,9 @@ export class ApplicationStack extends Stack {
       "AttributeExtractionTaskFunction",
       {
         configBucket: configurationBucket,
+        appConfigApplicationId: appConfig.applicationId,
+        appConfigEnvironmentId: appConfig.environmentId,
+        appConfigConfigurationProfileId: appConfig.configurationProfileId,
       },
     );
 
@@ -167,6 +181,9 @@ export class ApplicationStack extends Stack {
         metaclassTaskFunction: metaclassTaskFunction,
         classificationTaskFunction: classificationTaskFunction,
         attributeExtractionTaskFunction: attributeExtractionFunction,
+        appConfigApplicationId: appConfig.applicationId,
+        appConfigEnvironmentId: appConfig.environmentId,
+        appConfigConfigurationProfileId: appConfig.configurationProfileId,
       },
     );
 
@@ -221,7 +238,19 @@ export class ApplicationStack extends Stack {
       configurationBucket: configurationBucket,
       wordEmbeddingsPolicy: wordEmbeddingsPolicy,
       corsOrigin: corsOrigin,
+      appConfigApplicationId: appConfig.applicationId,
+      appConfigEnvironmentId: appConfig.environmentId,
+      appConfigConfigurationProfileId: appConfig.configurationProfileId,
     });
+
+    appConfig.grantRead(metaclassTaskFunction);
+    appConfig.grantRead(classificationTaskFunction);
+    appConfig.grantRead(attributeExtractionFunction);
+    appConfig.grantRead(batchCategorizationMachine.generateProductFunction);
+    appConfig.grantRead(api.metaclassFunction);
+    appConfig.grantRead(api.categorizeProductFunction);
+    appConfig.grantRead(api.extractAttributesFunction);
+    appConfig.grantRead(api.generateProductFunction);
 
     const website = new Smartproductonboardingdemowebsite(this, "DemoWeb", {
       userIdentity: userIdentity,

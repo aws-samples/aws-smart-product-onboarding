@@ -1,7 +1,6 @@
 /*
  * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * SPDX-License-Identifier: LicenseRef-.amazon.com.-AmznSL-1.0
- * Licensed under the Amazon Software License  http://aws.amazon.com/asl/
+ * SPDX-License-Identifier: MIT-0
  */
 
 import * as path from "path";
@@ -22,6 +21,9 @@ export interface MetaclassTaskFunctionProps {
   configBucket: s3.IBucket;
   ssmParameterPrefix: string;
   wordEmbeddingsPolicy: iam.IManagedPolicy;
+  appConfigApplicationId?: string;
+  appConfigEnvironmentId?: string;
+  appConfigConfigurationProfileId?: string;
   cmd?: string[];
   timeout?: Duration;
 }
@@ -48,6 +50,16 @@ export class MetaclassTaskFunction extends lambda.DockerImageFunction {
         CONFIG_BUCKET_NAME: props.configBucket.bucketName,
         CONFIG_PATHS_PARAM: props.ssmParameterPrefix + "/CategorizationConfig",
         BEDROCK_MODEL_ID: "us.amazon.nova-micro-v1:0",
+        ...(props.appConfigApplicationId && {
+          APPCONFIG_APPLICATION_ID: props.appConfigApplicationId,
+        }),
+        ...(props.appConfigEnvironmentId && {
+          APPCONFIG_ENVIRONMENT_ID: props.appConfigEnvironmentId,
+        }),
+        ...(props.appConfigConfigurationProfileId && {
+          APPCONFIG_CONFIGURATION_PROFILE_ID:
+            props.appConfigConfigurationProfileId,
+        }),
       },
       timeout: props.timeout ? props.timeout : Duration.seconds(900),
       memorySize: 512,

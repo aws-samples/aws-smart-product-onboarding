@@ -3,7 +3,7 @@
  * These override the generated functions to use the correct path after migration to uv workspace.
  */
 
-import { Construct } from "constructs";
+import * as path from "path";
 import { Duration } from "aws-cdk-lib";
 import {
   Architecture,
@@ -13,7 +13,7 @@ import {
   Tracing,
   FunctionProps,
 } from "aws-cdk-lib/aws-lambda";
-import * as path from "path";
+import { Construct } from "constructs";
 
 /**
  * Options for the CreateBatchExecutionFunction construct

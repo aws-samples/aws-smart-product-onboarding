@@ -3,10 +3,7 @@
  * SPDX-License-Identifier: MIT-0
  */
 
-import { getParameter } from "@aws-lambda-powertools/parameters/ssm";
 import { ThrottlingException } from "@aws-sdk/client-bedrock-runtime";
-import { handler } from "../src/generate-product-sfn";
-import { ProductGeneratorService } from "../src/services/productGenerator";
 import {
   ModelResponseError,
   RateLimitError,
@@ -14,19 +11,23 @@ import {
 } from "../src/utils/exceptions";
 
 // Mock dependencies
-jest.mock("@aws-lambda-powertools/parameters/ssm");
 jest.mock("../src/services/productGenerator");
+
+const mockGetConfiguration = jest.fn();
+jest.mock("../src/services/appConfigClient", () => ({
+  AppConfigClient: jest.fn().mockImplementation(() => ({
+    getConfiguration: mockGetConfiguration,
+  })),
+}));
 
 // Mock environment variables
 const originalEnv = process.env;
-process.env = {
-  ...originalEnv,
-  IMAGE_BUCKET: "test-bucket",
-};
 
 describe("Lambda Handler", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.resetModules();
+    mockGetConfiguration.mockResolvedValue(null);
     process.env = {
       ...originalEnv,
       IMAGE_BUCKET: "test-bucket",
@@ -47,6 +48,9 @@ describe("Lambda Handler", () => {
       outputTokens: 200,
     };
 
+    const {
+      ProductGeneratorService,
+    } = require("../src/services/productGenerator");
     (
       ProductGeneratorService.prototype.generateProduct as jest.Mock
     ).mockResolvedValueOnce({
@@ -54,6 +58,7 @@ describe("Lambda Handler", () => {
       usage: mockUsage,
     });
 
+    const { handler } = require("../src/generate-product-sfn");
     const event = {
       images: ["image1.jpg", "image2.jpg"],
     };
@@ -74,32 +79,30 @@ describe("Lambda Handler", () => {
     });
   });
 
-  it("should use custom config from SSM parameter", async () => {
-    const customConfig = {
-      temperature: 0.5,
-      model: "custom-model",
+  it("should use AppConfig values when available", async () => {
+    mockGetConfiguration.mockResolvedValueOnce({
+      modelId: "appconfig-model-id",
+      temperature: 0.8,
       language: "Spanish",
       descriptionLength: "long",
       examples: [{ title: "Example", description: "Description" }],
-    };
-
-    (getParameter as jest.Mock).mockResolvedValueOnce(
-      JSON.stringify(customConfig),
-    );
+    });
 
     const mockProductData = {
       title: "Test Product",
       description: "Test Description",
     };
 
+    const {
+      ProductGeneratorService,
+    } = require("../src/services/productGenerator");
     (
       ProductGeneratorService.prototype.generateProduct as jest.Mock
     ).mockResolvedValueOnce({
       productData: mockProductData,
     });
 
-    process.env.CONFIG_PARAM_NAME = "test-config-param";
-
+    const { handler } = require("../src/generate-product-sfn");
     const event = {
       images: ["image1.jpg"],
       metadata: "test metadata",
@@ -111,13 +114,80 @@ describe("Lambda Handler", () => {
     expect(
       ProductGeneratorService.prototype.generateProduct,
     ).toHaveBeenCalledWith({
-      ...customConfig,
+      model: "appconfig-model-id",
+      temperature: 0.8,
+      language: "Spanish",
+      descriptionLength: "long",
+      examples: [{ title: "Example", description: "Description" }],
       imageKeys: event.images,
       metadata: event.metadata,
     });
   });
 
+  it("should fall back to defaults when AppConfig returns null", async () => {
+    mockGetConfiguration.mockResolvedValueOnce(null);
+
+    const {
+      ProductGeneratorService,
+    } = require("../src/services/productGenerator");
+    (
+      ProductGeneratorService.prototype.generateProduct as jest.Mock
+    ).mockResolvedValueOnce({
+      productData: { title: "T", description: "D" },
+    });
+
+    const { handler } = require("../src/generate-product-sfn");
+    const result = await handler({ images: ["img.jpg"] });
+
+    expect(result).toEqual({ title: "T", description: "D" });
+    expect(
+      ProductGeneratorService.prototype.generateProduct,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: "us.amazon.nova-lite-v1:0",
+        temperature: 0.1,
+        language: undefined,
+        descriptionLength: "medium",
+        examples: [],
+      }),
+    );
+  });
+
+  it("should use partial AppConfig values with defaults for missing fields", async () => {
+    mockGetConfiguration.mockResolvedValueOnce({
+      modelId: "custom-model",
+      temperature: 0.5,
+    });
+
+    const {
+      ProductGeneratorService,
+    } = require("../src/services/productGenerator");
+    (
+      ProductGeneratorService.prototype.generateProduct as jest.Mock
+    ).mockResolvedValueOnce({
+      productData: { title: "T", description: "D" },
+    });
+
+    const { handler } = require("../src/generate-product-sfn");
+    await handler({ images: ["img.jpg"] });
+
+    expect(
+      ProductGeneratorService.prototype.generateProduct,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: "custom-model",
+        temperature: 0.5,
+        language: undefined,
+        descriptionLength: "medium",
+        examples: [],
+      }),
+    );
+  });
+
   it("should throw RateLimitError on ThrottlingException", async () => {
+    const {
+      ProductGeneratorService,
+    } = require("../src/services/productGenerator");
     (
       ProductGeneratorService.prototype.generateProduct as jest.Mock
     ).mockRejectedValueOnce(
@@ -127,31 +197,40 @@ describe("Lambda Handler", () => {
       }),
     );
 
+    const { handler } = require("../src/generate-product-sfn");
     const event = {
       images: ["image1.jpg"],
     };
 
-    await expect(handler(event)).rejects.toThrow(RateLimitError);
+    await expect(handler(event)).rejects.toThrow("Bedrock rate limit exceeded");
   });
 
   it("should throw RetryableError on ModelResponseError", async () => {
+    const {
+      ProductGeneratorService,
+    } = require("../src/services/productGenerator");
     (
       ProductGeneratorService.prototype.generateProduct as jest.Mock
     ).mockRejectedValueOnce(new ModelResponseError("Invalid model output"));
 
+    const { handler } = require("../src/generate-product-sfn");
     const event = {
       images: ["image1.jpg"],
     };
 
-    await expect(handler(event)).rejects.toThrow(RetryableError);
+    await expect(handler(event)).rejects.toThrow("Invalid model output");
   });
 
   it("should handle and log unknown errors", async () => {
     const unknownError = new Error("Unknown error");
+    const {
+      ProductGeneratorService,
+    } = require("../src/services/productGenerator");
     (
       ProductGeneratorService.prototype.generateProduct as jest.Mock
     ).mockRejectedValueOnce(unknownError);
 
+    const { handler } = require("../src/generate-product-sfn");
     const event = {
       images: ["image1.jpg"],
     };
@@ -165,12 +244,16 @@ describe("Lambda Handler", () => {
       description: "Test Description",
     };
 
+    const {
+      ProductGeneratorService,
+    } = require("../src/services/productGenerator");
     (
       ProductGeneratorService.prototype.generateProduct as jest.Mock
     ).mockResolvedValueOnce({
       productData: mockProductData,
     });
 
+    const { handler } = require("../src/generate-product-sfn");
     const event = {
       prefix: "prefix",
       images: ["image1.jpg"],

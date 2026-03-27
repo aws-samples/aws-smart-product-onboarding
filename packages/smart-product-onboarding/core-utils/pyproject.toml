@@ -25,6 +25,7 @@ dev = [
     "mypy>=1.11.2",
     "boto3-stubs-lite[bedrock-runtime,dynamodb,firehose,s3,sagemaker-a2i-runtime,ssm,stepfunctions]>=1.35.37",
     "moto[all]>=5.0.16",
+    "hypothesis>=6.151.9",
 ]
 
 [build-system]

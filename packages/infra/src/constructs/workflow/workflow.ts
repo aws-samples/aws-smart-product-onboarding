@@ -1,7 +1,6 @@
 /*
  * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * SPDX-License-Identifier: LicenseRef-.amazon.com.-AmznSL-1.0
- * Licensed under the Amazon Software License  http://aws.amazon.com/asl/
+ * SPDX-License-Identifier: MIT-0
  */
 
 import { PDKPipeline } from "@aws/pdk/pipeline";
@@ -38,10 +37,14 @@ export interface CategorizationWorkflowProps {
   readonly metaclassTaskFunction: lambda.IFunction;
   readonly classificationTaskFunction: lambda.IFunction;
   readonly attributeExtractionTaskFunction: lambda.IFunction;
+  readonly appConfigApplicationId?: string;
+  readonly appConfigEnvironmentId?: string;
+  readonly appConfigConfigurationProfileId?: string;
 }
 
 export class CategorizationWorkflow extends Construct {
   readonly stateMachine: sfn.StateMachine;
+  readonly generateProductFunction: lambda.IFunction;
 
   constructor(
     scope: Construct,
@@ -129,8 +132,13 @@ export class CategorizationWorkflow extends Construct {
       "GenerateProductTask",
       {
         imagesBucket: props.inputBucket,
+        appConfigApplicationId: props.appConfigApplicationId,
+        appConfigEnvironmentId: props.appConfigEnvironmentId,
+        appConfigConfigurationProfileId: props.appConfigConfigurationProfileId,
       },
     );
+
+    this.generateProductFunction = generateProduct.function;
 
     generateProduct.next(categorization);
 
