@@ -40,7 +40,7 @@
     "@aws-sdk/client-s3": "^3.668.0",
     "@aws-sdk/client-ssm": "^3.679.0",
     "fast-xml-parser": "^4.5.5",
-    "handlebars": "^4.7.8"
+    "handlebars": "^4.7.9"
   },
   "main": "lib/index.js",
   "license": "Apache-2.0",
