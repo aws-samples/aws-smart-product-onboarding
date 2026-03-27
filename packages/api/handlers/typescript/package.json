@@ -35,7 +35,6 @@
   },
   "dependencies": {
     "@aws-lambda-powertools/logger": "^2.10.0",
-    "@aws-lambda-powertools/parameters": "^2.10.0",
     "@aws-samples/smart-product-onboarding-api-typescript-runtime": "0.0.0",
     "@aws-sdk/client-appconfigdata": "^3.1017.0",
     "@aws-sdk/client-bedrock-runtime": "^3.668.0",

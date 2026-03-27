@@ -2,14 +2,13 @@
  * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * SPDX-License-Identifier: MIT-0
  *
- * Feature: appconfig-runtime-configuration, Property 6: AppConfig values take precedence over SSM for model and temperature
+ * Feature: appconfig-runtime-configuration, Property 6: AppConfig provides all product generation config
  * Validates: Requirements 6.2
  */
 
 import fc from "fast-check";
 
 // Mock dependencies
-jest.mock("@aws-lambda-powertools/parameters/ssm");
 jest.mock("../src/services/productGenerator");
 
 const mockGetConfiguration = jest.fn();
@@ -61,31 +60,22 @@ const exampleArb = fc.record({
 const examplesArb = fc.array(exampleArb, { minLength: 0, maxLength: 3 });
 
 /**
- * Arbitrary for a full SSM config object
+ * Arbitrary for a full AppConfig response
  */
-const ssmConfigArb = fc.record({
-  model: modelIdArb,
+const appConfigArb = fc.record({
+  modelId: modelIdArb,
   temperature: temperatureArb,
   language: languageArb,
   descriptionLength: descriptionLengthArb,
   examples: examplesArb,
 });
 
-/**
- * Arbitrary for an AppConfig response (modelId, temperature)
- */
-const appConfigArb = fc.record({
-  modelId: modelIdArb,
-  temperature: temperatureArb,
-});
-
-describe("Property 6: AppConfig values take precedence over SSM for model and temperature", () => {
+describe("Property 6: AppConfig provides all product generation configuration", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env = {
       ...originalEnv,
       IMAGE_BUCKET: "test-bucket",
-      CONFIG_PARAM_NAME: "test-config-param",
     };
   });
 
@@ -96,67 +86,87 @@ describe("Property 6: AppConfig values take precedence over SSM for model and te
   /**
    * **Validates: Requirements 6.2**
    *
-   * For any combination where both AppConfig provides a modelId/temperature
-   * and the SSM Parameter Store config also contains model/temperature fields,
-   * the Product Generation component must use the AppConfig values for model ID
-   * and temperature while still using SSM values for language, descriptionLength,
-   * and examples.
+   * For any valid AppConfig response, the Product Generation component must use
+   * all AppConfig values (modelId, temperature, language, descriptionLength, examples).
    */
-  it("should use AppConfig modelId/temperature over SSM model/temperature, while preserving SSM language/descriptionLength/examples", async () => {
+  it("should use all AppConfig values for product generation", async () => {
     await fc.assert(
-      fc.asyncProperty(
-        ssmConfigArb,
-        appConfigArb,
-        async (ssmConfig, appConfig) => {
-          jest.clearAllMocks();
-          jest.resetModules();
+      fc.asyncProperty(appConfigArb, async (appConfig) => {
+        jest.clearAllMocks();
+        jest.resetModules();
 
-          // Re-require mocked modules after resetModules
-          const {
-            getParameter,
-          } = require("@aws-lambda-powertools/parameters/ssm");
-          const {
-            ProductGeneratorService,
-          } = require("../src/services/productGenerator");
+        const {
+          ProductGeneratorService,
+        } = require("../src/services/productGenerator");
 
-          // Mock SSM to return the random SSM config
-          (getParameter as jest.Mock).mockResolvedValueOnce(
-            JSON.stringify(ssmConfig),
-          );
+        // Mock AppConfig to return the random config
+        mockGetConfiguration.mockResolvedValueOnce(appConfig);
 
-          // Mock AppConfig to return the random AppConfig values
-          mockGetConfiguration.mockResolvedValueOnce(appConfig);
+        // Mock ProductGeneratorService to capture the call args
+        (
+          ProductGeneratorService.prototype.generateProduct as jest.Mock
+        ).mockResolvedValueOnce({
+          productData: { title: "T", description: "D" },
+        });
 
-          // Mock ProductGeneratorService to capture the call args
-          (
-            ProductGeneratorService.prototype.generateProduct as jest.Mock
-          ).mockResolvedValueOnce({
-            productData: { title: "T", description: "D" },
-          });
+        const { handler } = require("../src/generate-product-sfn");
+        await handler({ images: ["img.jpg"] });
 
-          const { handler } = require("../src/generate-product-sfn");
-          await handler({ images: ["img.jpg"] });
+        // Verify generateProduct was called
+        expect(
+          ProductGeneratorService.prototype.generateProduct,
+        ).toHaveBeenCalledTimes(1);
 
-          // Verify generateProduct was called
-          expect(
-            ProductGeneratorService.prototype.generateProduct,
-          ).toHaveBeenCalledTimes(1);
+        const callArgs = (
+          ProductGeneratorService.prototype.generateProduct as jest.Mock
+        ).mock.calls[0][0];
 
-          const callArgs = (
-            ProductGeneratorService.prototype.generateProduct as jest.Mock
-          ).mock.calls[0][0];
-
-          // AppConfig values take precedence for model and temperature
-          expect(callArgs.model).toBe(appConfig.modelId);
-          expect(callArgs.temperature).toBe(appConfig.temperature);
-
-          // SSM still provides language, descriptionLength, examples
-          expect(callArgs.language).toBe(ssmConfig.language);
-          expect(callArgs.descriptionLength).toBe(ssmConfig.descriptionLength);
-          expect(callArgs.examples).toEqual(ssmConfig.examples);
-        },
-      ),
+        // All values come from AppConfig
+        expect(callArgs.model).toBe(appConfig.modelId);
+        expect(callArgs.temperature).toBe(appConfig.temperature);
+        expect(callArgs.language).toBe(appConfig.language);
+        expect(callArgs.descriptionLength).toBe(appConfig.descriptionLength);
+        expect(callArgs.examples).toEqual(appConfig.examples);
+      }),
       { numRuns: 100 },
+    );
+  });
+
+  /**
+   * When AppConfig returns null, all values should fall back to defaults.
+   */
+  it("should fall back to defaults when AppConfig returns null", async () => {
+    await fc.assert(
+      fc.asyncProperty(fc.constant(null), async () => {
+        jest.clearAllMocks();
+        jest.resetModules();
+
+        const {
+          ProductGeneratorService,
+        } = require("../src/services/productGenerator");
+
+        mockGetConfiguration.mockResolvedValueOnce(null);
+
+        (
+          ProductGeneratorService.prototype.generateProduct as jest.Mock
+        ).mockResolvedValueOnce({
+          productData: { title: "T", description: "D" },
+        });
+
+        const { handler } = require("../src/generate-product-sfn");
+        await handler({ images: ["img.jpg"] });
+
+        const callArgs = (
+          ProductGeneratorService.prototype.generateProduct as jest.Mock
+        ).mock.calls[0][0];
+
+        expect(callArgs.model).toBe("us.amazon.nova-lite-v1:0");
+        expect(callArgs.temperature).toBe(0.1);
+        expect(callArgs.language).toBeUndefined();
+        expect(callArgs.descriptionLength).toBe("medium");
+        expect(callArgs.examples).toEqual([]);
+      }),
+      { numRuns: 10 },
     );
   });
 });

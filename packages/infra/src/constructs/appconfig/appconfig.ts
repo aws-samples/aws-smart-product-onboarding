@@ -55,7 +55,9 @@ export class AppConfigConstruct extends Construct {
               ],
               additionalProperties: false,
               properties: {
-                productGeneration: { $ref: "#/$defs/componentConfig" },
+                productGeneration: {
+                  $ref: "#/$defs/productGenerationConfig",
+                },
                 metaclassClassification: { $ref: "#/$defs/componentConfig" },
                 productCategorization: { $ref: "#/$defs/componentConfig" },
                 attributeExtraction: { $ref: "#/$defs/componentConfig" },
@@ -68,6 +70,33 @@ export class AppConfigConstruct extends Construct {
                   properties: {
                     modelId: { type: "string", minLength: 1 },
                     temperature: { type: "number", minimum: 0, maximum: 1 },
+                  },
+                },
+                productGenerationConfig: {
+                  type: "object",
+                  required: ["modelId", "temperature"],
+                  additionalProperties: false,
+                  properties: {
+                    modelId: { type: "string", minLength: 1 },
+                    temperature: { type: "number", minimum: 0, maximum: 1 },
+                    language: { type: "string" },
+                    descriptionLength: {
+                      type: "string",
+                      enum: ["short", "medium", "long"],
+                    },
+                    examples: {
+                      type: "array",
+                      maxItems: 10,
+                      items: {
+                        type: "object",
+                        required: ["title", "description"],
+                        additionalProperties: false,
+                        properties: {
+                          title: { type: "string" },
+                          description: { type: "string" },
+                        },
+                      },
+                    },
                   },
                 },
               },

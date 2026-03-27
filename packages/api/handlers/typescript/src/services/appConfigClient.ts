@@ -13,6 +13,9 @@ import { logger } from "../utils/logger";
 export interface AppConfigSettings {
   modelId: string;
   temperature: number;
+  language?: string;
+  descriptionLength?: string;
+  examples?: Array<{ title: string; description: string }>;
 }
 
 export class AppConfigClient {
@@ -70,6 +73,15 @@ export class AppConfigClient {
       return {
         modelId: componentConfig.modelId,
         temperature: componentConfig.temperature,
+        ...(componentConfig.language !== undefined && {
+          language: componentConfig.language,
+        }),
+        ...(componentConfig.descriptionLength !== undefined && {
+          descriptionLength: componentConfig.descriptionLength,
+        }),
+        ...(componentConfig.examples !== undefined && {
+          examples: componentConfig.examples,
+        }),
       };
     } catch (error) {
       logger.warn("Failed to retrieve AppConfig configuration", {
