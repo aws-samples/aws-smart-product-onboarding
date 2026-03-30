@@ -78,6 +78,7 @@ constraint-dependencies = [
     "nbconvert>=7.17.0",
     "urllib3>=2.6.3",
     "requests>=2.33.0",
+    "pygments>=2.20.0",
 ]
 
 [tool.uv.sources]
