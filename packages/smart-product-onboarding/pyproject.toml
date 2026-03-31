@@ -8,6 +8,7 @@ constraint-dependencies = [
     "cryptography>=46.0.5",
     "requests>=2.33.0",
     "werkzeug>=3.1.6",
+    "pygments>=2.20.0",
 ]
 
 [tool.uv.workspace]
