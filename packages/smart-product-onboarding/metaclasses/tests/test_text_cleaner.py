@@ -61,6 +61,19 @@ def test_remove_html_tags(text_cleaner):
     assert text_cleaner._remove_html_tags("<p>hello</p> <b>world</b>") == "hello world"
 
 
+def test_remove_html_tags_no_backtracking(text_cleaner):
+    """Verify the regex completes quickly on adversarial input that would cause
+    catastrophic backtracking with a vulnerable pattern."""
+    import time
+
+    malicious = "<" + "'" * 50
+    start = time.monotonic()
+    result = text_cleaner._remove_html_tags(malicious)
+    elapsed = time.monotonic() - start
+    assert elapsed < 1.0, f"Regex took {elapsed:.2f}s — possible ReDoS"
+    assert result == malicious  # no closing '>', so nothing should be stripped
+
+
 def test_remove_packages(text_cleaner):
     assert text_cleaner._remove_packages("Product pack x3") == "Product"
 
