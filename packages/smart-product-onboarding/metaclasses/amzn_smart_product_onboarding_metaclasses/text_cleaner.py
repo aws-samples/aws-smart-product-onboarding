@@ -156,7 +156,7 @@ class TextCleaner:
         return " ".join(non_stopwords)
 
     def _remove_html_tags(self, text: str):
-        regex_html_tags = r"\<(?:\"[^\"]*\"['\"]*|'[^']*'['\"]*|[^'\">])+\>"
+        regex_html_tags = r"<[^>]*>"
         return re.sub(regex_html_tags, "", text)
 
     def _remove_packages(self, text: str):
