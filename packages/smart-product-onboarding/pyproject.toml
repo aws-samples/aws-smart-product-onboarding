@@ -33,7 +33,7 @@ dev = [
     # Code formatting and linting
     "ruff>=0.8.2",
     # Testing framework
-    "pytest>=8.3.5",
+    "pytest>=9.0.3",
     "pytest-sugar>=1.0.0",
     # Type checking
     "mypy>=1.11.2",
