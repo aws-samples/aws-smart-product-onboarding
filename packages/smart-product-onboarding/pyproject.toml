@@ -41,7 +41,7 @@ dev = [
     "boto3-stubs-lite[bedrock-runtime,dynamodb,firehose,s3,sagemaker-a2i-runtime,ssm,stepfunctions,textract]>=1.37.31",
     "moto[all]>=5.0.16",
     # Environment management
-    "python-dotenv>=1.1.0",
+    "python-dotenv>=1.2.2",
 ]
 
 [tool.ruff]
