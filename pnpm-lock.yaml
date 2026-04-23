@@ -168,7 +168,7 @@ importers:
     devDependencies:
       '@aws/pdk':
         specifier: ^0
-        version: 0.26.7(@aws-cdk/aws-cognito-identitypool-alpha@2.186.0-alpha.0(aws-cdk-lib@2.248.0(constructs@10.4.2))(constructs@10.4.2))(aws-cdk-lib@2.248.0(constructs@10.4.2))(cdk-nag@2.37.55(aws-cdk-lib@2.248.0(constructs@10.4.2))(constructs@10.4.2))(constructs@10.4.2)(projen@0.82.8(constructs@10.4.2))
+        version: 0.26.7(@aws-cdk/aws-cognito-identitypool-alpha@2.186.0-alpha.0(aws-cdk-lib@2.250.0(constructs@10.4.2))(constructs@10.4.2))(aws-cdk-lib@2.250.0(constructs@10.4.2))(cdk-nag@2.38.1(aws-cdk-lib@2.250.0(constructs@10.4.2))(constructs@10.4.2))(constructs@10.4.2)(projen@0.82.8(constructs@10.4.2))
       '@types/node':
         specifier: ^18
         version: 18.19.130
@@ -199,7 +199,7 @@ importers:
     devDependencies:
       '@aws/pdk':
         specifier: ^0
-        version: 0.26.7(@aws-cdk/aws-cognito-identitypool-alpha@2.186.0-alpha.0(aws-cdk-lib@2.248.0(constructs@10.4.2))(constructs@10.4.2))(aws-cdk-lib@2.248.0(constructs@10.4.2))(cdk-nag@2.37.55(aws-cdk-lib@2.248.0(constructs@10.4.2))(constructs@10.4.2))(constructs@10.4.2)(projen@0.82.8(constructs@10.4.2))
+        version: 0.26.7(@aws-cdk/aws-cognito-identitypool-alpha@2.186.0-alpha.0(aws-cdk-lib@2.250.0(constructs@10.4.2))(constructs@10.4.2))(aws-cdk-lib@2.250.0(constructs@10.4.2))(cdk-nag@2.38.1(aws-cdk-lib@2.250.0(constructs@10.4.2))(constructs@10.4.2))(constructs@10.4.2)(projen@0.82.8(constructs@10.4.2))
       '@types/node':
         specifier: ^18
         version: 18.19.130
@@ -229,14 +229,14 @@ importers:
         version: 3.908.0
       fast-xml-parser:
         specifier: '>=5.5.7'
-        version: 5.5.9
+        version: 5.7.0
       handlebars:
         specifier: ^4.7.9
         version: 4.7.9
     devDependencies:
       '@aws/pdk':
         specifier: ^0
-        version: 0.26.7(@aws-cdk/aws-cognito-identitypool-alpha@2.186.0-alpha.0(aws-cdk-lib@2.248.0(constructs@10.4.2))(constructs@10.4.2))(aws-cdk-lib@2.248.0(constructs@10.4.2))(cdk-nag@2.37.55(aws-cdk-lib@2.248.0(constructs@10.4.2))(constructs@10.4.2))(constructs@10.4.2)(projen@0.82.8(constructs@10.4.2))
+        version: 0.26.7(@aws-cdk/aws-cognito-identitypool-alpha@2.186.0-alpha.0(aws-cdk-lib@2.250.0(constructs@10.4.2))(constructs@10.4.2))(aws-cdk-lib@2.250.0(constructs@10.4.2))(cdk-nag@2.38.1(aws-cdk-lib@2.250.0(constructs@10.4.2))(constructs@10.4.2))(constructs@10.4.2)(projen@0.82.8(constructs@10.4.2))
       '@types/aws-lambda':
         specifier: ^8.10.145
         version: 8.10.155
@@ -525,8 +525,8 @@ packages:
       - jsonschema
       - semver
 
-  '@aws-cdk/cloud-assembly-schema@53.13.0':
-    resolution: {integrity: sha512-LgRc8Sl1VzuhhPWmJ4hpajBe8Y8coA3KbpAmej7X4nPvWO/x4nUoZSysUKCx2YldLAAYlzwc0mkDHmc/YMZ6vg==}
+  '@aws-cdk/cloud-assembly-schema@53.17.0':
+    resolution: {integrity: sha512-JB9L4JCbZeYbMJPs7OKV+7YaxKwk4i2tlI5PCSfCzk4DJvprhCO2TYcqbqo3Y1YWZyyY/SEPLWdorG7b88fUSA==}
     engines: {node: '>= 18.0.0'}
     bundledDependencies:
       - jsonschema
@@ -2180,6 +2180,9 @@ packages:
   '@napi-rs/wasm-runtime@0.2.4':
     resolution: {integrity: sha512-9zESzOO5aDByvhIAsOy9TbpZ0Ur2AJbUI7UT73kcUTS2mxAMHOBaa1st/jAymNoCtvrit99kkzT1FZuXVcgfIQ==}
 
+  '@nodable/entities@2.1.0':
+    resolution: {integrity: sha512-nyT7T3nbMyBI/lvr6L5TyWbFJAI9FTgVRakNoBqCD+PmID8DzFrrNdLLtHMwMszOtqZa8PAOV24ZqDnQrhQINA==}
+
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
     engines: {node: '>= 8'}
@@ -3667,8 +3670,8 @@ packages:
       - yaml
       - mime-types
 
-  aws-cdk-lib@2.248.0:
-    resolution: {integrity: sha512-PGQycx/OdyX+t0o6QUFI1KJAOLoyIVj2WwrN0syrwCi8lYxW2KzldZsW0X+/UN/ALNQwcjSr927ImTpuDOh+bg==}
+  aws-cdk-lib@2.250.0:
+    resolution: {integrity: sha512-8U8/S9VcmKSc3MHZWiB7P0IecgXoohI8Ya3dgtZMgbzC4mB+MEQmsYBeNgm4vzGQdRos8HjQLnFX1IBlZh7jQA==}
     engines: {node: '>= 20.0.0'}
     peerDependencies:
       constructs: ^10.5.0
@@ -3863,11 +3866,12 @@ packages:
       aws-cdk-lib: ^2.176.0
       constructs: ^10.0.5
 
-  cdk-nag@2.37.55:
-    resolution: {integrity: sha512-xcAkygwbph3pp7N0UEzJBmXUH/MIsluV7DYJSeZ/V3yCr0Y0QaRGO298WyD6mi4K+Rmnpl+EJoWUxcOblOqLKA==}
+  cdk-nag@2.38.1:
+    resolution: {integrity: sha512-pvGnSFyml4t6uw8RTp3pIz0iOQkgt6ewxoGdArZugNxqmn2XK9erXNvSrPhJC4BpkOXXkYYzgMSc7b6mbDHUOg==}
+    engines: {node: '>= 18.12.0'}
     peerDependencies:
       aws-cdk-lib: ^2.176.0
-      constructs: ^10.0.5
+      constructs: ^10.5.1
 
   chai@5.3.3:
     resolution: {integrity: sha512-4zNhdJD/iOjSH0A05ea+Ke6MU5mmpQcbQsSOkgdaUMJ9zTlDTD/GYlwohmIE2u0gaxHYiVHEn1Fw9mZ/ktJWgw==}
@@ -4515,11 +4519,11 @@ packages:
   fast-uri@3.1.0:
     resolution: {integrity: sha512-iPeeDKJSWf4IEOasVVrknXpaBV0IApz/gp7S2bb7Z4Lljbl2MGJRqInZiUrQwV16cpzw/D3S5j5Julj/gT52AA==}
 
-  fast-xml-builder@1.1.4:
-    resolution: {integrity: sha512-f2jhpN4Eccy0/Uz9csxh3Nu6q4ErKxf0XIsasomfOihuSUa3/xw6w8dnOtCDgEItQFJG8KyXPzQXzcODDrrbOg==}
+  fast-xml-builder@1.1.5:
+    resolution: {integrity: sha512-4TJn/8FKLeslLAH3dnohXqE3QSoxkhvaMzepOIZytwJXZO69Bfz0HBdDHzOTOon6G59Zrk6VQ2bEiv1t61rfkA==}
 
-  fast-xml-parser@5.5.9:
-    resolution: {integrity: sha512-jldvxr1MC6rtiZKgrFnDSvT8xuH+eJqxqOBThUVjYrxssYTo1avZLGql5l0a0BAERR01CadYzZ83kVEkbyDg+g==}
+  fast-xml-parser@5.7.0:
+    resolution: {integrity: sha512-MTcrUoRQ1GSQ9iG3QJzBGquYYYeA7piZaJoIWbPFGbRn6Jj6z7xgoAyi4DrZX4y2ZIQQBF59gc/zmvvejjgoFQ==}
     hasBin: true
 
   fastparse@1.1.2:
@@ -5780,8 +5784,8 @@ packages:
     resolution: {integrity: sha512-ak9Qy5Q7jYb2Wwcey5Fpvg2KoAc/ZIhLSLOSBmRmygPsGwkVVt0fZa0qrtMz+m6tJTAHfZQ8FnmB4MG4LWy7/w==}
     engines: {node: '>=8'}
 
-  path-expression-matcher@1.2.0:
-    resolution: {integrity: sha512-DwmPWeFn+tq7TiyJ2CxezCAirXjFxvaiD03npak3cRjlP9+OjTmSy1EpIrEbh+l6JgUundniloMLDQ/6VTdhLQ==}
+  path-expression-matcher@1.5.0:
+    resolution: {integrity: sha512-cbrerZV+6rvdQrrD+iGMcZFEiiSrbv9Tfdkvnusy6y0x0GKBXREFg/Y65GhIfm0tnLntThhzCnfKwp1WRjeCyQ==}
     engines: {node: '>=14.0.0'}
 
   path-is-absolute@1.0.1:
@@ -6344,8 +6348,8 @@ packages:
   strip-literal@3.1.0:
     resolution: {integrity: sha512-8r3mkIM/2+PpjHoOtiAW8Rg3jJLHaV7xPwG+YRGrv6FP0wwk/toTpATxWYOW0BKdWwl82VT2tFYi5DlROa0Mxg==}
 
-  strnum@2.2.2:
-    resolution: {integrity: sha512-DnR90I+jtXNSTXWdwrEy9FakW7UX+qUZg28gj5fk2vxxl7uS/3bpI4fjFYVmdK9etptYBPNkpahuQnEwhwECqA==}
+  strnum@2.2.3:
+    resolution: {integrity: sha512-oKx6RUCuHfT3oyVjtnrmn19H1SiCqgJSg+54XqURKp5aCMbrXrhLjRN9TjuwMjiYstZ0MzDrHqkGZ5dFTKd+zg==}
 
   strong-log-transformer@2.1.0:
     resolution: {integrity: sha512-B3Hgul+z0L9a236FAUC9iZsL+nVHgoCJnqCbN588DjYxvGXaXaaFbfmQ/JhvKjZwsOukuR72XbHv71Qkug0HxA==}
@@ -6975,9 +6979,9 @@ snapshots:
       aws-cdk-lib: 2.219.0(constructs@10.4.2)
       constructs: 10.4.2
 
-  '@aws-cdk/aws-cognito-identitypool-alpha@2.186.0-alpha.0(aws-cdk-lib@2.248.0(constructs@10.4.2))(constructs@10.4.2)':
+  '@aws-cdk/aws-cognito-identitypool-alpha@2.186.0-alpha.0(aws-cdk-lib@2.250.0(constructs@10.4.2))(constructs@10.4.2)':
     dependencies:
-      aws-cdk-lib: 2.248.0(constructs@10.4.2)
+      aws-cdk-lib: 2.250.0(constructs@10.4.2)
       constructs: 10.4.2
 
   '@aws-cdk/aws-lambda-python-alpha@2.178.2-alpha.0(aws-cdk-lib@2.219.0(constructs@10.4.2))(constructs@10.4.2)':
@@ -6987,7 +6991,7 @@ snapshots:
 
   '@aws-cdk/cloud-assembly-schema@48.14.0': {}
 
-  '@aws-cdk/cloud-assembly-schema@53.13.0': {}
+  '@aws-cdk/cloud-assembly-schema@53.17.0': {}
 
   '@aws-crypto/crc32@3.0.0':
     dependencies:
@@ -8068,13 +8072,13 @@ snapshots:
   '@aws-sdk/xml-builder@3.901.0':
     dependencies:
       '@smithy/types': 4.7.0
-      fast-xml-parser: 5.5.9
+      fast-xml-parser: 5.7.0
       tslib: 2.8.1
 
   '@aws-sdk/xml-builder@3.972.15':
     dependencies:
       '@smithy/types': 4.13.1
-      fast-xml-parser: 5.5.9
+      fast-xml-parser: 5.7.0
       tslib: 2.8.1
 
   '@aws/lambda-invoke-store@0.0.1': {}
@@ -8097,11 +8101,11 @@ snapshots:
       constructs: 10.4.2
       projen: 0.82.8(constructs@10.4.2)
 
-  '@aws/pdk@0.26.7(@aws-cdk/aws-cognito-identitypool-alpha@2.186.0-alpha.0(aws-cdk-lib@2.248.0(constructs@10.4.2))(constructs@10.4.2))(aws-cdk-lib@2.248.0(constructs@10.4.2))(cdk-nag@2.37.55(aws-cdk-lib@2.248.0(constructs@10.4.2))(constructs@10.4.2))(constructs@10.4.2)(projen@0.82.8(constructs@10.4.2))':
+  '@aws/pdk@0.26.7(@aws-cdk/aws-cognito-identitypool-alpha@2.186.0-alpha.0(aws-cdk-lib@2.250.0(constructs@10.4.2))(constructs@10.4.2))(aws-cdk-lib@2.250.0(constructs@10.4.2))(cdk-nag@2.38.1(aws-cdk-lib@2.250.0(constructs@10.4.2))(constructs@10.4.2))(constructs@10.4.2)(projen@0.82.8(constructs@10.4.2))':
     dependencies:
-      '@aws-cdk/aws-cognito-identitypool-alpha': 2.186.0-alpha.0(aws-cdk-lib@2.248.0(constructs@10.4.2))(constructs@10.4.2)
-      aws-cdk-lib: 2.248.0(constructs@10.4.2)
-      cdk-nag: 2.37.55(aws-cdk-lib@2.248.0(constructs@10.4.2))(constructs@10.4.2)
+      '@aws-cdk/aws-cognito-identitypool-alpha': 2.186.0-alpha.0(aws-cdk-lib@2.250.0(constructs@10.4.2))(constructs@10.4.2)
+      aws-cdk-lib: 2.250.0(constructs@10.4.2)
+      cdk-nag: 2.38.1(aws-cdk-lib@2.250.0(constructs@10.4.2))(constructs@10.4.2)
       constructs: 10.4.2
       projen: 0.82.8(constructs@10.4.2)
 
@@ -9508,6 +9512,8 @@ snapshots:
       '@emnapi/core': 1.5.0
       '@emnapi/runtime': 1.5.0
       '@tybys/wasm-util': 0.9.0
+
+  '@nodable/entities@2.1.0': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
@@ -11308,11 +11314,11 @@ snapshots:
       '@aws-cdk/cloud-assembly-schema': 48.14.0
       constructs: 10.4.2
 
-  aws-cdk-lib@2.248.0(constructs@10.4.2):
+  aws-cdk-lib@2.250.0(constructs@10.4.2):
     dependencies:
       '@aws-cdk/asset-awscli-v1': 2.2.273
       '@aws-cdk/asset-node-proxy-agent-v6': 2.1.1
-      '@aws-cdk/cloud-assembly-schema': 53.13.0
+      '@aws-cdk/cloud-assembly-schema': 53.17.0
       constructs: 10.4.2
 
   aws-cdk@2.1030.0:
@@ -11543,9 +11549,9 @@ snapshots:
       aws-cdk-lib: 2.219.0(constructs@10.4.2)
       constructs: 10.4.2
 
-  cdk-nag@2.37.55(aws-cdk-lib@2.248.0(constructs@10.4.2))(constructs@10.4.2):
+  cdk-nag@2.38.1(aws-cdk-lib@2.250.0(constructs@10.4.2))(constructs@10.4.2):
     dependencies:
-      aws-cdk-lib: 2.248.0(constructs@10.4.2)
+      aws-cdk-lib: 2.250.0(constructs@10.4.2)
       constructs: 10.4.2
 
   chai@5.3.3:
@@ -12345,15 +12351,16 @@ snapshots:
 
   fast-uri@3.1.0: {}
 
-  fast-xml-builder@1.1.4:
+  fast-xml-builder@1.1.5:
     dependencies:
-      path-expression-matcher: 1.2.0
+      path-expression-matcher: 1.5.0
 
-  fast-xml-parser@5.5.9:
+  fast-xml-parser@5.7.0:
     dependencies:
-      fast-xml-builder: 1.1.4
-      path-expression-matcher: 1.2.0
-      strnum: 2.2.2
+      '@nodable/entities': 2.1.0
+      fast-xml-builder: 1.1.5
+      path-expression-matcher: 1.5.0
+      strnum: 2.2.3
 
   fastparse@1.1.2: {}
 
@@ -14086,7 +14093,7 @@ snapshots:
 
   path-exists@4.0.0: {}
 
-  path-expression-matcher@1.2.0: {}
+  path-expression-matcher@1.5.0: {}
 
   path-is-absolute@1.0.1: {}
 
@@ -14694,7 +14701,7 @@ snapshots:
     dependencies:
       js-tokens: 9.0.1
 
-  strnum@2.2.2: {}
+  strnum@2.2.3: {}
 
   strong-log-transformer@2.1.0:
     dependencies:
