@@ -26,7 +26,7 @@ allow-direct-references = true
 dev = [
     # Jupyter and notebook dependencies
     "notebook>=7.2.2",
-    "jupyterlab>=4.4.8",
+    "jupyterlab>=4.5.7",
     "ipython>=8.29.0",
     
     # AWS type stubs
