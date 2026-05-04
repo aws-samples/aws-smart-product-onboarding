@@ -28,6 +28,9 @@ dev = [
     "hypothesis>=6.151.9",
 ]
 
+[tool.uv]
+publish = false
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

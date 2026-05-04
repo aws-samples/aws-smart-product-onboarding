@@ -15,6 +15,9 @@ dependencies = [
     "aws-lambda-powertools[tracer,aws-sdk]>=2.28.0",
 ]
 
+[tool.uv]
+publish = false
+
 [tool.hatch.build.targets.wheel]
 packages = ["amzn_smart_product_onboarding_api_runtime"]
 

@@ -73,6 +73,7 @@ fixable = ["ALL"]
 unfixable = []
 
 [tool.uv]
+package = false
 constraint-dependencies = [
     "tornado>=6.5.5",
     "nbconvert>=7.17.0",

@@ -1385,7 +1385,7 @@ wheels = [
 [[package]]
 name = "notebooks"
 version = "0.1.0"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "amazon-ion" },
     { name = "amzn-smart-product-onboarding-metaclasses" },
