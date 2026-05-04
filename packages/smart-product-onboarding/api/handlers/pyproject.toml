@@ -23,6 +23,12 @@ dev = [
     "moto[all]>=5.0.16",
 ]
 
+[tool.uv]
+publish = false
+
+[tool.uv.sources]
+amzn-smart-product-onboarding-api-runtime = { workspace = true }
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
