@@ -21,7 +21,7 @@ allow-direct-references = true
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3.5",
+    "pytest>=9.0.3",
     "boto3-stubs-lite[bedrock-runtime,s3]>=1.35.37",
     "moto[all]>=5.0.16",
 ]

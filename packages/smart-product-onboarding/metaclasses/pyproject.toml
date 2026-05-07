@@ -24,7 +24,7 @@ allow-direct-references = true
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3.5",
+    "pytest>=9.0.3",
     "boto3-stubs-lite[bedrock-runtime,s3,dynamodb]>=1.35.37",
 ]
 

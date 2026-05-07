@@ -25,8 +25,8 @@ allow-direct-references = true
 [dependency-groups]
 dev = [
     # Jupyter and notebook dependencies
-    "notebook>=7.2.2",
-    "jupyterlab>=4.4.8",
+    "notebook>=7.5.6",
+    "jupyterlab>=4.5.7",
     "ipython>=8.29.0",
     
     # AWS type stubs
@@ -76,10 +76,13 @@ unfixable = []
 package = false
 constraint-dependencies = [
     "tornado>=6.5.5",
-    "nbconvert>=7.17.0",
+    "nbconvert>=7.17.1",
     "urllib3>=2.6.3",
     "requests>=2.33.0",
     "pygments>=2.20.0",
+    "mistune>=3.2.1",
+    "jupyter-server>=2.18.0",
+    "lxml>=6.1.0",
 ]
 
 [tool.uv.sources]
