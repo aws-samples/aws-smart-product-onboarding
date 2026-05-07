@@ -18,7 +18,7 @@ allow-direct-references = true
 
 [dependency-groups]
 dev = [
-    "pytest>=7.4.3",
+    "pytest>=9.0.3",
     "boto3-stubs-lite[dynamodb,s3,stepfunctions]>=1.35.37",
     "moto[all]>=5.0.16",
 ]
