@@ -42,7 +42,7 @@
     "@aws-samples/smart-product-onboarding-api-typescript-runtime": "0.0.0",
     "@aws/pdk": "^0.25.17",
     "@dontirun/state-machine-semaphore": "^0.1.583",
-    "aws-cdk-lib": "^2.195.0",
+    "aws-cdk-lib": "^2.246.0",
     "cdk-nag": "^2.35.16",
     "constructs": "^10.0.5"
   },
