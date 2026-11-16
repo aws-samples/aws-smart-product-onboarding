@@ -213,3 +213,10 @@ def test_classify_word_limit(classifier):
         # Check that the number of processed words doesn't exceed WORD_LIMIT
         processed_words = len(result.clean_title.split())
         assert processed_words <= 20  # WORD_LIMIT is 20
+
+
+def test_split_words_handles_hyphens():
+    from amzn_smart_product_onboarding_metaclasses.metaclass_classifier import split_words
+
+    assert split_words("chile map design t-shirt") == ["chile", "map", "design", "shirt"]
+    assert split_words("all-purpose a b") == ["all", "purpose", "a", "b"]
