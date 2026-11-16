@@ -130,6 +130,11 @@ export class SfnGenerateProduct extends sfn.StateMachineFragment {
       this.function,
       [
         {
+          id: "AwsSolutions-L1",
+          reason:
+            "Runtime pinned to Python 3.13 / Node.js 22 to match the bundled dependencies and the PDK-generated API constructs. cdk-nag flags anything below the newest runtime, which is currently a public preview (Python 3.15, Node.js 26). Upgrade runtimes together with the build images.",
+        },
+        {
           id: "AwsSolutions-IAM4",
           reason:
             "Using the AWSLambdaBasicExecutionRole Managed Policy to expedite development. Replace on Production environment (Path to Production)",

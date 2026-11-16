@@ -19,7 +19,9 @@ import { useNavigate } from "react-router-dom";
  */
 const Home: React.FC = () => {
   const navigate = useNavigate();
-  useEffect(() => navigate("/smartProductOnboarding"), []);
+  useEffect(() => {
+    void navigate("/smartProductOnboarding");
+  }, []);
 
   // const sayHello = useSayHello({ name: "World" });
 

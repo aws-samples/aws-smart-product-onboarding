@@ -385,6 +385,11 @@ export class SmartProductOnboardingAPI extends Construct {
         resource,
         [
           {
+            id: "AwsSolutions-L1",
+            reason:
+              "Runtime pinned to Python 3.13 / Node.js 22 to match the bundled dependencies and the PDK-generated API constructs. cdk-nag flags anything below the newest runtime, which is currently a public preview (Python 3.15, Node.js 26). Upgrade runtimes together with the build images.",
+          },
+          {
             id: "AwsSolutions-IAM5",
             reason:
               "This role uses wildcards to allow retrieval of Step Functions execution results and other resources to expedite development. Consider further limiting on Production environment (Path to Production)",

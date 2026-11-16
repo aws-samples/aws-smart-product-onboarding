@@ -20,7 +20,7 @@
     "@types/node": "^18",
     "@typescript-eslint/eslint-plugin": "^7",
     "@typescript-eslint/parser": "^7",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.28.1",
     "eslint": "^8",
     "eslint-config-prettier": "^9.1.0",
     "eslint-import-resolver-typescript": "^3.6.3",
@@ -28,7 +28,7 @@
     "eslint-plugin-prettier": "^5.2.1",
     "fast-check": "^4.6.0",
     "jest": "^29.7.0",
-    "jest-junit": "^15",
+    "jest-junit": "^17",
     "prettier": "^3.3.3",
     "ts-jest": "^29.2.5",
     "typescript": "^5.6.3"
@@ -40,8 +40,8 @@
     "@aws-sdk/client-bedrock-runtime": "^3.668.0",
     "@aws-sdk/client-s3": "^3.668.0",
     "@aws-sdk/client-ssm": "^3.679.0",
-    "fast-xml-parser": "^5.7.0",
-    "handlebars": "^4.7.9"
+    "fast-xml-parser": "^5.12.0",
+    "handlebars": "^4.7.10"
   },
   "main": "lib/index.js",
   "license": "Apache-2.0",

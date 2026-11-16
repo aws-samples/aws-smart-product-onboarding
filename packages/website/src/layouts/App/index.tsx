@@ -86,7 +86,7 @@ const App: React.FC = () => {
           splitPanelSize: undefined,
           splitPanelPreferences: undefined,
         });
-        navigate(e.detail.href);
+        void navigate(e.detail.href);
       }
     },
     [navigate],

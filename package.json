@@ -18,9 +18,9 @@
   },
   "devDependencies": {
     "@aws/pdk": "0.26.7",
-    "@nx/js": "19.8.4",
-    "@nx/vite": "19.8.4",
-    "@nx/web": "19.8.4",
+    "@nx/js": "24.0.6",
+    "@nx/vite": "24.0.6",
+    "@nx/web": "24.0.6",
     "@swc-node/register": "~1.9.1",
     "@swc/core": "~1.5.7",
     "@swc/helpers": "~0.5.11",
@@ -28,29 +28,29 @@
     "@typescript-eslint/eslint-plugin": "^7",
     "@typescript-eslint/parser": "^7",
     "@vitejs/plugin-react": "^5.0.4",
-    "@vitest/ui": "^3.2.4",
+    "@vitest/ui": "^4.1.12",
     "eslint": "^8",
     "eslint-config-prettier": "^10.1.8",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-prettier": "^5.5.4",
-    "jsdom": "~22.1.0",
+    "jsdom": "^27.4.0",
     "npm-check-updates": "^19.0.0",
-    "nx": "21.6.4",
+    "nx": "24.0.6",
     "prettier": "^3.6.2",
     "syncpack": "^13",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
-    "vite": "^7.3.2",
+    "vite": "^7.3.8",
     "vite-plugin-dts": "^4.5.4",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.12"
   },
   "peerDependencies": {
-    "nx": "^19"
+    "nx": "^24"
   },
   "dependencies": {
     "@aws-cdk/aws-cognito-identitypool-alpha": "latest",
-    "aws-cdk-lib": "^2.219.0",
+    "aws-cdk-lib": "^2.277.0",
     "cdk-nag": "^2.37.49"
   },
   "pnpm": {
@@ -62,16 +62,16 @@
       "effect": ">=3.20.0",
       "minimatch@>=3.0.0 <4.0.0": ">=3.1.4 <4.0.0",
       "minimatch@>=5.0.0 <6.0.0": ">=5.1.8 <6.0.0",
-      "minimatch@>=9.0.0 <10.0.0": ">=9.0.7 <10.0.0",
-      "minimatch@>=10.0.0": ">=10.2.3",
+      "minimatch@>=9.0.0 <10.0.0": "^11.0.1",
+      "minimatch@>=10.0.0": ">=11.0.1 <12.0.0",
       "rollup@>=4.0.0": ">=4.59.0",
       "axios@>=1.0.0": ">=1.15.2",
       "@isaacs/brace-expansion": ">=5.0.1",
-      "@remix-run/router": ">=1.23.2",
       "fast-xml-parser@>=4.0.0 <5.0.0": ">=4.5.5 <5.0.0",
       "fast-xml-parser@>=5.0.0": ">=5.7.0",
-      "brace-expansion@>=1.0.0 <2.0.0": ">=1.1.13 <2.0.0",
-      "brace-expansion@>=2.0.0 <3.0.0": ">=2.0.3 <3.0.0",
+      "brace-expansion@>=1.0.0 <2.0.0": ">=1.1.21 <2.0.0",
+      "brace-expansion@>=2.0.0 <3.0.0": ">=2.1.7 <3.0.0",
+      "brace-expansion@>=5.0.0 <6.0.0": ">=5.0.12 <6.0.0",
       "yaml@>=1.0.0 <2.0.0": ">=1.10.3 <2.0.0",
       "yaml@>=2.0.0": ">=2.8.3",
       "@tootallnate/once": ">=3.0.1",
@@ -83,10 +83,10 @@
       "lodash@>=4.0.0": ">=4.18.0",
       "postcss": ">=8.5.10",
       "follow-redirects": ">=1.16.0",
-      "react-router@>=6.0.0": ">=6.30.2",
       "@smithy/config-resolver": ">=4.4.0",
-      "js-yaml@>=3.0.0 <4.0.0": ">=3.14.2 <4.0.0",
-      "js-yaml@>=4.0.0": ">=4.1.1"
+      "js-yaml@>=3.0.0 <4.0.0": ">=3.15.2 <4.0.0",
+      "js-yaml@>=4.0.0": ">=4.3.2 <5.0.0",
+      "uuid@>=9.0.0 <11.1.1": "^11.1.1"
     }
   },
   "engines": {
