@@ -34,7 +34,7 @@ const appConfigClient = new AppConfigClient(
 
 const defaultTemperature = 0.1;
 const defaultModel =
-  process.env.BEDROCK_MODEL_ID || "anthropic.claude-3-haiku-20240307-v1:0";
+  process.env.BEDROCK_MODEL_ID || "global.anthropic.claude-haiku-5-5";
 
 /**
  * Type-safe handler for the GenerateProduct operation

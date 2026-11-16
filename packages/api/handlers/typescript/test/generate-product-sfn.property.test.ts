@@ -160,7 +160,7 @@ describe("Property 6: AppConfig provides all product generation configuration", 
           ProductGeneratorService.prototype.generateProduct as jest.Mock
         ).mock.calls[0][0];
 
-        expect(callArgs.model).toBe("us.amazon.nova-lite-v1:0");
+        expect(callArgs.model).toBe("global.anthropic.claude-haiku-5-5");
         expect(callArgs.temperature).toBe(0.1);
         expect(callArgs.language).toBeUndefined();
         expect(callArgs.descriptionLength).toBe("medium");

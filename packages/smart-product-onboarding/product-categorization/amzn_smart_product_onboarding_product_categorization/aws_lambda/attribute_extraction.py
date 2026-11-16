@@ -28,7 +28,7 @@ logger.name = "AttributeExtraction"
 
 CONFIG_BUCKET_NAME = os.getenv("CONFIG_BUCKET_NAME")
 CONFIG_BUCKET = LAMBDA_S3_RESOURCE.Bucket(CONFIG_BUCKET_NAME)
-BEDROCK_MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "us.amazon.nova-premier-v1:0")
+BEDROCK_MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "global.anthropic.claude-sonnet-5-5")
 
 # AppConfig client for runtime configuration
 appconfig_client = AppConfigClient(

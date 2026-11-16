@@ -26,6 +26,8 @@ else:
     MessageOutputTypeDef = dict
 from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import (
     BedrockRuntimeClient,
+    complete_response,
+    prepare_converse_request,
 )
 from amzn_smart_product_onboarding_core_utils.exceptions import (
     ModelResponseError,
@@ -42,7 +44,7 @@ from amzn_smart_product_onboarding_core_utils.xml_output import parse_response
 from pydantic import ValidationError
 
 logger.name = "product_classifier"
-DEFAULT_MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0"
+DEFAULT_MODEL_ID = "global.anthropic.claude-haiku-5-5"
 
 
 class ProductClassifier:
@@ -167,19 +169,13 @@ class ProductClassifier:
     )
     def _get_model_response(self, messages: list[MessageTypeDef | MessageOutputTypeDef]) -> ConverseResponseTypeDef:
         try:
+            request_messages, inference_config = prepare_converse_request(
+                self.model_id, messages, self.response_open, self.response_close, self.temperature
+            )
             response = self.bedrock.converse(
                 modelId=self.model_id,
-                messages=messages
-                + [
-                    {
-                        "role": "assistant",
-                        "content": [{"text": self.response_open}],
-                    },
-                ],
-                inferenceConfig={
-                    "temperature": self.temperature,
-                    "stopSequences": [self.response_close],
-                },
+                messages=request_messages,
+                inferenceConfig=inference_config,
             )
             logger.info({"usage": response["usage"]})
             return response
@@ -206,13 +202,13 @@ class ProductClassifier:
             raise ModelResponseError("Failed to get prediction from response")
 
     def _build_xml_response(self, response: dict, text: str) -> str:
-        if response["stopReason"] == "stop_sequence":
-            return self.response_open + text + self.response_close
-        elif response["stopReason"] == "end_turn" and text.endswith(self.response_close):
-            return self.response_open + text
-        else:
+        xml_response = complete_response(
+            text, response["stopReason"], self.model_id, self.response_open, self.response_close
+        )
+        if xml_response is None:
             logger.error(f"Stop reason: {response['stopReason']}")
             raise ModelResponseError(response["stopReason"])
+        return xml_response
 
     def _handle_prediction(self, xml_response: str, prompt: str) -> CategorizationPrediction:
         try:

@@ -29,11 +29,11 @@ const VALID_CONFIG = {
     temperature: 0,
   },
   productCategorization: {
-    modelId: "us.anthropic.claude-3-haiku-20240307-v1:0",
+    modelId: "global.anthropic.claude-haiku-5-5",
     temperature: 0,
   },
   attributeExtraction: {
-    modelId: "us.amazon.nova-premier-v1:0",
+    modelId: "global.anthropic.claude-sonnet-5-5",
     temperature: 0,
   },
 };

@@ -2,9 +2,9 @@
 
 An AWS accelerator that demonstrates AI-powered e-commerce product onboarding using generative AI for catalog management. The solution provides three core capabilities:
 
-1. **Generate Product Data from Images** - Creates product titles and descriptions from images using Amazon Bedrock with Claude 3 Haiku
+1. **Generate Product Data from Images** - Creates product titles and descriptions from images using Amazon Bedrock with Claude Haiku 5.5
 2. **Bottom-Up Product Categorization** - Automatically assigns products to hierarchical category trees using a two-step process with metaclasses and LLM categorization
-3. **Extract Attributes** - Extracts category-specific product attributes using Claude 3.5 Sonnet
+3. **Extract Attributes** - Extracts category-specific product attributes using Claude Sonnet 5.5
 
 Built on AWS serverless architecture (Bedrock, Step Functions, Lambda) with a React demo website. Designed for retailers to efficiently manage large product catalogs with AI assistance while maintaining human oversight through manual auditing capabilities.
 

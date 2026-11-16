@@ -107,7 +107,7 @@ class MetaclassClassifier:
             temperature=self.temperature,
         )
         logger.info({"usage": response["usage"]})
-        text = build_full_response(response, response_open, response_close)
+        text = build_full_response(response, response_open, response_close, model_id=self.model_id)
         logger.debug({"response_text": text})
         try:
             r = json.loads(text)

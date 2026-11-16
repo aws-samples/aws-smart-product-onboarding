@@ -10,6 +10,10 @@ from abc import ABC
 from typing import TYPE_CHECKING
 
 import jinja2
+from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import (
+    complete_response,
+    prepare_converse_request,
+)
 from amzn_smart_product_onboarding_core_utils.exceptions import (
     ModelResponseError,
     RateLimitError,
@@ -104,7 +108,7 @@ class AttributesExtractor:
             undefined=jinja2.StrictUndefined,
         ).get_template("extract_attributes.jinja2")
 
-        self.model_id = "global.anthropic.claude-sonnet-4-5-20250929-v1:0" if model_id is None else model_id
+        self.model_id = "global.anthropic.claude-sonnet-5-5" if model_id is None else model_id
 
     def extract_attributes(self, product: Product, category_id: str) -> Attributes:
         category_schema = self.schema_retriever.get(category_id)
@@ -120,18 +124,18 @@ class AttributesExtractor:
 
         prompt = self.create_prompt(category_schema, product)
 
-        messages = [
-            {"role": "user", "content": [{"text": prompt}]},
-            {"role": "assistant", "content": [{"text": self.response_open}]},
-        ]
+        messages, inference_config = prepare_converse_request(
+            self.model_id,
+            [{"role": "user", "content": [{"text": prompt}]}],
+            self.response_open,
+            self.response_close,
+            self.temperature,
+        )
 
         try:
             response = self.bedrock_runtime_client.converse(
                 modelId=self.model_id,
-                inferenceConfig={
-                    "temperature": self.temperature,
-                    "stopSequences": [self.response_close],
-                },
+                inferenceConfig=inference_config,
                 messages=messages,
             )
         except ClientError as e:
@@ -172,11 +176,10 @@ class AttributesExtractor:
             logger.error(f"Failed to get prediction from response: {response}")
             raise ModelResponseError("Failed to get prediction from response")
 
-        if response["stopReason"] == "stop_sequence":
-            xml_response = self.response_open + text + self.response_close
-        elif response["stopReason"] == "end_turn" and text.endswith(self.response_close):
-            xml_response = self.response_open + text
-        else:
+        xml_response = complete_response(
+            text, response["stopReason"], self.model_id, self.response_open, self.response_close
+        )
+        if xml_response is None:
             logger.error(f"Stop reason: {response['stopReason']}")
             raise ModelResponseError(f"Invalid stop reason: {response['stopReason']}")
         try:

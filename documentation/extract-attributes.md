@@ -12,7 +12,7 @@ Given a product's title, description, predicted category from the categorization
 
 ### Model Selection
 
-For this task, we specifically chose Claude 3.5 Sonnet due to its advanced cognitive abilities. The extraction of multiple attributes simultaneously requires a more sophisticated understanding of context and relationships within the product information. While we considered using the lighter Claude 3 Haiku model, it would have necessitated multiple API calls – one for each attribute. By leveraging Claude 3.5 Sonnet's capabilities, we can extract all attributes in a single call, significantly improving efficiency and reducing API usage.
+For this task, we use a Sonnet-class model (Anthropic Claude Sonnet 5.5 by default; the accelerator originally used Claude 3.5 Sonnet) due to its advanced cognitive abilities. The extraction of multiple attributes simultaneously requires a more sophisticated understanding of context and relationships within the product information. While we considered using a lighter Haiku-class model, it would have necessitated multiple API calls – one for each attribute. By using a Sonnet-class model, we can extract all attributes in a single call, significantly improving efficiency and reducing API usage.
 
 ### Process Flow
 
@@ -61,7 +61,7 @@ The prompt template is designed to be flexible and customizable. This allows for
 
 ## Scalability and Limitations
 
-While the attribute extraction component is implemented as an AWS Lambda function, allowing it to handle large volumes of products, it's important to note that the overall scalability is constrained by the rate limits of the Claude 3.5 Sonnet model in Amazon Bedrock. This means there's an upper limit to the number of products that can be processed within a given timeframe.
+While the attribute extraction component is implemented as an AWS Lambda function, allowing it to handle large volumes of products, it's important to note that the overall scalability is constrained by the rate limits of the configured model in Amazon Bedrock. This means there's an upper limit to the number of products that can be processed within a given timeframe.
 
 ## Conclusion
 

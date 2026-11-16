@@ -28,7 +28,8 @@ const appConfigClient = new AppConfigClient(
 );
 
 const defaultTemperature = 0.1;
-const defaultModel = process.env.BEDROCK_MODEL_ID || "us.amazon.nova-lite-v1:0";
+const defaultModel =
+  process.env.BEDROCK_MODEL_ID || "global.anthropic.claude-haiku-5-5";
 
 interface GenerateProductEvent {
   images: string[];
