@@ -247,3 +247,36 @@ def test_list_with_extra_fields(repository, table):
     assert len(results) == 3
     assert all(isinstance(result, BatchExecution) for result in results)
     assert all(not hasattr(result, "extra_field") for result in results)
+
+
+def _success_item(**extra):
+    return {
+        "session_id": "done-id",
+        "type": "Session",
+        "status": "SUCCESS",
+        "created_at": "2023-01-01T00:00:00Z",
+        "updated_at": "2023-01-01T01:00:00Z",
+        "date": "2023-01-01",
+        "execution_arn": "arn:aws:states:us-west-2:111111111111:execution:sm:done-id",
+        **extra,
+    }
+
+
+def test_get_success_uses_stored_output_key(table):
+    from unittest.mock import Mock
+
+    sfn = Mock()
+    table.put_item(Item=_success_item(outputKey="results/done-id.csv"))
+    result = DynamoDBSessionRepository(table=table, sfn=sfn).get("done-id")
+    assert result.output_key == "results/done-id.csv"
+    sfn.describe_execution.assert_not_called()
+
+
+def test_get_success_without_output_key_raises_not_found(table):
+    from unittest.mock import Mock
+
+    sfn = Mock()
+    sfn.describe_execution.return_value = {"executionArn": "arn:x", "output": "{}"}
+    table.put_item(Item=_success_item())
+    with pytest.raises(ResourceNotFound):
+        DynamoDBSessionRepository(table=table, sfn=sfn).get("done-id")

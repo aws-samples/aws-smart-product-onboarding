@@ -42,14 +42,15 @@ class DynamoDBSessionRepository(AbstractRepository):
             {"executionId": response["Item"][self.partition_key], **response["Item"]}
         )
 
-        if self.sfn and execution.status == "SUCCESS":
+        # The workflow's last state stores outputKey on the item; only fall back to the execution output without it.
+        if self.sfn and execution.status == "SUCCESS" and not execution.output_key:
             response = self.sfn.describe_execution(executionArn=response["Item"]["execution_arn"])
             output = json.loads(response["output"])
             output_key = output.get("output", {}).get("Key", None)
             if output_key:
                 execution.output_key = output_key
             else:
-                raise ResourceNotFound(f"Output key not found in successful execution {execution.execution_arn}")
+                raise ResourceNotFound(f"Output key not found in successful execution {response['executionArn']}")
 
         return execution
 
