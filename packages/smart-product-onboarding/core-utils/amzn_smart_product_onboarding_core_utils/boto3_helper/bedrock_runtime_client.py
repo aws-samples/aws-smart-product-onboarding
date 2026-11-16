@@ -206,9 +206,10 @@ def complete_response(
 
 
 def extract_response_text(response: dict) -> str:
+    """Return the first text block. Reasoning models put a reasoningContent block before it."""
     try:
-        return response["output"]["message"]["content"][0]["text"]
-    except KeyError:
+        return next(block["text"] for block in response["output"]["message"]["content"] if "text" in block)
+    except (KeyError, StopIteration):
         logger.error(f"Failed to get prediction from response: {response}")
         raise ModelResponseError("Failed to get prediction from response")
 

@@ -107,6 +107,7 @@ describe("ProductGeneratorService", () => {
           message: {
             role: "assistant",
             content: [
+              { reasoningContent: { reasoningText: { text: "thinking" } } },
               {
                 text: "Here you go:\n<product><title>Test Title</title><description>Test Description</description>",
               },

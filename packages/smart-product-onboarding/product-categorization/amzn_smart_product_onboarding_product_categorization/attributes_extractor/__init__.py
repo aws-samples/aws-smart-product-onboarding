@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 import jinja2
 from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import (
     complete_response,
+    extract_response_text,
     prepare_converse_request,
 )
 from amzn_smart_product_onboarding_core_utils.exceptions import (
@@ -170,11 +171,7 @@ class AttributesExtractor:
         return prompt
 
     def _parse_response(self, response) -> Attributes:
-        try:
-            text = response["output"]["message"]["content"][0]["text"]
-        except KeyError:
-            logger.error(f"Failed to get prediction from response: {response}")
-            raise ModelResponseError("Failed to get prediction from response")
+        text = extract_response_text(response)
 
         xml_response = complete_response(
             text, response["stopReason"], self.model_id, self.response_open, self.response_close

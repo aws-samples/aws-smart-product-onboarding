@@ -27,6 +27,7 @@ else:
 from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import (
     BedrockRuntimeClient,
     complete_response,
+    extract_response_text,
     prepare_converse_request,
 )
 from amzn_smart_product_onboarding_core_utils.exceptions import (
@@ -195,11 +196,7 @@ class ProductClassifier:
             raise RetryableError(error)
 
     def _extract_response_text(self, response: dict) -> str:
-        try:
-            return response["output"]["message"]["content"][0]["text"]
-        except KeyError:
-            logger.error(f"Failed to get prediction from response: {response}")
-            raise ModelResponseError("Failed to get prediction from response")
+        return extract_response_text(response)
 
     def _build_xml_response(self, response: dict, text: str) -> str:
         xml_response = complete_response(

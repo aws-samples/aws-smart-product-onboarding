@@ -90,3 +90,14 @@ def test_complete_response_without_prefill_missing_opening():
 )
 def test_ensure_cross_region_profile(model_id, expected):
     assert ensure_cross_region_profile(model_id) == expected
+
+
+def test_extract_response_text_skips_reasoning_block():
+    from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import extract_response_text
+
+    response = {
+        "output": {
+            "message": {"content": [{"reasoningContent": {"reasoningText": {"text": "thinking"}}}, {"text": "answer"}]}
+        }
+    }
+    assert extract_response_text(response) == "answer"

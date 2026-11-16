@@ -79,14 +79,18 @@ export class ProductGeneratorService {
       modelId: model,
       inferenceConfig: {
         ...(supportsTemperature(model) && { temperature: temperature }),
-        maxTokens: 1024,
+        // Reasoning models count thinking tokens against this limit.
+        maxTokens: 4096,
         stopSequences: [this.suffix],
       },
     });
     const response = await this.bedrockClient.send(converse);
     logger.debug(`Response: ${JSON.stringify(response)}`);
 
-    let text = response.output?.message?.content?.[0]?.text;
+    // Reasoning models put a reasoningContent block before the text block.
+    let text = response.output?.message?.content?.find(
+      (block) => block.text !== undefined,
+    )?.text;
     if (!text) {
       throw new ModelResponseError("Missing text in model output");
     }
@@ -113,7 +117,9 @@ export class ProductGeneratorService {
         productResponse = `${prefix}${text}`;
         break;
       default:
-        throw new ModelResponseError("Invalid model output");
+        throw new ModelResponseError(
+          `Invalid model output (stop reason: ${response.stopReason})`,
+        );
     }
 
     // Parse the XML response into an object.
