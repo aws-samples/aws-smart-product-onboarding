@@ -5,7 +5,7 @@ FROM public.ecr.aws/lambda/python:3.13 AS embeddings
 
 # Install the specified packages
 RUN dnf install -y gcc g++
-RUN --mount=type=cache,target=/root/.cache pip install nltk~=3.9.1
+RUN --mount=type=cache,target=/root/.cache pip install nltk~=3.10.4
 
 # Download NLTK data with retry logic and skip punkt_tab if it fails
 RUN python -m nltk.downloader -d /usr/local/share/nltk_data punkt || \
