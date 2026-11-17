@@ -44,6 +44,8 @@ The costs shown represent pricing without consideration of AWS free tier benefit
 
 We recommend creating a budget through [AWS Cost Explorer](http://aws.amazon.com/aws-cost-management/aws-cost-explorer/) to help manage costs. Prices are subject to change. For full details, refer to the pricing webpage for each AWS service used in this solution.
 
+The Step Functions execution logs and the API Gateway access logs are kept for 30 days. To keep them longer or shorter, change the `retention` value in `packages/infra/src/constructs/workflow/workflow.ts` and `packages/infra/src/constructs/apis/smartproductonboardingapi.ts`, then redeploy.
+
 The following table provides a sample cost breakdown for deploying this solution with the default parameters in the **US East (N. Virginia)** Region for **one month**.
 
 | **AWS Service**                       | **Usage**                                                                                                  | **Cost [USD]** |
