@@ -21,7 +21,10 @@
       },
       "inputs": ["{projectRoot}/src/**/*.ts", "{projectRoot}/tsconfig.json"],
       "outputs": ["{projectRoot}/lib"],
-      "dependsOn": ["generate"]
+      "dependsOn": [
+        "generate",
+        "@aws-samples/smart-product-onboarding-api-typescript-runtime:compile"
+      ]
     },
     "test": {
       "executor": "nx:run-commands",
