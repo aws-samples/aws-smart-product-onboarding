@@ -9,7 +9,7 @@
 
 ## AWS Infrastructure
 
-- **AWS CDK** v2.195.0 - Infrastructure as Code
+- **AWS CDK** v2.277.0 - Infrastructure as Code
 - **AWS PDK** v0.26.7 - AWS Project Development Kit for accelerated development
 - **Amazon Bedrock** - AI/ML models (Claude 3 Haiku, Claude 3.5 Sonnet, Nova Micro)
 - **AWS Step Functions** - Workflow orchestration for batch processing
