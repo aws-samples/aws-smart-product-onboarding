@@ -45,6 +45,13 @@ export class ApplicationStack extends Stack {
       lifecycleRules: [],
       serverAccessLogsPrefix: undefined,
     });
+    NagSuppressions.addResourceSuppressions(logsBucket, [
+      {
+        id: "AwsSolutions-S1",
+        reason:
+          "This bucket is the server access log destination for the other buckets. Logging it would require yet another bucket.",
+      },
+    ]);
 
     const inputBucket = new SecureBucket(this, "inputBucket", {
       lifecycleRules: [
