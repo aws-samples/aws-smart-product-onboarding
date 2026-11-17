@@ -5,7 +5,7 @@
 # Run from within the package directory you want to package
 #
 # Environment variables:
-#   PYTHON_VERSION - Python version for Lambda (default: 3.13)
+#   PYTHON_VERSION - Python version for Lambda (default: 3.14)
 #   PLATFORM - Target platform (default: aarch64-unknown-linux-gnu)
 #
 # Examples:
@@ -16,7 +16,7 @@
 set -e
 
 OUTPUT_DIR=${1:-"dist/lambda"}
-PYTHON_VERSION=${PYTHON_VERSION:-"3.13"}
+PYTHON_VERSION=${PYTHON_VERSION:-"3.14"}
 PLATFORM=${PLATFORM:-"aarch64-unknown-linux-gnu"}
 
 # Get package name from current directory's pyproject.toml
