@@ -7,7 +7,7 @@
       "dependsOn": ["^install"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv sync",
+        "command": "uv sync --all-packages",
         "cwd": "packages/smart-product-onboarding"
       }
     },
