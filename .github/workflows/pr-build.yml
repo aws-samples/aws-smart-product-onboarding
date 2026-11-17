@@ -7,7 +7,8 @@ jobs:
   build:
     permissions:
       contents: read
-    runs-on: ubuntu-latest
+    # The Lambda functions are bundled for arm64 in Docker; an x86 runner cannot run those images.
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
