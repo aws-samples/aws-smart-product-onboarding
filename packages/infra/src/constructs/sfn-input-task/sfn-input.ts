@@ -25,6 +25,7 @@ export class SfnInput extends sfn.StateMachineFragment {
       entry: __dirname + "/lambdas/input",
       index: "input.py",
       runtime: lambda.Runtime.PYTHON_3_13,
+      architecture: lambda.Architecture.ARM_64,
       timeout: Duration.seconds(60),
       memorySize: 128,
     });
