@@ -10,6 +10,7 @@
     },
     "pre-compile": {
       "executor": "nx:run-commands",
+      "dependsOn": ["@aws-samples/smart-product-onboarding-api-model:generate"],
       "options": {
         "commands": [
           "rm -rf public/smart-product-onboarding-api",
