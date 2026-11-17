@@ -93,6 +93,8 @@ export class ApplicationStack extends Stack {
           allowedMethods: [s3.HttpMethods.GET, s3.HttpMethods.HEAD],
         },
       ],
+      serverAccessLogsPrefix: "outputBucket-logs",
+      serverAccessLogsBucket: logsBucket,
     });
 
     const apiPersistence = new ApiPersistence(this, "ApiPersistence");
