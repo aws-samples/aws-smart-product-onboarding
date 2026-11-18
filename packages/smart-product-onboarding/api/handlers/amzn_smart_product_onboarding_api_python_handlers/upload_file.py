@@ -15,7 +15,7 @@ from amzn_smart_product_onboarding_api_runtime.api.operation_config import (
     UploadFileOperationResponses,
 )
 
-from .utils import get_s3_client, create_presigned_url
+from .utils import get_s3_client, create_presigned_url, request_log_fields
 
 INPUT_BUCKET_NAME = os.getenv("INPUT_BUCKET_NAME")
 
@@ -24,7 +24,7 @@ def create_object_key(input, file_name: str, logger):
     username = (
         input.event.get("requestContext", {}).get("authorizer", {}).get("claims", {}).get("cognito:username", None)
     )
-    logger.debug(f"using username for prefix: {username}")
+    logger.debug("using username-based prefix")
 
     # we need a unique part since file_names can repeat
     if username:
@@ -40,8 +40,7 @@ def upload_file(input: UploadFileRequest, **kwargs) -> UploadFileOperationRespon
     Type-safe handler for the UploadFile operation
     """
     logger = LoggingInterceptor.get_logger(input)
-    logger.info("Start CategorizeProductResult Operation")
-    logger.info(f"Input: {input}")
+    logger.info("Start UploadFile operation", extra={**request_log_fields(input), "file_name": input.body.file_name})
 
     if not INPUT_BUCKET_NAME:
         logger.exception("INPUT_BUCKET_NAME is not set")

@@ -153,4 +153,38 @@ describe("generate-product handler", () => {
     );
     expect(result.statusCode).toBe(200);
   });
+
+  it("should not log request headers or authorizer claims", async () => {
+    const {
+      ProductGeneratorService,
+    } = require("../src/services/productGenerator");
+    (
+      ProductGeneratorService.prototype.generateProduct as jest.Mock
+    ).mockResolvedValueOnce({
+      productData: { title: "T", description: "D" },
+      usage: { inputTokens: 10, outputTokens: 20 },
+    });
+
+    const token = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.c2ln";
+    const request = {
+      ...makeRequest(),
+      event: {
+        headers: { Authorization: token },
+        multiValueHeaders: { Authorization: [token] },
+        requestContext: {
+          authorizer: { claims: { email: "someone@example.com" } },
+        },
+      },
+    };
+    const { generateProduct } = require("../src/generate-product");
+    await generateProduct(request);
+
+    const logged = JSON.stringify(
+      Object.values(mockLogger).flatMap((fn) => (fn as jest.Mock).mock.calls),
+    );
+    expect(logged).toContain("Start GenerateProduct Operation");
+    expect(logged).not.toContain(token);
+    expect(logged).not.toContain("Authorization");
+    expect(logged).not.toContain("someone@example.com");
+  });
 });

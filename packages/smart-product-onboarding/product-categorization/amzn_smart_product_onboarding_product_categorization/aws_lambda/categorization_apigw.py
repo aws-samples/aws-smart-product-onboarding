@@ -80,7 +80,7 @@ product_classifier = ProductClassifier(
 def categorize_product(
     event: CategorizeProductRequest, **kwargs
 ) -> CategorizeProductOperationResponses:
-    logger.debug(f"Event received {event}")
+    logger.debug(f"Request body: {event.body}")
     try:
         prediction = product_classifier.classify(
             event.body.product,
