@@ -1,0 +1,81 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  IAM role for the AI pull request review workflows. GitHub Actions jobs in the ai-review
+  environment of one repository can assume it, and it can only invoke the two review models.
+  Deploy in us-west-2 (the region the workflows call Bedrock in).
+
+Parameters:
+  GitHubRepository:
+    Type: String
+    Default: aws-samples/aws-smart-product-onboarding
+  GitHubEnvironment:
+    Type: String
+    Default: ai-review
+  CreateOidcProvider:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
+    Description: Set to false if the account already has the token.actions.githubusercontent.com provider.
+
+Conditions:
+  CreateProvider: !Equals [!Ref CreateOidcProvider, "true"]
+
+Resources:
+  GitHubOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: CreateProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList: [sts.amazonaws.com]
+
+  ReviewRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: Assumed by the AI pull request review workflows to call Amazon Bedrock.
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubRepository}:environment:${GitHubEnvironment}
+      Policies:
+        - PolicyName: invoke-review-models
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # Converse and ConverseStream are authorized by these two actions.
+              - Sid: InvokeReviewInferenceProfiles
+                Effect: Allow
+                Action: [bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream]
+                Resource:
+                  - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.anthropic.claude-opus-5-5
+                  - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.openai.gpt-6.2-sol
+              # The US profiles route to these regions; the models are reachable only through the profiles.
+              - Sid: InvokeReviewModelsThroughProfiles
+                Effect: Allow
+                Action: [bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream]
+                Resource:
+                  - !Sub arn:${AWS::Partition}:bedrock:us-east-1::foundation-model/anthropic.claude-opus-5-5
+                  - !Sub arn:${AWS::Partition}:bedrock:us-east-2::foundation-model/anthropic.claude-opus-5-5
+                  - !Sub arn:${AWS::Partition}:bedrock:us-west-2::foundation-model/anthropic.claude-opus-5-5
+                  - !Sub arn:${AWS::Partition}:bedrock:us-east-1::foundation-model/openai.gpt-6.2-sol
+                  - !Sub arn:${AWS::Partition}:bedrock:us-east-2::foundation-model/openai.gpt-6.2-sol
+                  - !Sub arn:${AWS::Partition}:bedrock:us-west-2::foundation-model/openai.gpt-6.2-sol
+                Condition:
+                  StringEquals:
+                    bedrock:InferenceProfileArn:
+                      - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.anthropic.claude-opus-5-5
+                      - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.openai.gpt-6.2-sol
+
+Outputs:
+  RoleArn:
+    Description: Store this in the repository variable AI_REVIEW_ROLE_ARN.
+    Value: !GetAtt ReviewRole.Arn

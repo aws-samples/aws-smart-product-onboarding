@@ -1,0 +1,124 @@
+# One AI review lane, called by ai-review.yml (same-repo pull requests) and
+# ai-review-command.yml (an /ai-review comment from a maintainer, used for fork pull requests).
+#
+# The pull request is read through the GitHub API as data: its code is never checked out, built
+# or run here. The reviewer scripts and prompts come from `trusted-ref` (the base commit or the
+# default branch). Each lane runs on its own and never sees the other lane's output.
+name: AI review lane
+
+on:
+  workflow_call:
+    inputs:
+      lane:
+        type: string
+        required: true
+      pr-number:
+        type: number
+        required: true
+      head-sha:
+        type: string
+        required: true
+      trusted-ref:
+        type: string
+        required: true
+      allow-head-fallback:
+        description: >-
+          Same-repo pull requests only: if the trusted ref has no reviewer scripts yet (the pull
+          request that adds them), use the pull request's copy. The calling workflow file comes
+          from the pull request in that case anyway, so this widens nothing.
+        type: boolean
+        default: false
+
+permissions: {}
+
+jobs:
+  review:
+    name: ${{ inputs.lane }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: ai-review
+    concurrency:
+      group: ai-review-${{ inputs.pr-number }}-${{ inputs.lane }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+      id-token: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ inputs.pr-number }}
+      HEAD_SHA: ${{ inputs.head-sha }}
+      LANE: ${{ inputs.lane }}
+      REVIEWER: trusted/.github/ai-review
+    steps:
+      - name: Check out the reviewer from the trusted ref
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.trusted-ref }}
+          path: trusted
+          persist-credentials: false
+          sparse-checkout: .github/ai-review
+
+      - name: Use the pull request's reviewer when the base has none
+        if: inputs.allow-head-fallback && hashFiles('trusted/.github/ai-review/ai_review.py') == ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.head-sha }}
+          path: trusted
+          persist-credentials: false
+          sparse-checkout: .github/ai-review
+
+      - name: Install the reviewer's dependencies
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet --require-hashes --no-deps -r "$REVIEWER/requirements.txt"
+
+      - name: Fetch the pull request as data
+        run: |
+          "$RUNNER_TEMP/venv/bin/python" "$REVIEWER/fetch_pr.py" \
+            --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" --head-sha "$HEAD_SHA" --out "$RUNNER_TEMP/data"
+
+      - name: Skip when the review role is not configured
+        id: configured
+        env:
+          ROLE: ${{ vars.AI_REVIEW_ROLE_ARN }}
+        run: |
+          if [ -z "$ROLE" ]; then
+            echo "::notice::AI_REVIEW_ROLE_ARN is not set; skipping the $LANE review."
+            "$RUNNER_TEMP/venv/bin/python" "$REVIEWER/post.py" --lane "$LANE" --pr "$PR_NUMBER" \
+              --head-sha "$HEAD_SHA" --skipped "The review role is not configured for this repository."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Credentials are assumed only now, after every dependency is installed.
+      - name: Assume the review role
+        if: steps.configured.outputs.ok == 'true'
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AI_REVIEW_ROLE_ARN }}
+          role-session-name: ai-review-${{ github.run_id }}-${{ inputs.lane }}
+          aws-region: us-west-2
+          mask-aws-account-id: true
+
+      - name: Review
+        if: steps.configured.outputs.ok == 'true'
+        run: |
+          "$RUNNER_TEMP/venv/bin/python" "$REVIEWER/ai_review.py" \
+            --lane "$LANE" --data "$RUNNER_TEMP/data" --out "$RUNNER_TEMP/out"
+
+      - name: Post the verdict
+        if: steps.configured.outputs.ok == 'true'
+        run: |
+          unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+          "$RUNNER_TEMP/venv/bin/python" "$REVIEWER/post.py" --lane "$LANE" --pr "$PR_NUMBER" --out "$RUNNER_TEMP/out"
+          cat "$RUNNER_TEMP/out/comment.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Report a review that could not finish
+        if: failure() && steps.configured.outputs.ok == 'true'
+        run: |
+          unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+          "$RUNNER_TEMP/venv/bin/python" "$REVIEWER/post.py" --lane "$LANE" --pr "$PR_NUMBER" \
+            --head-sha "$HEAD_SHA" --skipped "The review did not finish; see the workflow run."
