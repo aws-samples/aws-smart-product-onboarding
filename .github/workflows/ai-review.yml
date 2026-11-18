@@ -5,7 +5,8 @@ name: AI review
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    # `edited` only matters when the base branch changed (a retarget); see the job condition.
+    types: [opened, synchronize, reopened, ready_for_review, edited]
 
 permissions: {}
 
@@ -16,6 +17,7 @@ jobs:
       && github.event.pull_request.user.login != 'dependabot[bot]'
       && github.actor != 'dependabot[bot]'
       && !github.event.pull_request.draft
+      && (github.event.action != 'edited' || github.event.changes.base)
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -33,12 +35,20 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          if gh api "repos/$GITHUB_REPOSITORY/contents/.github/ai-review/ai_review.py?ref=$BASE_SHA" --silent; then
-            echo "ref=$BASE_SHA" >> "$GITHUB_OUTPUT"
-          else
-            echo "::warning::The base commit has no reviewer; using this pull request's copy."
-            echo "ref=$HEAD_SHA" >> "$GITHUB_OUTPUT"
-          fi
+          # Only a confirmed 404 for the reviewer on the base selects the pull request's copy. Any
+          # other answer, or no answer, fails here rather than guessing.
+          code=$(gh api --include "repos/$GITHUB_REPOSITORY/contents/.github/ai-review/ai_review.py?ref=$BASE_SHA" \
+            2>/dev/null | head -n1 | awk '{print $2}') || true
+          case "$code" in
+            200)
+              echo "ref=$BASE_SHA" >> "$GITHUB_OUTPUT" ;;
+            404)
+              echo "::warning::The base commit has no reviewer; using this pull request's copy."
+              echo "ref=$HEAD_SHA" >> "$GITHUB_OUTPUT" ;;
+            *)
+              echo "::error::Could not tell whether the base commit has a reviewer (HTTP '${code}')."
+              exit 1 ;;
+          esac
 
   lanes:
     needs: reviewer

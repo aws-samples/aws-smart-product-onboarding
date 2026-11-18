@@ -44,10 +44,14 @@ class Hardening(unittest.TestCase):
         self.assertIn("sparse-checkout: .github/ai-review", checkouts[0])
         # the reusable lane never refers to the pull request head as something to check out
         self.assertNotRegex(LANE, r"ref: \$\{\{ inputs\.head-sha")
-        # same-repo: the base commit, or this pull request's copy only when the base has no reviewer
+        # same-repo: the base commit, or this pull request's copy only on a confirmed 404 for the base
         self.assertIn("trusted-ref: ${{ needs.reviewer.outputs.ref }}", PR)
-        self.assertIn('contents/.github/ai-review/ai_review.py?ref=$BASE_SHA" --silent; then\n'
-                      '            echo "ref=$BASE_SHA"', PR)
+        pick = next(s for s in steps(PR) if s.startswith("Choose the commit the reviewer runs from"))
+        self.assertIn("gh api --include", pick)
+        self.assertRegex(pick, r'200\)\n\s+echo "ref=\$BASE_SHA"')
+        self.assertRegex(pick, r'404\)\n.*\n\s+echo "ref=\$HEAD_SHA"')
+        self.assertRegex(pick, r"\*\)\n.*::error::.*\n\s+exit 1")
+        self.assertNotIn("else", pick)
         # dispatched: the default branch, and only when started from it
         self.assertIn("trusted-ref: ${{ github.sha }}", DISPATCH)
         self.assertIn("if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)", DISPATCH)
@@ -85,6 +89,10 @@ class Hardening(unittest.TestCase):
         timeout = re.search(r"timeout-minutes: (\d+)", LANE).group(1)
         self.assertIn(f'JOB_TIMEOUT_MINUTES: "{timeout}"', LANE)
         self.assertTrue(steps(LANE)[0].startswith("Record the job start time"))
+
+    def test_retarget_re_reviews_but_other_edits_do_not(self):
+        self.assertIn("types: [opened, synchronize, reopened, ready_for_review, edited]", PR)
+        self.assertIn("&& (github.event.action != 'edited' || github.event.changes.base)", PR)
 
     def test_forks_and_dependabot_not_reviewed_automatically(self):
         self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", PR)

@@ -51,13 +51,14 @@ def upsert_comment(repo: str, pr: int, lane: str, body: str):
         gh.request("POST", f"/repos/{repo}/issues/{pr}/comments", {"body": body})
 
 
-def post_check(repo: str, lane: str, head_sha: str, verdict: str, summary: str):
+def post_check(repo: str, lane: str, head_sha: str, verdict: str, summary: str, base_sha: str = ""):
     gh.request("POST", f"/repos/{repo}/check-runs", {
         "name": f"AI review: {LANES[lane]['name']}",
         "head_sha": head_sha,
         "status": "completed",
         "conclusion": CONCLUSIONS[verdict],
-        "output": {"title": f"{verdict} (advisory)", "summary": summary[:60_000]},
+        "output": {"title": f"{verdict} (advisory)" + (f", base {base_sha[:12]}" if base_sha else ""),
+                   "summary": summary[:60_000]},
     })
 
 
@@ -93,15 +94,18 @@ def main():
         upsert_comment(repo, a.pr, a.lane, body)
     else:
         print(f"::notice::the head moved to {current}; the lane comment is left for that commit's review")
-    post_check(repo, a.lane, head_sha, result["verdict"], redact(check_summary(a.lane, result), keep=(head_sha,)))
+    post_check(repo, a.lane, head_sha, result["verdict"],
+               redact(check_summary(a.lane, result), keep=(head_sha, result.get("base_sha", head_sha))),
+               base_sha=result.get("base_sha", ""))
     print(f"posted {a.lane}: {result['verdict']}")
 
 
 def check_summary(lane: str, result: dict) -> str:
+    base = f"Reviewed against base {result.get('base_sha', 'unknown')}.\n\n"
     if result["verdict"] == "INCOMPLETE":
-        return f"{LANES[lane]['name']} produced no verdict for this commit."
+        return base + f"{LANES[lane]['name']} produced no verdict for this commit."
     items = "\n".join(f"- {i['anchor']}: {i['title']} ({i['location']})" for i in result["items"])
-    return items or f"No blocking findings from {LANES[lane]['name']}."
+    return base + (items or f"No blocking findings from {LANES[lane]['name']}.")
 
 
 if __name__ == "__main__":

@@ -90,6 +90,9 @@ def converse(client, model_id: str, text: str) -> tuple[str, dict]:
 # ---------- verdict parsing ----------
 
 
+VERDICT_LINE = re.compile(r"^[ \t]*(?:\*\*)?Verdict:(?:\*\*)?[ \t]*(?:\*\*)?(PASS|BLOCK)\b", re.MULTILINE)
+
+
 def has_marker(text: str, marker: str, head_sha: str) -> bool:
     return re.search(rf"^\s*\[{re.escape(marker)}\]\s+{head_sha}\s*$", text, re.MULTILINE) is not None
 
@@ -117,13 +120,13 @@ def substantiated(item: dict) -> bool:
 
 def decide(text: str, head_sha: str) -> dict:
     """Return the lane's verdict: PASS, BLOCK or INCOMPLETE (no reviewed marker for this head)."""
-    if not has_marker(text, "AI-REVIEWED", head_sha):
+    if not has_marker(text, "AI-REVIEWED", head_sha) or not VERDICT_LINE.search(text):
         return {"verdict": "INCOMPLETE", "items": [], "dropped": 0}
     items = blocking_items(text)
     kept = [i for i in items if substantiated(i)]
     if has_marker(text, "BLOCK-MERGE", head_sha) and kept:
         return {"verdict": "BLOCK", "items": kept, "dropped": len(items) - len(kept)}
-    said_block = re.search(r"^[ \t]*(?:\*\*)?Verdict:(?:\*\*)?[ \t]*BLOCK\b", text, re.MULTILINE) is not None
+    said_block = VERDICT_LINE.search(text).group(1) == "BLOCK"
     if kept and said_block:
         # a substantiated BLOCK that lost its closing marker is no verdict, not a pass
         return {"verdict": "INCOMPLETE", "items": [], "dropped": 0}
@@ -169,7 +172,8 @@ def render_comment(lane: str, head_sha: str, result: dict, review_text: str, usa
     lines = [
         comment_marker(lane),
         f"## AI review ({name}): {verdict}",
-        f"Commit `{head_sha}`, model `{LANES[lane]['model']}`. Advisory only; this check does not block merging.",
+        f"Commit `{head_sha}` against base `{result.get('base_sha', 'unknown')}`, model `{LANES[lane]['model']}`. "
+        "Advisory only; this check does not block merging.",
         "",
     ]
     if verdict == "INCOMPLETE":
@@ -183,7 +187,7 @@ def render_comment(lane: str, head_sha: str, result: dict, review_text: str, usa
         lines.append(f"\n{result['dropped']} blocking item(s) without a Trigger, Outcome and rule Anchor were ignored.")
     tokens_in = usage["inputTokens"] + usage.get("cacheReadInputTokens", 0) + usage.get("cacheWriteInputTokens", 0)
     lines.append(f"\nTokens: {tokens_in} in, {usage['outputTokens']} out (both passes).")
-    return redact("\n".join(lines), keep=(head_sha, comment_marker(lane)))
+    return redact("\n".join(lines), keep=(head_sha, result.get("base_sha", head_sha), comment_marker(lane)))
 
 
 # ---------- main ----------
@@ -200,7 +204,8 @@ def main():
 
     data, out = pathlib.Path(a.data), pathlib.Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    head_sha = json.loads((data / "pr.json").read_text())["head_sha"]
+    meta = json.loads((data / "pr.json").read_text())
+    head_sha = meta["head_sha"]
     model = LANES[a.lane]["model"]
     client = boto3.client("bedrock-runtime", region_name=REGION,
                           config=Config(read_timeout=900, retries={"max_attempts": 4, "mode": "adaptive"}))
@@ -215,7 +220,7 @@ def main():
     else:
         review = ""
     result = decide(review, head_sha)
-    result.update(lane=a.lane, head_sha=head_sha, model=model, usage=usage)
+    result.update(lane=a.lane, head_sha=head_sha, base_sha=meta["base_sha"], model=model, usage=usage)
     (out / "result.json").write_text(json.dumps(result, indent=1))
     (out / "comment.md").write_text(render_comment(a.lane, head_sha, result, review, usage))
     print(f"{a.lane}: {result['verdict']} ({len(result['items'])} blocking), tokens {usage}")

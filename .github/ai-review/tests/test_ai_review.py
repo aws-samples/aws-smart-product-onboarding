@@ -292,5 +292,24 @@ class SecondReviewFindings(unittest.TestCase):
         self.assertFalse(post.should_report_unfinished("success", elapsed_s=60, timeout_minutes=30))
 
 
+
+BASE = "1111111111111111111111111111111111111111"
+
+
+class ThirdReviewFindings(unittest.TestCase):
+    """Cases from the third round of reviews of this reviewer."""
+
+    def test_marker_without_a_verdict_line_is_incomplete(self):
+        self.assertEqual(ai_review.decide(f"[AI-REVIEWED] {SHA}\n", SHA)["verdict"], "INCOMPLETE")
+        self.assertEqual(ai_review.decide(f"[AI-REVIEWED] {SHA}\nVerdict: MAYBE\n", SHA)["verdict"], "INCOMPLETE")
+
+    def test_comment_and_check_name_the_base(self):
+        result = {"verdict": "PASS", "items": [], "dropped": 0, "base_sha": BASE}
+        body = ai_review.render_comment("opus", SHA, result, f"[AI-REVIEWED] {SHA}\nVerdict: PASS",
+                                        {"inputTokens": 1, "outputTokens": 1})
+        self.assertIn(f"against base `{BASE}`", body)
+        self.assertIn(BASE, post.check_summary("opus", result))
+
+
 if __name__ == "__main__":
     unittest.main()
