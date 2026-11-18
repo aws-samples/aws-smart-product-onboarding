@@ -42,9 +42,6 @@ importers:
 
   .:
     dependencies:
-      '@aws-cdk/aws-cognito-identitypool-alpha':
-        specifier: latest
-        version: 2.186.0-alpha.0(aws-cdk-lib@2.277.0(constructs@10.8.1))(constructs@10.8.1)
       aws-cdk-lib:
         specifier: ^2.277.0
         version: 2.277.0(constructs@10.8.1)
@@ -508,6 +505,7 @@ packages:
   '@aws-cdk/aws-cognito-identitypool-alpha@2.186.0-alpha.0':
     resolution: {integrity: sha512-Dzq+HEmEqWjLrbJZ4QsGawGMUGd1bkVpKF2E1c64ax2CcCV0xW8VXUmS71RRcFzhM7qwEN3buWjU03M5sqzUKg==}
     engines: {node: '>= 14.15.0'}
+    deprecated: This package has been stabilized and moved to aws-cdk-lib
     peerDependencies:
       aws-cdk-lib: ^2.186.0
       constructs: ^10.0.0
