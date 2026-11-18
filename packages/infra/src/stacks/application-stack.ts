@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: MIT-0
  */
 
-import { UserIdentity } from "@aws/pdk/identity";
-import { PDKPipeline } from "@aws/pdk/pipeline";
 import {
   aws_cognito as cognito,
   aws_iam as iam,
@@ -17,6 +15,7 @@ import {
 } from "aws-cdk-lib";
 import { NagSuppressions } from "cdk-nag";
 import { Construct } from "constructs";
+import { getBranchPrefix } from "../branch-prefix";
 import { ApiPersistence } from "../constructs/api-persistence/api-persistence";
 import { SmartProductOnboardingAPI } from "../constructs/apis/smartproductonboardingapi";
 import { AppConfigConstruct } from "../constructs/appconfig/appconfig";
@@ -24,15 +23,14 @@ import { SecureBucket } from "../constructs/secure-bucket";
 import { AttributeExtractionTaskFunction } from "../constructs/sfn-attributes-task/sfn-attributes-task";
 import { ClassificationTaskFunction } from "../constructs/sfn-classification-task/sfn-classification-task";
 import { MetaclassTaskFunction } from "../constructs/sfn-metaclass-task/sfn-metaclass-task";
+import { UserIdentity } from "../constructs/user-identity/user-identity";
 import { Smartproductonboardingdemowebsite } from "../constructs/websites/smartproductonboardingdemowebsite";
 import { CategorizationWorkflow } from "../constructs/workflow/workflow";
 
 export class ApplicationStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
-    const branchPrefix = PDKPipeline.getBranchPrefix({
-      node: Stack.of(this).node,
-    });
+    const branchPrefix = getBranchPrefix(Stack.of(this).node);
 
     const corsOrigin =
       this.node.tryGetContext("corsOrigin") ?? "http://localhost:3000";
@@ -276,15 +274,15 @@ export class ApplicationStack extends Stack {
       [
         {
           id: "AwsSolutions-IAM4",
-          reason: "Managed upstream by AWS PDK",
+          reason: "Managed by the aws-cdk-lib BucketDeployment construct.",
         },
         {
           id: "AwsSolutions-IAM5",
-          reason: "Managed upstream by AWS PDK",
+          reason: "Managed by the aws-cdk-lib BucketDeployment construct.",
         },
         {
           id: "AwsSolutions-L1",
-          reason: "Managed upstream by AWS PDK",
+          reason: "Managed by the aws-cdk-lib BucketDeployment construct.",
         },
       ],
       true,

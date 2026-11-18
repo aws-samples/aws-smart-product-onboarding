@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: MIT-0
  */
 
-import { UserIdentity } from "@aws/pdk/identity";
 import { Authorizers, Integrations } from "@aws/pdk/type-safe-api";
 import {
   Api,
@@ -41,6 +40,7 @@ import { ApiPersistence } from "../api-persistence/api-persistence";
 import { AttributeExtractionTaskFunction } from "../sfn-attributes-task/sfn-attributes-task";
 import { ClassificationTaskFunction } from "../sfn-classification-task/sfn-classification-task";
 import { MetaclassTaskFunction } from "../sfn-metaclass-task/sfn-metaclass-task";
+import { UserIdentity } from "../user-identity/user-identity";
 
 /**
  * Api construct props.
