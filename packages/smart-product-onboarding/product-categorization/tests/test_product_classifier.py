@@ -50,9 +50,13 @@ def category_tree():
     }
 
 
+PREFILL_MODEL_ID = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
+
+
 @pytest.fixture
 def product_classifier(mock_bedrock, category_tree):
-    return ProductClassifier(mock_bedrock, category_tree)
+    # A model that supports assistant prefill; the mocked responses continue after the prefill.
+    return ProductClassifier(mock_bedrock, category_tree, model_id=PREFILL_MODEL_ID)
 
 
 def test_get_categories(product_classifier):

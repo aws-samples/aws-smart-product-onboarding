@@ -362,7 +362,7 @@ describe("Property 4: Handlers fall back to defaults on AppConfig failure", () =
           const fallbackModelId =
             result?.modelId ??
             (process.env.BEDROCK_MODEL_ID ||
-              "anthropic.claude-3-haiku-20240307-v1:0");
+              "global.anthropic.claude-haiku-5-5");
           const fallbackTemperature =
             result?.temperature ?? DEFAULT_TEMPERATURE;
 

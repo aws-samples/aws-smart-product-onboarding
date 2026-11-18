@@ -36,13 +36,10 @@ class GenProductRequestContentModelEnum(str, Enum):
     """
     US_AMAZON_NOVA_LITE_V1_0 = 'us.amazon.nova-lite-v1:0'
     US_AMAZON_NOVA_PRO_V1_0 = 'us.amazon.nova-pro-v1:0'
-    US_ANTHROPIC_CLAUDE_3_HAIKU_20240307_V1_0 = 'us.anthropic.claude-3-haiku-20240307-v1:0'
-    US_ANTHROPIC_CLAUDE_3_SONNET_20240229_V1_0 = 'us.anthropic.claude-3-sonnet-20240229-v1:0'
-    US_ANTHROPIC_CLAUDE_3_5_SONNET_20240620_V1_0 = 'us.anthropic.claude-3-5-sonnet-20240620-v1:0'
-    US_ANTHROPIC_CLAUDE_3_5_SONNET_20241022_V2_0 = 'us.anthropic.claude-3-5-sonnet-20241022-v2:0'
-    US_ANTHROPIC_CLAUDE_3_7_SONNET_20250219_V1_0 = 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'
+    GLOBAL_AMAZON_NOVA_2_LITE_V1_0 = 'global.amazon.nova-2-lite-v1:0'
     GLOBAL_ANTHROPIC_CLAUDE_HAIKU_4_5_20251001_V1_0 = 'global.anthropic.claude-haiku-4-5-20251001-v1:0'
-    GLOBAL_ANTHROPIC_CLAUDE_SONNET_4_5_20250929_V1_0 = 'global.anthropic.claude-sonnet-4-5-20250929-v1:0'
+    GLOBAL_ANTHROPIC_CLAUDE_HAIKU_5_5 = 'global.anthropic.claude-haiku-5-5'
+    GLOBAL_ANTHROPIC_CLAUDE_SONNET_5_5 = 'global.anthropic.claude-sonnet-5-5'
 
     @classmethod
     def from_json(cls, json_str: str) -> Self:

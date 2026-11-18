@@ -52,7 +52,7 @@ export class AttributeExtractionTaskFunction extends lambda.DockerImageFunction 
       ),
       environment: {
         CONFIG_BUCKET_NAME: props.configBucket.bucketName,
-        BEDROCK_MODEL_ID: "us.amazon.nova-premier-v1:0",
+        BEDROCK_MODEL_ID: "global.anthropic.claude-sonnet-5-5",
         ...(props.appConfigApplicationId && {
           APPCONFIG_APPLICATION_ID: props.appConfigApplicationId,
         }),

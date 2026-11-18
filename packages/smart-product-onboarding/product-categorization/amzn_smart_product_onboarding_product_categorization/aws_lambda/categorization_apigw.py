@@ -16,7 +16,7 @@ from amzn_smart_product_onboarding_api_runtime.interceptors import INTERCEPTORS
 from amzn_smart_product_onboarding_api_runtime.response import Response
 
 from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import (
-    LAMBDA_BEDROCK_RUNTIME_CLIENT,
+    LAMBDA_BEDROCK_RUNTIME_CLIENT,    ensure_cross_region_profile,
 )
 from amzn_smart_product_onboarding_core_utils.boto3_helper.s3_client import (
     LAMBDA_S3_CLIENT,
@@ -40,11 +40,11 @@ logger.name = "categorization_handler"
 CONFIG_BUCKET_NAME = os.getenv("CONFIG_BUCKET_NAME")
 CONFIG_PATHS_PARAM = os.getenv("CONFIG_PATHS_PARAM")
 DEMO = os.getenv("DEMO", False) == "True"
-MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0")
+MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "global.anthropic.claude-haiku-5-5")
 
-if os.getenv("BEDROCK_XACCT_ROLE") and MODEL_ID[:3] != "us.":
+if os.getenv("BEDROCK_XACCT_ROLE"):
     # when using cross-acct roles we would like to use CRIS (Cross-Region Inference)
-    MODEL_ID = "us." + MODEL_ID
+    MODEL_ID = ensure_cross_region_profile(MODEL_ID)
 
 ssm = LAMBDA_SSM_CLIENT
 s3 = LAMBDA_S3_CLIENT

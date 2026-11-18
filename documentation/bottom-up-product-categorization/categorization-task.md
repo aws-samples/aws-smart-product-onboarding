@@ -14,7 +14,7 @@ The categorization process begins with candidate category selection. Using the m
 
 Next, the system constructs a prompt for the AI model. This prompt includes the product title and description, the list of candidate categories, specific instructions on how to make the categorization decision, and examples of correct categorizations if available.
 
-The prompt is then sent to Amazon Bedrock, which uses the Claude 3 Haiku model to process it. This model excels at understanding context and nuance, allowing for more accurate categorization of complex or ambiguous products.
+The prompt is then sent to Amazon Bedrock, which uses the Anthropic Claude Haiku 5.5 model by default to process it. This model excels at understanding context and nuance, allowing for more accurate categorization of complex or ambiguous products.
 
 After receiving the response from the AI model, the system parses it to extract the predicted category ID, category name, and explanation. Finally, the system validates that the predicted category exists in the category tree and matches the predicted name.
 
@@ -30,7 +30,7 @@ The prompt for the AI model is designed to guide the model to make decisions sim
 
 #### Amazon Bedrock Integration
 
-We use Amazon Bedrock with the Claude 3 Haiku model for the AI-powered decision making. This provides us with state-of-the-art natural language processing capabilities without the need to maintain our own ML infrastructure.
+We use Amazon Bedrock with the Anthropic Claude Haiku 5.5 model for the AI-powered decision making. This provides us with state-of-the-art natural language processing capabilities without the need to maintain our own ML infrastructure.
 
 ### Why We Designed it This Way
 
@@ -50,7 +50,7 @@ While the categorization task is implemented as an AWS Lambda function, which ca
 
 The categorization task can be customized in several ways. The prompt can be modified to include domain-specific instructions or to emphasize certain aspects of categorization. Including examples of correct categorizations and detailed category descriptions in the prompt can significantly help guide the AI model, especially for complex or ambiguous product types.
 
-While we use Claude 3 Haiku, the system can be adapted to use other models available through Amazon Bedrock. The category validation process can also be customized based on the structure of your specific category tree.
+While we use Claude Haiku 5.5 by default, the system can be adapted to use other models available through Amazon Bedrock. The category validation process can also be customized based on the structure of your specific category tree.
 
 ### The Importance of a Good Category Tree
 

@@ -15,6 +15,9 @@ from amzn_smart_product_onboarding_product_categorization.attributes_extractor i
     CategorySchemaNotFound,
 )
 
+# A model that supports assistant prefill; the mocked responses below continue after the prefill.
+PREFILL_MODEL_ID = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
+
 
 @pytest.fixture
 def category_schema(faker):
@@ -110,7 +113,9 @@ def test_attributes_extractor_when_category_is_found(
     mock_bedrock, schema_retriever, a_valid_response_from_bedrock, random_attributes, product, predicted_category
 ):
     # given
-    extractor = AttributesExtractor(bedrock_runtime_client=mock_bedrock, schema_retriever=schema_retriever)
+    extractor = AttributesExtractor(
+        bedrock_runtime_client=mock_bedrock, schema_retriever=schema_retriever, model_id=PREFILL_MODEL_ID
+    )
 
     # when
     results = extractor.extract_attributes(product=product, category_id=predicted_category.predicted_category_id)
@@ -124,7 +129,9 @@ def test_attributes_extractor_will_throw_xml_validation_error(
     mock_bedrock, schema_retriever, an_invalid_xml_response_from_bedrock, product, predicted_category
 ):
     # given
-    extractor = AttributesExtractor(bedrock_runtime_client=mock_bedrock, schema_retriever=schema_retriever)
+    extractor = AttributesExtractor(
+        bedrock_runtime_client=mock_bedrock, schema_retriever=schema_retriever, model_id=PREFILL_MODEL_ID
+    )
 
     # then
     with pytest.raises(ModelResponseError, match="Failed to parse extracted attributes from response"):
@@ -135,7 +142,9 @@ def test_attributes_extractor_will_throw_pydantic_validation_error_when_cant_inf
     mock_bedrock, schema_retriever, an_invalid_pydantic_response_from_bedrock, product, predicted_category
 ):
     # given
-    extractor = AttributesExtractor(bedrock_runtime_client=mock_bedrock, schema_retriever=schema_retriever)
+    extractor = AttributesExtractor(
+        bedrock_runtime_client=mock_bedrock, schema_retriever=schema_retriever, model_id=PREFILL_MODEL_ID
+    )
 
     # then
     with pytest.raises(ModelResponseError, match="Failed to parse extracted attributes from response"):
@@ -165,7 +174,9 @@ def test_attributes_extractor_with_single_attribute(mock_bedrock, schema_retriev
         """
     )
 
-    extractor = AttributesExtractor(bedrock_runtime_client=mock_bedrock, schema_retriever=schema_retriever)
+    extractor = AttributesExtractor(
+        bedrock_runtime_client=mock_bedrock, schema_retriever=schema_retriever, model_id=PREFILL_MODEL_ID
+    )
 
     # when
     results = extractor.extract_attributes(product=product, category_id=predicted_category.predicted_category_id)
@@ -187,7 +198,9 @@ def test_attributes_extractor_will_throw_for_invalid_stop_reason(
     }
 
     # given
-    extractor = AttributesExtractor(bedrock_runtime_client=mock_bedrock, schema_retriever=schema_retriever)
+    extractor = AttributesExtractor(
+        bedrock_runtime_client=mock_bedrock, schema_retriever=schema_retriever, model_id=PREFILL_MODEL_ID
+    )
 
     # then
     with pytest.raises(ModelResponseError, match=f"Invalid stop reason: {an_invalid_stop_reason}"):
@@ -357,3 +370,29 @@ def test_prompt_generation_when_metadata_not_present(product, category_schema):
 Your task is to extract the actual attributes and their values from the title and description."""
         in rendered_prompt
     )
+
+
+def test_attributes_extractor_without_prefill(
+    mock_bedrock, schema_retriever, random_attributes, product, predicted_category
+):
+    # given a model that rejects prefill and temperature, so it writes the full response itself
+    attrs = "".join(
+        f"<attribute><name>{a['name']}</name><value>{a['value']}</value></attribute>" for a in random_attributes
+    )
+    mock_bedrock.converse.return_value = _a_response_from_bedrock(
+        f"Sure.\n<response><scratchpad>notes</scratchpad><attributes>{attrs}</attributes>"
+    )
+    extractor = AttributesExtractor(
+        bedrock_runtime_client=mock_bedrock,
+        schema_retriever=schema_retriever,
+        model_id="global.anthropic.claude-sonnet-5-5",
+    )
+
+    # when
+    results = extractor.extract_attributes(product=product, category_id=predicted_category.predicted_category_id)
+
+    # then
+    call = mock_bedrock.converse.call_args.kwargs
+    assert [m["role"] for m in call["messages"]] == ["user"]
+    assert "temperature" not in call["inferenceConfig"]
+    assert [r.model_dump() for r in results.attributes] == random_attributes

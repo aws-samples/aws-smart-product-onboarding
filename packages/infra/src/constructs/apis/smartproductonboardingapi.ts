@@ -130,7 +130,7 @@ export class SmartProductOnboardingAPI extends Construct {
       {
         environment: {
           IMAGE_BUCKET: props.inputBucket.bucketName,
-          BEDROCK_MODEL_ID: "us.anthropic.claude-3-haiku-20240307-v1:0",
+          BEDROCK_MODEL_ID: "global.anthropic.claude-haiku-5-5",
           ...(props.appConfigApplicationId && {
             APPCONFIG_APPLICATION_ID: props.appConfigApplicationId,
           }),

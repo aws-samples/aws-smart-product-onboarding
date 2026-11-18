@@ -17,7 +17,24 @@ import "./llmoptions.css";
 import DescriptionLengthSelector from "../DescriptionLengthSelector";
 
 export const BedrockModels: SelectProps.Option[] = [
-  // Amazon Nova Models (Multimodal: Text, Image, Video -> Text) - Regional cross-region inference (Default)
+  // The first entry is the default. All entries are multimodal (text and image input) and
+  // use cross-region inference profiles.
+  {
+    label: "Anthropic Claude Haiku 5.5",
+    value: "global.anthropic.claude-haiku-5-5",
+  },
+  {
+    label: "Anthropic Claude Sonnet 5.5",
+    value: "global.anthropic.claude-sonnet-5-5",
+  },
+  {
+    label: "Anthropic Claude Haiku 4.5",
+    value: "global.anthropic.claude-haiku-4-5-20251001-v1:0",
+  },
+  {
+    label: "Amazon Nova 2 Lite",
+    value: "global.amazon.nova-2-lite-v1:0",
+  },
   {
     label: "Amazon Nova Lite",
     value: "us.amazon.nova-lite-v1:0",
@@ -25,36 +42,6 @@ export const BedrockModels: SelectProps.Option[] = [
   {
     label: "Amazon Nova Pro",
     value: "us.amazon.nova-pro-v1:0",
-  },
-  // Anthropic Claude Models (Multimodal: Text, Image -> Text)
-  {
-    label: "Anthropic Claude 3 Haiku",
-    value: "us.anthropic.claude-3-haiku-20240307-v1:0",
-  },
-  {
-    label: "Anthropic Claude 3 Sonnet",
-    value: "us.anthropic.claude-3-sonnet-20240229-v1:0",
-  },
-  {
-    label: "Anthropic Claude 3.5 Sonnet",
-    value: "us.anthropic.claude-3-5-sonnet-20240620-v1:0",
-  },
-  {
-    label: "Anthropic Claude 3.5 Sonnet v2",
-    value: "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
-  },
-  {
-    label: "Anthropic Claude 3.7 Sonnet",
-    value: "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
-  },
-  // Claude 4.5 Models - Global cross-region inference
-  {
-    label: "Anthropic Claude Haiku 4.5",
-    value: "global.anthropic.claude-haiku-4-5-20251001-v1:0",
-  },
-  {
-    label: "Anthropic Claude Sonnet 4.5",
-    value: "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
   },
 ];
 

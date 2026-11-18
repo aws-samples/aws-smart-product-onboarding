@@ -5,6 +5,7 @@
 
 import {
   BedrockRuntimeClient,
+  ConverseCommand,
   ConverseCommandOutput,
 } from "@aws-sdk/client-bedrock-runtime";
 import { S3Client } from "@aws-sdk/client-s3";
@@ -95,6 +96,47 @@ describe("ProductGeneratorService", () => {
         inputTokens: 10,
         outputTokens: 20,
         totalTokens: 30,
+      });
+    });
+
+    it("should omit prefill and temperature for models that reject them", async () => {
+      const mockResponse: ConverseCommandOutput = {
+        metrics: undefined,
+        stopReason: "stop_sequence",
+        output: {
+          message: {
+            role: "assistant",
+            content: [
+              { reasoningContent: { reasoningText: { text: "thinking" } } },
+              {
+                text: "Here you go:\n<product><title>Test Title</title><description>Test Description</description>",
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+        $metadata: {},
+      };
+
+      (mockBedrockClient.send as jest.Mock).mockResolvedValueOnce(mockResponse);
+
+      const result = await service.generateProductTitleAndDescription(
+        "global.anthropic.claude-haiku-5-5",
+        0.7,
+        { role: "user", content: [{ text: "test prompt" }] },
+      );
+
+      // ConverseCommand is auto-mocked, so read the constructor argument.
+      const sent = (ConverseCommand as unknown as jest.Mock).mock.calls.at(
+        -1,
+      )[0];
+      expect(sent.messages.map((m: { role: string }) => m.role)).toEqual([
+        "user",
+      ]);
+      expect(sent.inferenceConfig.temperature).toBeUndefined();
+      expect(result.productData).toEqual({
+        title: "Test Title",
+        description: "Test Description",
       });
     });
 

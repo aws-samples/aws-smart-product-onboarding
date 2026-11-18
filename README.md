@@ -24,7 +24,7 @@ The Smart Product Onboarding accelerator comprises three main components, each l
 
 ### Generate Product Data from Images
 
-The [Product Data Generation component](documentation/generate-product-data-from-images.md#generate-product-data-from-images) automatically creates high-quality product titles and descriptions from images. Utilizing Amazon Bedrock with the Anthropic Claude 3 Haiku model, it analyzes product images and optional metadata to produce engaging and informative product listings. The solution's flexibility allows for customization to suit various e-commerce platforms and product categories, while its serverless architecture ensures scalability and cost-effectiveness for retailers of all sizes.
+The [Product Data Generation component](documentation/generate-product-data-from-images.md#generate-product-data-from-images) automatically creates high-quality product titles and descriptions from images. Utilizing Amazon Bedrock with the Anthropic Claude Haiku 5.5 model by default, it analyzes product images and optional metadata to produce engaging and informative product listings. The solution's flexibility allows for customization to suit various e-commerce platforms and product categories, while its serverless architecture ensures scalability and cost-effectiveness for retailers of all sizes.
 
 ### Bottom-Up Product Categorization
 
@@ -32,13 +32,13 @@ At the heart of the accelerator, the [Bottom-Up Product Categorization component
 
 ### Extract Attributes
 
-Building upon the categorization process, the [Attribute Extraction component](documentation/extract-attributes.md#attribute-extraction) automatically extracts relevant attributes from product information based on category-specific schemas. By leveraging the Claude 3.5 Sonnet model from Amazon Bedrock, it can extract multiple attributes in a single API call, significantly improving efficiency. This process enhances the richness and consistency of product data, ultimately improving searchability and the customer experience.
+Building upon the categorization process, the [Attribute Extraction component](documentation/extract-attributes.md#attribute-extraction) automatically extracts relevant attributes from product information based on category-specific schemas. By using the Anthropic Claude Sonnet 5.5 model from Amazon Bedrock by default, it can extract multiple attributes in a single API call, significantly improving efficiency. This process enhances the richness and consistency of product data, ultimately improving searchability and the customer experience.
 
 Each component of the Smart Product Onboarding accelerator is designed to work independently or as part of an integrated solution, providing retailers with the flexibility to adopt and customize the elements that best suit their needs. The linked documentation for each component provides detailed explanations of how they work, including insights into the AI models used, prompt engineering processes, and scalability considerations.
 
 ## Cost
 
-You are responsible for the cost of the AWS services used while running this accelerator. As of this revision, the cost for running this construct with the default settings in the US East (N. Virginia) Region is approximately $1,846.87 per month with 100,000 products onboarded per month. We assume that on average each product will have five 1 megapixel images.
+You are responsible for the cost of the AWS services used while running this accelerator. As of this revision, the cost for running this construct with the default settings in the US East (N. Virginia) Region is approximately $1,292.42 per month with 100,000 products onboarded per month. We assume that on average each product will have five 1 megapixel images. Amazon Bedrock prices use global cross-region inference on-demand pricing as of November 2026.
 
 The costs shown represent pricing without consideration of AWS free tier benefits.
 
@@ -48,10 +48,10 @@ The following table provides a sample cost breakdown for deploying this solution
 
 | **AWS Service**                       | **Usage**                                                                                                  | **Cost [USD]** |
 | :------------------------------------ | :--------------------------------------------------------------------------------------------------------- | -------------- |
-| Amazon Bedrock                        | Generate Product Data from Images - Average 6,000 input tokens and 200 output tokens. **Amazon Nova Lite** | 40.80          |
+| Amazon Bedrock                        | Generate Product Data from Images - Average 6,000 input tokens and 200 output tokens. **Anthropic Claude Haiku 5.5** | 70.00          |
 | Amazon Bedrock                        | Metaclass - Average 350 input tokens and 10 output tokens). **Amazon Nova Micro**                          | 1.37           |
-| Amazon Bedrock                        | Categorize Products - Average 20,200 input tokens and 525 output tokens). **Anthropic Claude 3 Haiku**     | 570.63         |
-| Amazon Bedrock                        | Extract Attributes - Average 2,650 input tokens and 350 output tokens). **Amazon Nova Premier**            | 1,100.00       |
+| Amazon Bedrock                        | Categorize Products - Average 20,200 input tokens and 525 output tokens). **Anthropic Claude Haiku 5.5**   | 228.25         |
+| Amazon Bedrock                        | Extract Attributes - Average 2,650 input tokens and 350 output tokens). **Anthropic Claude Sonnet 5.5**    | 880.00         |
 | AWS Lambda                            | Generate Product Data from Images                                                                          | 3.35           |
 | AWS Lambda                            | Metaclass                                                                                                  | 3.32           |
 | AWS Lambda                            | Categorize Products                                                                                        | 8.02           |
@@ -68,7 +68,7 @@ The following table provides a sample cost breakdown for deploying this solution
 | AWS Web Application Firewall          | Protect API Gateway                                                                                        | 0.60           |
 | AWS Systems Manager                   | Parameter Store                                                                                            | 0.00           |
 | AWS AppConfig                         | Runtime AI model configuration                                                                             | 0.00           |
-| **Total monthly infrastructure cost** |                                                                                                            | **1,825.60**   |
+| **Total monthly infrastructure cost** |                                                                                                            | **1,292.42**   |
 
 ## Deployment and Development
 
@@ -90,10 +90,13 @@ npm install -g pnpm@^8.15.9 aws-cdk
 
 #### Amazon Bedrock Marketplace Model Subscriptions
 
-This accelerator requires access to the following models from the Bedrock marketplace:
+This accelerator uses the following models by default, all through cross-region inference profiles:
 
-- Anthropic Claude 3 Haiku
-  You can optionally enable and use any other models.
+- Anthropic Claude Haiku 5.5 (`global.anthropic.claude-haiku-5-5`): product data generation and categorization
+- Anthropic Claude Sonnet 5.5 (`global.anthropic.claude-sonnet-5-5`): attribute extraction
+- Amazon Nova Micro (`us.amazon.nova-micro-v1:0`): metaclass classification
+
+You can optionally enable and use any other models.
 
 Prior to deploying the accelerator, you must subscribe to the models listed above. The simplest way to subscribe is to chat with the models you want to use in the Bedrock Chat Playground in the AWS Console. For more details, see [Simplified model access in Amazon Bedrock](https://aws.amazon.com/blogs/security/simplified-amazon-bedrock-model-access/).
 
@@ -180,7 +183,7 @@ After deployment, you can deploy a configuration document to AppConfig via the A
 ```json
 {
   "productGeneration": {
-    "modelId": "us.amazon.nova-lite-v1:0",
+    "modelId": "global.anthropic.claude-haiku-5-5",
     "temperature": 0.1,
     "language": "English",
     "descriptionLength": "medium",
@@ -191,11 +194,11 @@ After deployment, you can deploy a configuration document to AppConfig via the A
     "temperature": 0
   },
   "productCategorization": {
-    "modelId": "us.anthropic.claude-3-haiku-20240307-v1:0",
+    "modelId": "global.anthropic.claude-haiku-5-5",
     "temperature": 0
   },
   "attributeExtraction": {
-    "modelId": "us.amazon.nova-premier-v1:0",
+    "modelId": "global.anthropic.claude-sonnet-5-5",
     "temperature": 0
   }
 }
@@ -206,7 +209,7 @@ The `productGeneration` section supports additional optional fields:
 - `descriptionLength` — `"short"`, `"medium"`, or `"long"`
 - `examples` — up to 10 example products (each with `title` and `description`) for few-shot style guidance
 
-All components fall back to their default model IDs and temperatures if no AppConfig configuration is deployed.
+All components fall back to their default model IDs and temperatures if no AppConfig configuration is deployed. Newer Anthropic Claude models (4.7 and later, including Haiku 5.5 and Sonnet 5.5) do not accept a temperature, so the configured temperature is ignored for them.
 
 ## Troubleshooting
 

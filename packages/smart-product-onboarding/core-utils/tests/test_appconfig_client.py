@@ -25,8 +25,8 @@ PROFILE_ID = "test-profile-id"
 VALID_CONFIG = {
     "productGeneration": {"modelId": "us.amazon.nova-lite-v1:0", "temperature": 0.1},
     "metaclassClassification": {"modelId": "us.amazon.nova-micro-v1:0", "temperature": 0},
-    "productCategorization": {"modelId": "us.anthropic.claude-3-haiku-20240307-v1:0", "temperature": 0},
-    "attributeExtraction": {"modelId": "us.amazon.nova-premier-v1:0", "temperature": 0},
+    "productCategorization": {"modelId": "global.anthropic.claude-haiku-5-5", "temperature": 0},
+    "attributeExtraction": {"modelId": "global.anthropic.claude-sonnet-5-5", "temperature": 0},
 }
 
 

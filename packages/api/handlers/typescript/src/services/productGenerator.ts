@@ -15,6 +15,7 @@ import {
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { XMLParser } from "fast-xml-parser";
 import { ProductData, ProductGenerationContext } from "../types";
+import { supportsPrefill, supportsTemperature } from "./modelCapabilities";
 import { TemplateService } from "./templateService";
 import { BadRequestError, ModelResponseError } from "../utils/exceptions";
 import { logger } from "../utils/logger";
@@ -70,39 +71,55 @@ export class ProductGeneratorService {
     temperature: number,
     prompt: Message,
   ): Promise<{ productData: ProductData; usage?: TokenUsage }> {
+    const prefill = supportsPrefill(model);
     const converse = new ConverseCommand({
-      messages: [
-        prompt,
-        { role: "assistant", content: [{ text: this.prefix }] },
-      ],
+      messages: prefill
+        ? [prompt, { role: "assistant", content: [{ text: this.prefix }] }]
+        : [prompt],
       modelId: model,
       inferenceConfig: {
-        temperature: temperature,
-        maxTokens: 1024,
+        ...(supportsTemperature(model) && { temperature: temperature }),
+        // Reasoning models count thinking tokens against this limit.
+        maxTokens: 4096,
         stopSequences: [this.suffix],
       },
     });
     const response = await this.bedrockClient.send(converse);
     logger.debug(`Response: ${JSON.stringify(response)}`);
 
-    const text = response.output?.message?.content?.[0]?.text;
+    // Reasoning models put a reasoningContent block before the text block.
+    let text = response.output?.message?.content?.find(
+      (block) => block.text !== undefined,
+    )?.text;
     if (!text) {
       throw new ModelResponseError("Missing text in model output");
+    }
+    // Without prefill the model writes the opening tag itself; drop any preamble before it.
+    let prefix = this.prefix;
+    if (!prefill) {
+      const start = text.indexOf(this.prefix);
+      if (start === -1) {
+        throw new ModelResponseError("Invalid model output");
+      }
+      text = text.slice(start);
+      prefix = "";
     }
 
     let productResponse: string;
     switch (response.stopReason) {
       case "stop_sequence":
-        productResponse = `${this.prefix}${text}${this.suffix}`;
+        productResponse = `${prefix}${text}${this.suffix}`;
         break;
       case "end_turn":
         if (!text.endsWith(this.suffix)) {
           throw new ModelResponseError("Invalid model output");
         }
-        productResponse = `${this.prefix}${text}`;
+        productResponse = `${prefix}${text}`;
         break;
       default:
-        throw new ModelResponseError("Invalid model output");
+        throw new ModelResponseError(
+          `Invalid model output (stop reason: ${response.stopReason})`,
+        );
     }
 
     // Parse the XML response into an object.

@@ -11,7 +11,7 @@
 
 - **AWS CDK** v2.277.0 - Infrastructure as Code
 - **AWS PDK** v0.26.7 - AWS Project Development Kit for accelerated development
-- **Amazon Bedrock** - AI/ML models (Claude 3 Haiku, Claude 3.5 Sonnet, Nova Micro)
+- **Amazon Bedrock** - AI/ML models (Claude Haiku 5.5, Claude Sonnet 5.5, Nova Micro), called through cross-region inference profiles
 - **AWS Step Functions** - Workflow orchestration for batch processing
 - **AWS Lambda** - Serverless compute (Python 3.13, Node.js 22)
 - **Amazon S3** - Storage for images, configurations, and results
