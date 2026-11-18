@@ -47,6 +47,7 @@ export class CreateBatchExecutionFunction extends Function {
       architecture: Architecture.ARM_64,
       tracing: Tracing.ACTIVE,
       timeout: Duration.seconds(30),
+      memorySize: 256,
       ...props,
     });
   }
@@ -80,6 +81,7 @@ export class DownloadFileFunction extends Function {
       architecture: Architecture.ARM_64,
       tracing: Tracing.ACTIVE,
       timeout: Duration.seconds(30),
+      memorySize: 256,
       ...props,
     });
   }
@@ -117,6 +119,7 @@ export class GetBatchExecutionFunction extends Function {
       architecture: Architecture.ARM_64,
       tracing: Tracing.ACTIVE,
       timeout: Duration.seconds(30),
+      memorySize: 256,
       ...props,
     });
   }
@@ -154,6 +157,7 @@ export class ListBatchExecutionsFunction extends Function {
       architecture: Architecture.ARM_64,
       tracing: Tracing.ACTIVE,
       timeout: Duration.seconds(30),
+      memorySize: 256,
       ...props,
     });
   }
@@ -187,6 +191,7 @@ export class UploadFileFunction extends Function {
       architecture: Architecture.ARM_64,
       tracing: Tracing.ACTIVE,
       timeout: Duration.seconds(30),
+      memorySize: 256,
       ...props,
     });
   }
