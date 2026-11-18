@@ -221,9 +221,6 @@ class FetchSelection(unittest.TestCase):
         self.assertEqual([f["included"] for f in files], [False, False, False, True])
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class ReviewFindings(unittest.TestCase):
     """Cases a review of this reviewer found."""
@@ -262,3 +259,7 @@ class ReviewFindings(unittest.TestCase):
 
     def test_git_shas_stay_readable(self):
         self.assertIn(OTHER, ai_review.redact(f"pinned at {OTHER}"))
+
+
+if __name__ == "__main__":
+    unittest.main()
