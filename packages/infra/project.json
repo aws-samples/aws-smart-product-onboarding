@@ -138,5 +138,6 @@
         "cwd": "packages/infra"
       }
     }
-  }
+  },
+  "implicitDependencies": ["@aws-samples/smart-product-onboarding-api-model"]
 }
