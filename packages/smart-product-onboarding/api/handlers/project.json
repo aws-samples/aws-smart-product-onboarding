@@ -9,7 +9,7 @@
       ],
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv sync",
+        "command": "uv sync --all-packages",
         "cwd": "packages/smart-product-onboarding"
       }
     },
@@ -34,20 +34,20 @@
         "cwd": "packages/smart-product-onboarding/api/handlers"
       },
       "configurations": {
-        "python313-arm64": {
+        "python314-arm64": {
           "env": {
-            "PYTHON_VERSION": "3.13",
+            "PYTHON_VERSION": "3.14",
             "PLATFORM": "aarch64-unknown-linux-gnu"
           }
         },
-        "python313-x86": {
+        "python314-x86": {
           "env": {
-            "PYTHON_VERSION": "3.13",
+            "PYTHON_VERSION": "3.14",
             "PLATFORM": "x86_64-unknown-linux-gnu"
           }
         }
       },
-      "defaultConfiguration": "python313-arm64"
+      "defaultConfiguration": "python314-arm64"
     },
     "build": {
       "dependsOn": [

@@ -7,11 +7,12 @@
       "dependsOn": ["^install"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "uv sync",
+        "command": "uv sync --all-packages",
         "cwd": "packages/smart-product-onboarding"
       }
     },
     "generate": {
+      "dependsOn": ["@aws-samples/smart-product-onboarding-api-model:generate"],
       "executor": "nx:run-commands",
       "options": {
         "command": "npx --yes -p @aws/pdk@$AWS_PDK_VERSION type-safe-api generate --specPath ../../../api/model/.api.json --outputPath . --templateDirs \"python\" --metadata '{\"srcDir\":\"amzn_smart_product_onboarding_api_runtime\",\"moduleName\":\"amzn_smart_product_onboarding_api_runtime\",\"projectName\":\"amzn-smart-product-onboarding-api-python-runtime\"}'",

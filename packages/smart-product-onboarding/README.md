@@ -84,5 +84,5 @@ For Lambda packaging and Docker builds, use:
 uv export --no-emit-workspace --frozen --no-dev --no-editable -o requirements.txt
 
 # Install with platform targeting for Lambda
-uv pip install --target lambda_package --python-platform aarch64-unknown-linux-gnu --python-version 3.13 -r requirements.txt
+uv pip install --target lambda_package --python-platform aarch64-unknown-linux-gnu --python-version 3.14 -r requirements.txt
 ```

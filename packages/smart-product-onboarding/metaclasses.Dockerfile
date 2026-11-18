@@ -1,11 +1,11 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-FROM public.ecr.aws/lambda/python:3.13 AS embeddings
+FROM public.ecr.aws/lambda/python:3.14 AS embeddings
 
 # Install the specified packages
 RUN dnf install -y gcc g++
-RUN --mount=type=cache,target=/root/.cache pip install nltk~=3.9.1
+RUN --mount=type=cache,target=/root/.cache pip install nltk~=3.10.4
 
 # Download NLTK data with retry logic and skip punkt_tab if it fails
 RUN python -m nltk.downloader -d /usr/local/share/nltk_data punkt || \
@@ -13,7 +13,7 @@ RUN python -m nltk.downloader -d /usr/local/share/nltk_data punkt || \
 RUN python -m nltk.downloader -d /usr/local/share/nltk_data stopwords || \
     (sleep 5 && python -m nltk.downloader -d /usr/local/share/nltk_data stopwords)
 
-FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim AS build
+FROM ghcr.io/astral-sh/uv:python3.14-bookworm-slim AS build
 
 # Set environment variables for uv
 ENV UV_COMPILE_BYTECODE=1
@@ -47,7 +47,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --compile-bytecode \
     --target /var/task \
     --python-platform aarch64-unknown-linux-gnu \
-    --python-version 3.13 \
+    --python-version 3.14 \
     -r requirements.txt
 
 # Build and install workspace packages as wheels
@@ -67,10 +67,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --compile-bytecode \
     --target /var/task \
     --python-platform aarch64-unknown-linux-gnu \
-    --python-version 3.13 \
+    --python-version 3.14 \
     /tmp/wheels/*.whl
 
-FROM public.ecr.aws/lambda/python:3.13
+FROM public.ecr.aws/lambda/python:3.14
 WORKDIR ${LAMBDA_TASK_ROOT}
 COPY --from=embeddings /usr/local/share/nltk_data /usr/local/share/nltk_data
 COPY --from=build ${LAMBDA_TASK_ROOT} ${LAMBDA_TASK_ROOT}

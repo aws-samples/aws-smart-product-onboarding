@@ -3,6 +3,7 @@
   "root": "packages/api/handlers/typescript",
   "targets": {
     "generate": {
+      "dependsOn": ["@aws-samples/smart-product-onboarding-api-model:generate"],
       "executor": "nx:run-commands",
       "options": {
         "command": "npx --yes -p @aws/pdk@$AWS_PDK_VERSION type-safe-api generate --specPath ../../model/.api.json --outputPath . --templateDirs \"typescript-lambda-handlers\" --metadata '{\"srcDir\":\"src\",\"tstDir\":\"test\",\"runtimePackageName\":\"@aws-samples/smart-product-onboarding-api-typescript-runtime\"}'",
@@ -20,7 +21,10 @@
       },
       "inputs": ["{projectRoot}/src/**/*.ts", "{projectRoot}/tsconfig.json"],
       "outputs": ["{projectRoot}/lib"],
-      "dependsOn": ["generate"]
+      "dependsOn": [
+        "generate",
+        "@aws-samples/smart-product-onboarding-api-typescript-runtime:compile"
+      ]
     },
     "test": {
       "executor": "nx:run-commands",

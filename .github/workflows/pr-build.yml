@@ -7,7 +7,8 @@ jobs:
   build:
     permissions:
       contents: read
-    runs-on: ubuntu-latest
+    # The Lambda functions are bundled for arm64 in Docker; an x86 runner cannot run those images.
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -15,11 +16,11 @@ jobs:
           version: '9'
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: pnpm
       - uses: astral-sh/setup-uv@v6
         with:
-          python-version: '3.13'
+          python-version: '3.14'
       - name: Install dependencies
         run: pnpm install
       - name: CDK Synth

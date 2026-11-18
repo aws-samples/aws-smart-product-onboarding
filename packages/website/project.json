@@ -10,6 +10,7 @@
     },
     "pre-compile": {
       "executor": "nx:run-commands",
+      "dependsOn": ["@aws-samples/smart-product-onboarding-api-model:generate"],
       "options": {
         "commands": [
           "rm -rf public/smart-product-onboarding-api",
@@ -34,22 +35,23 @@
       }
     },
     "bundle": {
-      "executor": "@nx/vite:build",
+      "executor": "nx:run-commands",
       "dependsOn": [
         "pre-compile",
         "@aws-samples/smart-product-onboarding-api-typescript-react-query-hooks:build"
       ],
-      "outputs": ["{options.outputPath}"],
+      "outputs": ["{workspaceRoot}/dist/packages/website/bundle"],
       "defaultConfiguration": "production",
       "options": {
-        "outputPath": "dist/packages/website/bundle"
+        "command": "vite build --mode production",
+        "cwd": "{projectRoot}"
       },
       "configurations": {
         "development": {
-          "mode": "development"
+          "command": "vite build --mode development"
         },
         "production": {
-          "mode": "production"
+          "command": "vite build --mode production"
         }
       }
     },
@@ -68,56 +70,47 @@
       }
     },
     "preview": {
-      "dependsOn": ["build"],
-      "executor": "@nx/vite:preview-server",
-      "defaultConfiguration": "development",
+      "dependsOn": ["bundle"],
+      "executor": "nx:run-commands",
       "options": {
-        "buildTarget": "@aws-samples/smart-product-onboarding-demo-website:bundle"
-      },
-      "configurations": {
-        "development": {
-          "buildTarget": "@aws-samples/smart-product-onboarding-demo-website:bundle:development"
-        },
-        "production": {
-          "buildTarget": "@aws-samples/smart-product-onboarding-demo-website:bundle:production"
-        }
+        "command": "vite preview",
+        "cwd": "{projectRoot}"
       }
     },
     "serve": {
-      "executor": "@nx/vite:dev-server",
+      "executor": "nx:run-commands",
       "dependsOn": [
         "pre-compile",
         "@aws-samples/smart-product-onboarding-api-typescript-react-query-hooks:build"
       ],
       "defaultConfiguration": "development",
       "options": {
-        "buildTarget": "@aws-samples/smart-product-onboarding-demo-website:build"
+        "command": "vite --mode development",
+        "cwd": "{projectRoot}"
       },
       "configurations": {
         "development": {
-          "buildTarget": "@aws-samples/smart-product-onboarding-demo-website:bundle:development",
-          "hmr": true
+          "command": "vite --mode development"
         },
         "production": {
-          "buildTarget": "@aws-samples/smart-product-onboarding-demo-website:bundle:production",
-          "hmr": false
+          "command": "vite --mode production"
         }
       }
     },
     "serve-static": {
-      "executor": "@nx/web:file-server",
-      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "dependsOn": ["bundle"],
       "options": {
-        "buildTarget": "@aws-samples/smart-product-onboarding-demo-website:bundle",
-        "spa": true
+        "command": "vite preview --outDir ../../dist/packages/website/bundle",
+        "cwd": "{projectRoot}"
       }
     },
     "test": {
-      "executor": "@nx/vite:test",
-      "outputs": ["{options.reportsDirectory}"],
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/coverage/packages/website"],
       "options": {
-        "passWithNoTests": true,
-        "reportsDirectory": "../../coverage/packages/website"
+        "command": "vitest run",
+        "cwd": "{projectRoot}"
       }
     }
   }

@@ -31,7 +31,7 @@ export class CreateBatchExecutionFunction extends Function {
     props?: CreateBatchExecutionFunctionProps,
   ) {
     super(scope, id, {
-      runtime: Runtime.PYTHON_3_13,
+      runtime: Runtime.PYTHON_3_14,
       handler:
         "amzn_smart_product_onboarding_api_python_handlers.create_batch_execution.handler",
       code: Code.fromAsset(
@@ -64,7 +64,7 @@ export interface DownloadFileFunctionProps
 export class DownloadFileFunction extends Function {
   constructor(scope: Construct, id: string, props?: DownloadFileFunctionProps) {
     super(scope, id, {
-      runtime: Runtime.PYTHON_3_13,
+      runtime: Runtime.PYTHON_3_14,
       handler:
         "amzn_smart_product_onboarding_api_python_handlers.download_file.handler",
       code: Code.fromAsset(
@@ -101,7 +101,7 @@ export class GetBatchExecutionFunction extends Function {
     props?: GetBatchExecutionFunctionProps,
   ) {
     super(scope, id, {
-      runtime: Runtime.PYTHON_3_13,
+      runtime: Runtime.PYTHON_3_14,
       handler:
         "amzn_smart_product_onboarding_api_python_handlers.get_batch_execution.handler",
       code: Code.fromAsset(
@@ -138,7 +138,7 @@ export class ListBatchExecutionsFunction extends Function {
     props?: ListBatchExecutionsFunctionProps,
   ) {
     super(scope, id, {
-      runtime: Runtime.PYTHON_3_13,
+      runtime: Runtime.PYTHON_3_14,
       handler:
         "amzn_smart_product_onboarding_api_python_handlers.list_batch_executions.handler",
       code: Code.fromAsset(
@@ -171,7 +171,7 @@ export interface UploadFileFunctionProps
 export class UploadFileFunction extends Function {
   constructor(scope: Construct, id: string, props?: UploadFileFunctionProps) {
     super(scope, id, {
-      runtime: Runtime.PYTHON_3_13,
+      runtime: Runtime.PYTHON_3_14,
       handler:
         "amzn_smart_product_onboarding_api_python_handlers.upload_file.handler",
       code: Code.fromAsset(

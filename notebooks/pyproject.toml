@@ -7,7 +7,7 @@ readme = "README.md"
 dependencies = [
     "boto3>=1.35.40",
     "inflect>=7.4.0",
-    "nltk>=3.9.3",
+    "nltk>=3.10.4",
     "pympler>=1.1",
     "numpy>=2.2.2",
     "pandas>=2.2.3",
@@ -75,13 +75,13 @@ unfixable = []
 [tool.uv]
 package = false
 constraint-dependencies = [
-    "tornado>=6.5.5",
-    "nbconvert>=7.17.1",
-    "urllib3>=2.6.3",
+    "tornado>=6.6.1",
+    "nbconvert>=7.17.2",
+    "urllib3>=2.8.0",
     "requests>=2.33.0",
     "pygments>=2.20.0",
-    "mistune>=3.2.1",
-    "jupyter-server>=2.18.0",
+    "mistune>=3.3.0",
+    "jupyter-server>=2.20.0",
     "lxml>=6.1.0",
 ]
 

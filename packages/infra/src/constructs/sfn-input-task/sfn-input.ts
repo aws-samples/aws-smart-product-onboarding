@@ -24,7 +24,8 @@ export class SfnInput extends sfn.StateMachineFragment {
     this.inputFunction = new PythonFunction(this, "InputFunction", {
       entry: __dirname + "/lambdas/input",
       index: "input.py",
-      runtime: lambda.Runtime.PYTHON_3_13,
+      runtime: lambda.Runtime.PYTHON_3_14,
+      architecture: lambda.Architecture.ARM_64,
       timeout: Duration.seconds(60),
       memorySize: 128,
     });
@@ -32,6 +33,11 @@ export class SfnInput extends sfn.StateMachineFragment {
     NagSuppressions.addResourceSuppressions(
       this.inputFunction,
       [
+        {
+          id: "AwsSolutions-L1",
+          reason:
+            "Uses the latest generally available Lambda runtime (Python 3.14 or Node.js 24). cdk-nag compares against the newest runtime defined in aws-cdk-lib, which is a public preview runtime (Python 3.15, Node.js 26) not supported for production workloads.",
+        },
         // {
         //   id: "AwsSolutions-IAM5",
         //   reason:

@@ -78,8 +78,8 @@ The following table provides a sample cost breakdown for deploying this solution
 - Download and install AWS CLI. Refer to [Installing the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
 - Install and configure AWS CDK. Refer to Installing the [AWS CDK](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html).
 - Download and install Docker. Refer to [Docker](https://www.docker.com/products/docker-desktop/).
-- NodeJS >= 18.0.0 and <= 22
-- Python >= 3.12 preferably with [pyenv](https://github.com/pyenv/pyenv)
+- NodeJS 22 or 24 (24 recommended, matching the Lambda runtime)
+- Python >= 3.12 (3.14 recommended, matching the Lambda runtime) preferably with [pyenv](https://github.com/pyenv/pyenv)
 - [uv](https://docs.astral.sh/uv/) >= 0.5.0
 - Pnpm >= 8.6.3
 
