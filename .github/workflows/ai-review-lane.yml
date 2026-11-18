@@ -45,7 +45,11 @@ jobs:
       HEAD_SHA: ${{ inputs.head-sha }}
       LANE: ${{ inputs.lane }}
       REVIEWER: trusted/.github/ai-review
+      JOB_TIMEOUT_MINUTES: "30"  # keep equal to timeout-minutes above
     steps:
+      - name: Record the job start time
+        run: echo "JOB_STARTED=$(date +%s)" >> "$GITHUB_ENV"
+
       - name: Check out the reviewer from the trusted ref
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -54,11 +58,6 @@ jobs:
           persist-credentials: false
           sparse-checkout: .github/ai-review
 
-      - name: Install the reviewer's dependencies
-        run: |
-          python3 -m venv "$RUNNER_TEMP/venv"
-          "$RUNNER_TEMP/venv/bin/pip" install --quiet --require-hashes --no-deps -r "$REVIEWER/requirements.txt"
-
       - name: Skip when the review role is not configured
         id: configured
         env:
@@ -66,12 +65,19 @@ jobs:
         run: |
           if [ -z "$ROLE" ]; then
             echo "::notice::AI_REVIEW_ROLE_ARN is not set; skipping the $LANE review."
-            "$RUNNER_TEMP/venv/bin/python" "$REVIEWER/post.py" --lane "$LANE" --pr "$PR_NUMBER" \
+            # standard library only, so this posts even when the package index is unreachable
+            python3 "$REVIEWER/post.py" --lane "$LANE" --pr "$PR_NUMBER" \
               --head-sha "$HEAD_SHA" --skipped "The review role is not configured for this repository."
             echo "ok=false" >> "$GITHUB_OUTPUT"
           else
             echo "ok=true" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Install the reviewer's dependencies
+        if: steps.configured.outputs.ok == 'true'
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet --require-hashes --no-deps -r "$REVIEWER/requirements.txt"
 
       - name: Fetch the pull request as data
         if: steps.configured.outputs.ok == 'true'
@@ -102,9 +108,12 @@ jobs:
           "$RUNNER_TEMP/venv/bin/python" "$REVIEWER/post.py" --lane "$LANE" --pr "$PR_NUMBER" --out "$RUNNER_TEMP/out"
           cat "$RUNNER_TEMP/out/comment.md" >> "$GITHUB_STEP_SUMMARY"
 
+      # Runs on a failure and on the job timeout; post.py skips a cancellation by a newer run.
       - name: Report a review that could not finish
-        if: failure() && steps.configured.outputs.ok == 'true'
+        if: (failure() || cancelled()) && steps.configured.outputs.ok == 'true'
+        env:
+          JOB_STATUS: ${{ job.status }}
         run: |
           unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
-          "$RUNNER_TEMP/venv/bin/python" "$REVIEWER/post.py" --lane "$LANE" --pr "$PR_NUMBER" \
-            --head-sha "$HEAD_SHA" --skipped "The review did not finish; see the workflow run."
+          python3 "$REVIEWER/post.py" --lane "$LANE" --pr "$PR_NUMBER" --head-sha "$HEAD_SHA" \
+            --unfinished "$JOB_STATUS" --started "$JOB_STARTED" --timeout-minutes "$JOB_TIMEOUT_MINUTES"

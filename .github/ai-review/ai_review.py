@@ -97,13 +97,14 @@ def has_marker(text: str, marker: str, head_sha: str) -> bool:
 def blocking_items(text: str) -> list[dict]:
     """Split the review into `### BLOCKING` sections and read their labelled lines."""
     items = []
-    for section in re.split(r"^###\s+", text, flags=re.MULTILINE)[1:]:
+    for section in re.split(r"^[ \t]*###[ \t]+", text, flags=re.MULTILINE)[1:]:
         title, _, rest = section.partition("\n")
-        if not title.upper().startswith("BLOCKING"):
+        if not title.strip("* ").upper().startswith("BLOCKING"):
             continue
-        item = {"title": title.split(":", 1)[-1].strip()}
+        item = {"title": title.split(":", 1)[-1].strip("* ")}
         for key in ("Location", "Trigger", "Outcome", "Anchor"):
-            m = re.search(rf"^[ \t]*{key}:[ \t]*(\S.*)$", rest, re.MULTILINE)
+            # accepts `Trigger: x`, `**Trigger:** x` and `**Trigger**: x`; the value stays on its own line
+            m = re.search(rf"^[ \t]*(?:\*\*)?{key}(?:\*\*)?:(?:\*\*)?[ \t]*(\S.*)$", rest, re.MULTILINE)
             item[key.lower()] = m.group(1).strip() if m else ""
         items.append(item)
     return items
@@ -122,10 +123,13 @@ def decide(text: str, head_sha: str) -> dict:
     kept = [i for i in items if substantiated(i)]
     if has_marker(text, "BLOCK-MERGE", head_sha) and kept:
         return {"verdict": "BLOCK", "items": kept, "dropped": len(items) - len(kept)}
-    if kept and re.search(r"^[ \t]*Verdict:[ \t]*BLOCK\b", text, re.MULTILINE):
+    said_block = re.search(r"^[ \t]*(?:\*\*)?Verdict:(?:\*\*)?[ \t]*BLOCK\b", text, re.MULTILINE) is not None
+    if kept and said_block:
         # a substantiated BLOCK that lost its closing marker is no verdict, not a pass
         return {"verdict": "INCOMPLETE", "items": [], "dropped": 0}
-    return {"verdict": "PASS", "items": [], "dropped": len(items)}
+    # a BLOCK whose items all miss the bar is published as PASS, without the rejected reply
+    rejected = bool(items) or said_block or has_marker(text, "BLOCK-MERGE", head_sha)
+    return {"verdict": "PASS", "items": [], "dropped": len(items), "rejected_block": rejected}
 
 
 # ---------- output hygiene ----------
@@ -170,9 +174,12 @@ def render_comment(lane: str, head_sha: str, result: dict, review_text: str, usa
     ]
     if verdict == "INCOMPLETE":
         lines.append("The review produced no verdict for this commit. Re-run the job to try again.")
+    elif result.get("rejected_block"):
+        lines.append("The model proposed a block, but no blocking item met the bar (a Trigger, an Outcome and a "
+                     "rule Anchor), so the verdict is PASS.")
     else:
         lines += ["<details><summary>Review</summary>", "", review_text.strip()[:COMMENT_LIMIT], "", "</details>"]
-    if result.get("dropped"):
+    if result.get("dropped") and not result.get("rejected_block"):
         lines.append(f"\n{result['dropped']} blocking item(s) without a Trigger, Outcome and rule Anchor were ignored.")
     tokens_in = usage["inputTokens"] + usage.get("cacheReadInputTokens", 0) + usage.get("cacheWriteInputTokens", 0)
     lines.append(f"\nTokens: {tokens_in} in, {usage['outputTokens']} out (both passes).")

@@ -261,5 +261,36 @@ class ReviewFindings(unittest.TestCase):
         self.assertIn(OTHER, ai_review.redact(f"pinned at {OTHER}"))
 
 
+
+class SecondReviewFindings(unittest.TestCase):
+    """Cases from the second round of reviews of this reviewer."""
+
+    def test_rejected_block_is_not_shown_as_a_block(self):
+        text = BLOCK_REVIEW.replace("Anchor: auth-on-route\n", "")
+        result = ai_review.decide(text, SHA)
+        self.assertEqual(result["verdict"], "PASS")
+        body = ai_review.render_comment("gpt", SHA, result, text, {"inputTokens": 1, "outputTokens": 1})
+        self.assertNotIn("Verdict: BLOCK", body)
+        self.assertNotIn("Public route", body)
+        self.assertIn("no blocking item met the bar", body)
+
+    def test_indented_headings_and_bold_labels_are_read(self):
+        text = (f"[AI-REVIEWED] {SHA}\nVerdict: BLOCK\n\n  ### BLOCKING 1: Public route\n"
+                "**Location:** packages/infra/src/api.ts:42\n**Trigger:** An unauthenticated call.\n"
+                "**Outcome**: A presigned URL is returned.\n**Anchor:** auth-on-route\n\n"
+                f"[BLOCK-MERGE] {SHA}\n")
+        result = ai_review.decide(text, SHA)
+        self.assertEqual(result["verdict"], "BLOCK")
+        self.assertEqual(result["items"][0]["trigger"], "An unauthenticated call.")
+        self.assertEqual(result["items"][0]["location"], "packages/infra/src/api.ts:42")
+
+    def test_unfinished_review_reported_on_failure_or_timeout_only(self):
+        self.assertTrue(post.should_report_unfinished("failure", elapsed_s=60, timeout_minutes=30))
+        self.assertTrue(post.should_report_unfinished("cancelled", elapsed_s=30 * 60 - 5, timeout_minutes=30))
+        # cancelled early: a newer run in the same concurrency group replaced this one
+        self.assertFalse(post.should_report_unfinished("cancelled", elapsed_s=120, timeout_minutes=30))
+        self.assertFalse(post.should_report_unfinished("success", elapsed_s=60, timeout_minutes=30))
+
+
 if __name__ == "__main__":
     unittest.main()

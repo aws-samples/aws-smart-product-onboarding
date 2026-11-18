@@ -69,6 +69,23 @@ class Hardening(unittest.TestCase):
         self.assertGreater(creds, install)
         self.assertIn("--require-hashes", steps(LANE)[install])
 
+    def test_unconfigured_lane_posts_before_any_install(self):
+        names = [s.split("\n", 1)[0] for s in steps(LANE)]
+        configured = names.index("Skip when the review role is not configured")
+        install = names.index("Install the reviewer's dependencies")
+        self.assertLess(configured, install)
+        self.assertIn('python3 "$REVIEWER/post.py"', steps(LANE)[configured])
+        self.assertIn("if: steps.configured.outputs.ok == 'true'", steps(LANE)[install])
+
+    def test_unfinished_step_covers_timeouts(self):
+        step = next(s for s in steps(LANE) if s.startswith("Report a review that could not finish"))
+        self.assertIn("if: (failure() || cancelled()) && steps.configured.outputs.ok == 'true'", step)
+        self.assertIn("--unfinished", step)
+        self.assertIn("${{ job.status }}", step)
+        timeout = re.search(r"timeout-minutes: (\d+)", LANE).group(1)
+        self.assertIn(f'JOB_TIMEOUT_MINUTES: "{timeout}"', LANE)
+        self.assertTrue(steps(LANE)[0].startswith("Record the job start time"))
+
     def test_forks_and_dependabot_not_reviewed_automatically(self):
         self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", PR)
         self.assertIn("github.event.pull_request.user.login != 'dependabot[bot]'", PR)

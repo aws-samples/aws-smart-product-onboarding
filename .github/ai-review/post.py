@@ -4,12 +4,14 @@
 
 usage: post.py --lane opus|gpt --pr N --out DIR      (DIR holds result.json and comment.md)
        post.py --lane opus|gpt --pr N --head-sha SHA --skipped REASON
+       post.py --lane opus|gpt --pr N --head-sha SHA --unfinished JOB_STATUS --started EPOCH --timeout-minutes M
 """
 
 import argparse
 import json
 import os
 import pathlib
+import time
 
 import github_api as gh
 from ai_review import LANES, comment_marker, redact
@@ -18,6 +20,18 @@ BOT = "github-actions[bot]"
 # Advisory phase: a BLOCK is reported as neutral, so it never reads as failed CI. Change BLOCK to
 # "failure" when the maintainers want the lanes to gate merging.
 CONCLUSIONS = {"PASS": "success", "BLOCK": "neutral", "INCOMPLETE": "neutral", "SKIPPED": "neutral"}
+
+
+def should_report_unfinished(job_status: str, elapsed_s: float, timeout_minutes: int) -> bool:
+    """Report a failed review, or one cancelled by the job timeout, but not one a newer run replaced.
+
+    A job timeout and a `cancel-in-progress` cancellation both end the job as `cancelled`. Only the
+    timeout happens at the time limit, so a cancellation that close to it is read as the timeout.
+    shortcut: a newer push in the last minute before the limit is also reported; harmless, it names this run.
+    """
+    if job_status == "failure":
+        return True
+    return job_status == "cancelled" and elapsed_s >= timeout_minutes * 60 - 60
 
 
 def find_lane_comment(comments, lane: str):
@@ -54,8 +68,18 @@ def main():
     ap.add_argument("--out")
     ap.add_argument("--head-sha")
     ap.add_argument("--skipped")
+    ap.add_argument("--unfinished", metavar="JOB_STATUS")
+    ap.add_argument("--started", type=float)
+    ap.add_argument("--timeout-minutes", type=int)
     a = ap.parse_args()
     repo = os.environ["GITHUB_REPOSITORY"]
+
+    if a.unfinished:
+        if should_report_unfinished(a.unfinished, time.time() - a.started, a.timeout_minutes):
+            post_check(repo, a.lane, a.head_sha, "INCOMPLETE", "The review did not finish; see the workflow run.")
+        else:
+            print(f"not reporting: the job ended as {a.unfinished} before its time limit (replaced by a newer run)")
+        return
 
     if a.skipped:
         post_check(repo, a.lane, a.head_sha, "SKIPPED", redact(a.skipped))
