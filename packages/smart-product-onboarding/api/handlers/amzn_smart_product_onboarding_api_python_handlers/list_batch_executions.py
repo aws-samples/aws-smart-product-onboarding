@@ -15,7 +15,7 @@ from amzn_smart_product_onboarding_api_runtime.api.operation_config import (
     ListBatchExecutionsOperationResponses,
 )
 
-from .utils import get_dynamodb_resource
+from .utils import get_dynamodb_resource, request_log_fields
 from .repository import DynamoDBSessionRepository
 
 SESSION_TABLE = os.getenv("SESSION_TABLE")
@@ -59,8 +59,8 @@ def list_batch_executions(input: ListBatchExecutionsRequest, **kwargs) -> ListBa
     Type-safe handler for the ListBatchExecutions operation
     """
     logger = LoggingInterceptor.get_logger(input)
-    logger.info("Start CategorizeProductResult Operation")
-    logger.debug(f"Input: {input}")
+    logger.info("Start ListBatchExecutions operation", extra=request_log_fields(input))
+    logger.debug(f"Request parameters: {input.request_parameters}")
 
     if not SESSION_TABLE:
         logger.exception("SESSION_TABLE is not set")

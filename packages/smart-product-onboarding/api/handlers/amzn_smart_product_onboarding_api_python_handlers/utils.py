@@ -18,6 +18,16 @@ else:
     S3Client = object
 
 
+def request_log_fields(request) -> dict:
+    """Request metadata that is safe to log.
+
+    Never log the request object or the raw API Gateway event: they carry the request
+    headers (including Authorization) and the authorizer claims.
+    """
+    request_context = (request.event or {}).get("requestContext") or {}
+    return {"api_request_id": request_context.get("requestId")}
+
+
 def get_sfn_client() -> SFNClient:
     return Session().client("stepfunctions")
 
