@@ -112,7 +112,9 @@ def api_handler(
 
     def decorate(operation: Callable[[ApiRequest[Any]], ApiResponse]):
         @wraps(operation)
-        @logger.inject_lambda_context
+        # Never log the raw event, even when POWERTOOLS_LOGGER_LOG_EVENT is set: it carries the
+        # Authorization header and the authorizer claims.
+        @logger.inject_lambda_context(log_event=False)
         def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             logger.append_keys(operationId=operation_id)
             metrics.namespace = metrics.namespace or operation_id
@@ -133,11 +135,11 @@ def api_handler(
                         event=event,
                         context=context,
                     )
-                    try:
-                        return _to_proxy_result(operation(request))
-                    except Exception:
-                        logger.exception("Unhandled error")
-                        return _to_proxy_result(Response.internal_failure("Internal Error"))
+                    # An error leaves the subsegment so the trace records it as a fault.
+                    return _to_proxy_result(operation(request))
+            except Exception:
+                logger.exception("Unhandled error")
+                return _to_proxy_result(Response.internal_failure("Internal Error"))
             finally:
                 metrics.flush_metrics()
                 logger.remove_keys(["operationId"])

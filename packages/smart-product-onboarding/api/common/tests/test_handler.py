@@ -98,6 +98,33 @@ def test_unhandled_errors_get_500():
     assert json.loads(result["body"]) == {"message": "Internal Error"}
 
 
+def test_unhandled_errors_are_recorded_on_the_trace(monkeypatch):
+    from contextlib import contextmanager
+
+    from amzn_smart_product_onboarding_api_common import handler as handler_module
+
+    seen = []
+
+    @contextmanager
+    def in_subsegment(name):
+        # Like the X-Ray subsegment context manager: an exception that leaves the
+        # block is recorded on the subsegment as a fault.
+        try:
+            yield SimpleNamespace(put_annotation=lambda **_: None)
+        except Exception as e:
+            seen.append((name, e))
+            raise
+
+    monkeypatch.setattr(handler_module.tracer.provider, "in_subsegment", in_subsegment)
+
+    def fail(_request):
+        raise RuntimeError("boom")
+
+    result = api_handler("op")(fail)(event(), CONTEXT)
+    assert result["statusCode"] == 500
+    assert [(name, str(e)) for name, e in seen] == [("## op", "boom")]
+
+
 def test_path_and_query_parameters_are_decoded():
     captured = []
     api_handler("op")(lambda request: captured.append(request) or Response.not_found("x"))(
@@ -110,3 +137,22 @@ def test_path_and_query_parameters_are_decoded():
 def test_response_bodies_omit_unset_optional_fields():
     result = api_handler("op")(lambda _request: Response.success(PresignedUrlResponse(url="u")))(event(), CONTEXT)
     assert json.loads(result["body"]) == {"url": "u"}
+
+
+def test_raw_event_is_not_logged_when_event_logging_is_enabled(monkeypatch):
+    import io
+
+    from amzn_smart_product_onboarding_api_common import handler as handler_module
+
+    logged = io.StringIO()
+    monkeypatch.setattr(handler_module.logger.registered_handler, "stream", logged)
+    monkeypatch.setenv("POWERTOOLS_LOGGER_LOG_EVENT", "true")
+    token = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.c2ln"
+    request_event = {**event(), "headers": {"Authorization": token}}
+
+    # Decorate after setting the variable: the logger reads it when it wraps the handler.
+    api_handler("op")(lambda _request: Response.not_found("x"))(request_event, CONTEXT)
+    handler_module.logger.info("after the request")
+
+    assert "after the request" in logged.getvalue()
+    assert token not in logged.getvalue()
