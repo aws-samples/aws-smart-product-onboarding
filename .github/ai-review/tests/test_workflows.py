@@ -38,16 +38,21 @@ class Hardening(unittest.TestCase):
 
     def test_reviewer_comes_from_trusted_ref(self):
         checkouts = [s for s in steps(LANE) if "actions/checkout@" in s]
-        self.assertEqual(len(checkouts), 1)
-        self.assertIn("ref: ${{ inputs.trusted-ref }}", checkouts[0])
-        self.assertIn("sparse-checkout: .github/ai-review", checkouts[0])
+        self.assertEqual(len(checkouts), 2)
+        default, base = checkouts
+        self.assertIn("if: github.event_name != 'pull_request'", default)
+        self.assertIn("ref: ${{ github.sha }}", default)
+        self.assertIn("if: github.event_name == 'pull_request'", base)
+        self.assertIn("ref: ${{ inputs.trusted-ref }}", base)
+        for c in checkouts:
+            self.assertIn("sparse-checkout: .github/ai-review", c)
         # the reusable lane never refers to the pull request head as something to check out
         self.assertNotRegex(LANE, r"ref: \$\{\{ inputs\.head-sha")
         # same-repo: the base commit, or this pull request's copy only when the base has no reviewer
         self.assertIn("trusted-ref: ${{ needs.reviewer.outputs.ref }}", PR)
         self.assertIn('contents/.github/ai-review/ai_review.py?ref=$BASE_SHA" --silent; then\n'
                       '            echo "ref=$BASE_SHA"', PR)
-        self.assertIn("trusted-ref: ${{ github.sha }}", COMMAND)
+        self.assertNotIn("trusted-ref", COMMAND)
 
     def test_command_path_never_uses_pull_request_code(self):
         self.assertNotRegex(COMMAND, r"ref: .*(head|refs/pull)")

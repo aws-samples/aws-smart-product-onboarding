@@ -15,7 +15,9 @@ import github_api as gh
 from ai_review import LANES, comment_marker, redact
 
 BOT = "github-actions[bot]"
-CONCLUSIONS = {"PASS": "success", "BLOCK": "failure", "INCOMPLETE": "neutral", "SKIPPED": "neutral"}
+# Advisory phase: a BLOCK is reported as neutral, so it never reads as failed CI. Change BLOCK to
+# "failure" when the maintainers want the lanes to gate merging.
+CONCLUSIONS = {"PASS": "success", "BLOCK": "neutral", "INCOMPLETE": "neutral", "SKIPPED": "neutral"}
 
 
 def find_lane_comment(comments, lane: str):

@@ -19,9 +19,11 @@ on:
         type: string
         required: true
       trusted-ref:
-        description: The commit the reviewer scripts and prompts are checked out from.
+        description: >-
+          pull_request only: the commit the reviewer scripts and prompts are checked out from.
+          On /ai-review the reviewer always comes from the default branch.
         type: string
-        required: true
+        default: ""
 
 permissions: {}
 
@@ -46,7 +48,18 @@ jobs:
       LANE: ${{ inputs.lane }}
       REVIEWER: trusted/.github/ai-review
     steps:
+      # On /ai-review the reviewer always comes from the default branch commit this run started from.
+      - name: Check out the reviewer from the default branch
+        if: github.event_name != 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: trusted
+          persist-credentials: false
+          sparse-checkout: .github/ai-review
+
       - name: Check out the reviewer from the trusted ref
+        if: github.event_name == 'pull_request'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.trusted-ref }}

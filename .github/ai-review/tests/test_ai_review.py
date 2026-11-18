@@ -77,7 +77,8 @@ class PermissionCheck(unittest.TestCase):
 class CommandAndPinning(unittest.TestCase):
     def test_parse(self):
         self.assertEqual(command.parse_command("/ai-review"), (True, None))
-        self.assertEqual(command.parse_command("  /ai-review 0123abc \n"), (True, "0123abc"))
+        self.assertEqual(command.parse_command("/ai-review 0123abc \n"), (True, "0123abc"))
+        self.assertEqual(command.parse_command(" /ai-review"), (False, None))  # the workflow filter needs it first
         self.assertEqual(command.parse_command("/ai-review now"), (False, None))
         self.assertEqual(command.parse_command("/ai-reviewer"), (False, None))
         self.assertEqual(command.parse_command("/ai-review\n/ai-review"), (False, None))
@@ -138,9 +139,9 @@ class BlockSubstantiation(unittest.TestCase):
         text = f"[AI-REVIEWED] {SHA}\nVerdict: BLOCK\nSomething feels off.\n[BLOCK-MERGE] {SHA}"
         self.assertEqual(ai_review.decide(text, SHA)["verdict"], "PASS")
 
-    def test_items_without_block_marker_are_not_a_block(self):
+    def test_block_verdict_without_block_marker_is_incomplete(self):
         text = BLOCK_REVIEW.replace(f"[BLOCK-MERGE] {SHA}", "")
-        self.assertEqual(ai_review.decide(text, SHA)["verdict"], "PASS")
+        self.assertEqual(ai_review.decide(text, SHA)["verdict"], "INCOMPLETE")
 
 
 class Redaction(unittest.TestCase):

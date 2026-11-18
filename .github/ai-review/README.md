@@ -14,7 +14,8 @@ without such an item is published as `PASS`. A reply without the `[AI-REVIEWED] 
 is published as incomplete, never as a pass.
 
 Each lane posts one PR comment, which it replaces on the next run, and an `AI review: <lane>` check
-run on the head commit. The checks are advisory: don't make them required.
+run on the head commit. The checks are advisory: a `BLOCK` shows as a neutral check, and none of
+them should be made required.
 
 ## When it runs
 

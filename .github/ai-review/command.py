@@ -24,7 +24,7 @@ ALLOWED_PERMISSIONS = {"admin", "write"}  # the collaborators API reports the ma
 
 def parse_command(body: str) -> tuple[bool, str | None]:
     """Return (is_command, requested_sha). Only a comment that is exactly the command counts."""
-    m = COMMAND.match((body or "").strip())
+    m = COMMAND.match((body or "").rstrip())  # must start the comment, as the workflow's filter requires
     return (True, m.group(1)) if m else (False, None)
 
 

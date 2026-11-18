@@ -122,6 +122,9 @@ def decide(text: str, head_sha: str) -> dict:
     kept = [i for i in items if substantiated(i)]
     if has_marker(text, "BLOCK-MERGE", head_sha) and kept:
         return {"verdict": "BLOCK", "items": kept, "dropped": len(items) - len(kept)}
+    if kept and re.search(r"^[ \t]*Verdict:[ \t]*BLOCK\b", text, re.MULTILINE):
+        # a substantiated BLOCK that lost its closing marker is no verdict, not a pass
+        return {"verdict": "INCOMPLETE", "items": [], "dropped": 0}
     return {"verdict": "PASS", "items": [], "dropped": len(items)}
 
 
