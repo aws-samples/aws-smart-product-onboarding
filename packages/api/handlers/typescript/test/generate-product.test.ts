@@ -153,4 +153,41 @@ describe("generate-product handler", () => {
     );
     expect(result.statusCode).toBe(200);
   });
+
+  it("should export a handler that takes no callback parameter", () => {
+    // Node.js 24 rejects handlers with three or more parameters.
+    const { handler } = require("../src/generate-product");
+    expect(handler.length).toBeLessThan(3);
+  });
+
+  it("should pass API Gateway events through the handler", async () => {
+    const {
+      ProductGeneratorService,
+    } = require("../src/services/productGenerator");
+    (
+      ProductGeneratorService.prototype.generateProduct as jest.Mock
+    ).mockResolvedValueOnce({
+      productData: { title: "T", description: "D" },
+      usage: { inputTokens: 10, outputTokens: 20 },
+    });
+
+    const { handler } = require("../src/generate-product");
+    const result = await handler(
+      {
+        body: JSON.stringify({ productImages: ["image1.jpg"] }),
+        headers: {},
+        multiValueHeaders: {},
+        pathParameters: null,
+        queryStringParameters: null,
+        multiValueQueryStringParameters: null,
+      },
+      {},
+    );
+
+    expect(result.statusCode).toBe(200);
+    expect(JSON.parse(result.body).product).toEqual({
+      title: "T",
+      description: "D",
+    });
+  });
 });
