@@ -72,6 +72,27 @@ describe("SignIn", () => {
     expect(screen.getByLabelText("Verification code")).toBeInTheDocument();
   });
 
+  it("requires the new password to be confirmed", async () => {
+    auth.signIn.mockResolvedValue({
+      nextStep: { signInStep: "CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED" },
+    });
+    render(<SignIn appName="Test" onSignedIn={vi.fn()} />);
+    await userEvent.type(screen.getByLabelText("Username"), "maria");
+    await userEvent.type(screen.getByLabelText("Password"), "Old-pass1");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    await userEvent.type(
+      await screen.findByLabelText("New password"),
+      "New-pass1!",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Set password and sign in" }),
+    );
+    expect(auth.confirmSignIn).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText("Confirm the new password."),
+    ).toBeInTheDocument();
+  });
+
   it("shows a readable error for a wrong password", async () => {
     auth.signIn.mockRejectedValue(
       Object.assign(new Error("x"), { name: "NotAuthorizedException" }),

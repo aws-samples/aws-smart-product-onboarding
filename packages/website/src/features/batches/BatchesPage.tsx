@@ -120,14 +120,14 @@ const RowActions: React.FC<{ batch: BatchExecution; onRetry: () => void }> = ({
         variant="quiet"
         className="px-1.5"
         aria-label={`Copy batch ID ${short}`}
-        onPress={() =>
-          navigator.clipboard
-            .writeText(batch.executionId)
-            .then(() => notify("Batch ID copied", "success"))
-            .catch(() =>
-              notify("Copying is not allowed in this browser.", "error"),
-            )
-        }
+        onPress={async () => {
+          try {
+            await navigator.clipboard.writeText(batch.executionId);
+            notify("Batch ID copied", "success");
+          } catch {
+            notify("Copying is not allowed in this browser.", "error");
+          }
+        }}
       >
         <Icon name="copy" className="size-3.5" />
       </Button>

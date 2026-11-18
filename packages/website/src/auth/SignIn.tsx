@@ -118,6 +118,7 @@ export const SignIn: React.FC<{ appName: string; onSignedIn: () => void }> = ({
 
   const go = (next: Step, message?: string) => {
     screen.current++;
+    setSubmitted(false);
     setStep(next);
     setError(undefined);
     setNotice(message);
@@ -189,10 +190,15 @@ export const SignIn: React.FC<{ appName: string; onSignedIn: () => void }> = ({
     }
   };
 
+  const [submitted, setSubmitted] = useState(false);
   const mismatch =
     confirmPassword && newPassword !== confirmPassword
       ? "The passwords do not match."
-      : undefined;
+      : submitted && !confirmPassword
+        ? "Confirm the new password."
+        : undefined;
+  // Both password-change steps need the new password twice.
+  const passwordsReady = !!newPassword && newPassword === confirmPassword;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,7 +211,8 @@ export const SignIn: React.FC<{ appName: string; onSignedIn: () => void }> = ({
         );
         break;
       case "newPassword":
-        if (mismatch) return;
+        setSubmitted(true);
+        if (!passwordsReady) return;
         void run(async () =>
           handleSignInStep(
             await confirmSignIn({ challengeResponse: newPassword }),
@@ -223,7 +230,8 @@ export const SignIn: React.FC<{ appName: string; onSignedIn: () => void }> = ({
         void run(() => sendResetCode());
         break;
       case "reset":
-        if (mismatch) return;
+        setSubmitted(true);
+        if (!passwordsReady || !code.trim()) return;
         void run(async () => {
           await confirmResetPassword({
             username: username.trim(),

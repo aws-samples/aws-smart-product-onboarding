@@ -122,6 +122,7 @@ export const ListingPanel: React.FC<{
             className="ml-auto"
             onPress={onRegenerate}
             isPending={flow.generating}
+            isDisabled={flow.classifying}
             aria-label="Regenerate listing text"
           >
             {!flow.generating && <Icon name="refresh" className="size-3.5" />}

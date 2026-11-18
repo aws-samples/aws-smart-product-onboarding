@@ -359,7 +359,8 @@ export function useProductFlow({
   };
 
   const generate = useCallback(async () => {
-    if (!canGenerate || generating) return;
+    // Not while categorizing: the listing it is categorizing would change underneath it.
+    if (!canGenerate || generating || classifying) return;
     const token = ++run.current;
     const current = () => live.current && token === run.current;
     setGenError(undefined);
@@ -429,6 +430,7 @@ export function useProductFlow({
   }, [
     canGenerate,
     generating,
+    classifying,
     images,
     fetchClient,
     generateM,
