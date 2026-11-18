@@ -1,9 +1,10 @@
 # On-demand AI review, mainly for fork pull requests: a maintainer comments `/ai-review` (optionally
-# `/ai-review <head-sha>`) on the pull request.
+# `/ai-review <head-sha>` to require that exact commit) on the pull request.
 #
 # issue_comment workflows always run from the default branch, so nothing in the pull request can
-# change this file or the reviewer it calls. The commenter must have write or admin permission. The
-# head SHA is pinned when the command is accepted, and the pull request is read as data only.
+# change this file. The commenter must have write or admin permission. The head SHA is pinned
+# here, then ai-review-dispatch.yml reviews exactly that commit, reading the pull request as data.
+# This job never checks out or runs anything from the pull request.
 name: AI review (on request)
 
 on:
@@ -20,13 +21,11 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    outputs:
-      allowed: ${{ steps.check.outputs.allowed }}
-      head-sha: ${{ steps.check.outputs.head-sha }}
+      actions: write
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Check out the reviewer from the default branch
+      - name: Check out the command handler from the default branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.repository.default_branch }}
@@ -37,6 +36,16 @@ jobs:
         id: check
         run: python3 .github/ai-review/command.py authorize
 
+      - name: Start the review of the pinned head
+        if: steps.check.outputs.allowed == 'true'
+        env:
+          PR: ${{ github.event.issue.number }}
+          HEAD_SHA: ${{ steps.check.outputs.head-sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          gh workflow run ai-review-dispatch.yml --repo "$GITHUB_REPOSITORY" --ref "$DEFAULT_BRANCH" \
+            -f pr-number="$PR" -f head-sha="$HEAD_SHA"
+
       - name: Tell the maintainer why the command was refused
         if: steps.check.outputs.allowed != 'true' && steps.check.outputs.reply == 'true'
         env:
@@ -44,21 +53,3 @@ jobs:
           PR: ${{ github.event.issue.number }}
         run: |
           gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "AI review not started: $REASON."
-
-  lanes:
-    needs: authorize
-    if: needs.authorize.outputs.allowed == 'true'
-    strategy:
-      fail-fast: false
-      matrix:
-        lane: [opus, gpt]
-    permissions:
-      contents: read
-      pull-requests: write
-      checks: write
-      id-token: write
-    uses: ./.github/workflows/ai-review-lane.yml
-    with:
-      lane: ${{ matrix.lane }}
-      pr-number: ${{ github.event.issue.number }}
-      head-sha: ${{ needs.authorize.outputs.head-sha }}

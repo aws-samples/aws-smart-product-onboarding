@@ -23,7 +23,9 @@ them should be made required.
   requests are skipped.
 - **Fork pull requests:** never automatically. A maintainer with write or admin permission
   comments `/ai-review` (or `/ai-review <head SHA>` to require that exact commit) on the pull
-  request (`ai-review-command.yml`).
+  request. `ai-review-command.yml` checks the commenter's permission, pins the head SHA and starts
+  `ai-review-dispatch.yml` on the default branch, which reviews exactly that commit. The comment
+  job itself holds no AWS access and runs no review.
 
 ## How it is kept safe
 

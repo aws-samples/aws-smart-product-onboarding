@@ -12,7 +12,8 @@ WORKFLOWS = pathlib.Path(__file__).resolve().parents[2] / "workflows"
 LANE = (WORKFLOWS / "ai-review-lane.yml").read_text()
 PR = (WORKFLOWS / "ai-review.yml").read_text()
 COMMAND = (WORKFLOWS / "ai-review-command.yml").read_text()
-ALL = {"lane": LANE, "pr": PR, "command": COMMAND}
+DISPATCH = (WORKFLOWS / "ai-review-dispatch.yml").read_text()
+ALL = {"lane": LANE, "pr": PR, "command": COMMAND, "dispatch": DISPATCH}
 
 
 def steps(text: str) -> list[str]:
@@ -38,26 +39,28 @@ class Hardening(unittest.TestCase):
 
     def test_reviewer_comes_from_trusted_ref(self):
         checkouts = [s for s in steps(LANE) if "actions/checkout@" in s]
-        self.assertEqual(len(checkouts), 2)
-        default, base = checkouts
-        self.assertIn("if: github.event_name != 'pull_request'", default)
-        self.assertIn("ref: ${{ github.sha }}", default)
-        self.assertIn("if: github.event_name == 'pull_request'", base)
-        self.assertIn("ref: ${{ inputs.trusted-ref }}", base)
-        for c in checkouts:
-            self.assertIn("sparse-checkout: .github/ai-review", c)
+        self.assertEqual(len(checkouts), 1)
+        self.assertIn("ref: ${{ inputs.trusted-ref }}", checkouts[0])
+        self.assertIn("sparse-checkout: .github/ai-review", checkouts[0])
         # the reusable lane never refers to the pull request head as something to check out
         self.assertNotRegex(LANE, r"ref: \$\{\{ inputs\.head-sha")
         # same-repo: the base commit, or this pull request's copy only when the base has no reviewer
         self.assertIn("trusted-ref: ${{ needs.reviewer.outputs.ref }}", PR)
         self.assertIn('contents/.github/ai-review/ai_review.py?ref=$BASE_SHA" --silent; then\n'
                       '            echo "ref=$BASE_SHA"', PR)
-        self.assertNotIn("trusted-ref", COMMAND)
+        # dispatched: the default branch, and only when started from it
+        self.assertIn("trusted-ref: ${{ github.sha }}", DISPATCH)
+        self.assertIn("if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)", DISPATCH)
 
     def test_command_path_never_uses_pull_request_code(self):
         self.assertNotRegex(COMMAND, r"ref: .*(head|refs/pull)")
         self.assertIn("ref: ${{ github.event.repository.default_branch }}", COMMAND)
-        self.assertIn("head-sha: ${{ needs.authorize.outputs.head-sha }}", COMMAND)
+        self.assertNotIn("uses: ./", COMMAND)  # the privileged comment job runs no review itself
+        self.assertNotIn("id-token", COMMAND)
+        self.assertIn('gh workflow run ai-review-dispatch.yml --repo "$GITHUB_REPOSITORY" --ref "$DEFAULT_BRANCH"',
+                      COMMAND)
+        self.assertIn('-f head-sha="$HEAD_SHA"', COMMAND)
+        self.assertIn("HEAD_SHA: ${{ steps.check.outputs.head-sha }}", COMMAND)
 
     def test_credentials_assumed_after_installs(self):
         names = [s.split("\n", 1)[0] for s in steps(LANE)]
@@ -70,12 +73,12 @@ class Hardening(unittest.TestCase):
         self.assertIn("github.event.pull_request.head.repo.full_name == github.repository", PR)
         self.assertIn("github.event.pull_request.user.login != 'dependabot[bot]'", PR)
         self.assertIn("github.actor != 'dependabot[bot]'", PR)
-        self.assertNotIn("pull_request_target", PR + COMMAND + LANE)
+        self.assertNotIn("pull_request_target", PR + COMMAND + LANE + DISPATCH)
 
     def test_oidc_scoped_by_environment(self):
         self.assertIn("environment: ai-review", LANE)
         self.assertIn("role-to-assume: ${{ vars.AI_REVIEW_ROLE_ARN }}", LANE)
-        self.assertNotRegex(LANE + PR + COMMAND, r"\d{12}")
+        self.assertNotRegex(LANE + PR + COMMAND + DISPATCH, r"\d{12}")
 
     def test_iam_policy_covers_exactly_the_lane_models(self):
         import ai_review
