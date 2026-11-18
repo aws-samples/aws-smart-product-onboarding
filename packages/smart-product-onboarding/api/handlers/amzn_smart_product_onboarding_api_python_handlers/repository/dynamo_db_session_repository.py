@@ -5,7 +5,7 @@ import json
 from typing import TYPE_CHECKING, Optional
 from boto3.dynamodb.conditions import Key
 
-from amzn_smart_product_onboarding_api_runtime.api.operation_config import BatchExecution
+from amzn_smart_product_onboarding_api_common.models import BatchExecution
 from amzn_smart_product_onboarding_api_python_handlers.repository import AbstractRepository, ResourceNotFound
 
 if TYPE_CHECKING:

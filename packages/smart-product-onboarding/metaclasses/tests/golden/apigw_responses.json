@@ -1,0 +1,38 @@
+{
+  "metaclass: classifier error": {
+    "raises": "AttributeError"
+  },
+  "metaclass: success": {
+    "body": {
+      "possibleCategories": [
+        "10000637",
+        "10000638"
+      ]
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 200
+  },
+  "metaclass: success with demo": {
+    "raises": "AttributeError"
+  },
+  "metaclass: success with demo and no findings": {
+    "body": {
+      "cleanTitle": "aviator sunglasses",
+      "findings": [],
+      "possibleCategories": [
+        "10000637",
+        "10000638"
+      ]
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 200
+  }
+}

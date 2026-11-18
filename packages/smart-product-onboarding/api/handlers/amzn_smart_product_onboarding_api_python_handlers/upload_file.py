@@ -3,19 +3,15 @@
 
 import os
 from pathlib import Path
-from uuid import uuid5, uuid4, NAMESPACE_X500
+from uuid import NAMESPACE_X500, uuid4, uuid5
 
-from amzn_smart_product_onboarding_api_runtime.models import *
-from amzn_smart_product_onboarding_api_runtime.response import Response
-from amzn_smart_product_onboarding_api_runtime.interceptors import INTERCEPTORS
-from amzn_smart_product_onboarding_api_runtime.interceptors.powertools.logger import LoggingInterceptor
-from amzn_smart_product_onboarding_api_runtime.api.operation_config import (
-    upload_file_handler,
-    UploadFileRequest,
-    UploadFileOperationResponses,
+from amzn_smart_product_onboarding_api_common.handler import ApiRequest, ApiResponse, Response, api_handler, logger
+from amzn_smart_product_onboarding_api_common.models import (
+    PresignedUrlResponse,
+    UploadFileRequestContent,
 )
 
-from .utils import get_s3_client, create_presigned_url, request_log_fields
+from .utils import create_presigned_url, get_s3_client, request_log_fields
 
 INPUT_BUCKET_NAME = os.getenv("INPUT_BUCKET_NAME")
 
@@ -35,23 +31,22 @@ def create_object_key(input, file_name: str, logger):
         return f"uploads/{str(uuid4())}-{file_name}"
 
 
-def upload_file(input: UploadFileRequest, **kwargs) -> UploadFileOperationResponses:
+def upload_file(input: ApiRequest[UploadFileRequestContent]) -> ApiResponse:
     """
-    Type-safe handler for the UploadFile operation
+    Handler for the UploadFile operation
     """
-    logger = LoggingInterceptor.get_logger(input)
     logger.info("Start UploadFile operation", extra={**request_log_fields(input), "file_name": input.body.file_name})
 
     if not INPUT_BUCKET_NAME:
         logger.exception("INPUT_BUCKET_NAME is not set")
-        return Response.internal_failure(InternalFailureErrorResponseContent(message="Internal Failure"))
+        return Response.internal_failure("Internal Failure")
 
     file_name = input.body.file_name
 
     # validate input
     if not file_name:
         logger.exception("fileName parameter is not set")
-        return Response.internal_failure(BadRequestErrorResponseContent(message="Invalid request format"))
+        return Response.internal_failure("Invalid request format")
 
     object_key = create_object_key(input, file_name, logger)
 
@@ -68,7 +63,7 @@ def upload_file(input: UploadFileRequest, **kwargs) -> UploadFileOperationRespon
         content_type = "text/csv"
     else:
         logger.exception("Unsupported file type")
-        return Response.internal_failure(BadRequestErrorResponseContent(message="Invalid request format"))
+        return Response.internal_failure("Invalid request format")
 
     s3_client = get_s3_client()
 
@@ -78,7 +73,9 @@ def upload_file(input: UploadFileRequest, **kwargs) -> UploadFileOperationRespon
             logger,
             INPUT_BUCKET_NAME,
             object_key=object_key,
-            expiration=input.body.expiration,
+            # shortcut: the definition defaults expiration to 300, but an omitted value has always meant
+            # the SDK default (3600). Keep that until the definition and the clients agree.
+            expiration=input.body.expiration if "expiration" in input.body.model_fields_set else None,
             client_method="put_object",
             content_type=content_type,
         )
@@ -86,9 +83,8 @@ def upload_file(input: UploadFileRequest, **kwargs) -> UploadFileOperationRespon
         return Response.success(PresignedUrlResponse(url=presigned_upload_link, object_key=object_key))
     except Exception as e:
         logger.exception(f"Error generating presigned url: {e}")
-        return Response.internal_failure(InternalFailureErrorResponseContent(message="Error generating presigned URL"))
+        return Response.internal_failure("Error generating presigned URL")
 
 
 # Entry point for the AWS Lambda handler for the UploadFile operation.
-# The upload_file_handler method wraps the type-safe handler and manages marshalling inputs and outputs
-handler = upload_file_handler(interceptors=INTERCEPTORS)(upload_file)
+handler = api_handler("upload_file", UploadFileRequestContent)(upload_file)
