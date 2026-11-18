@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: MIT-0
  */
 
-import { PDKPipeline } from "@aws/pdk/pipeline";
 import { Semaphore } from "@dontirun/state-machine-semaphore";
 import {
   ArnFormat,
@@ -21,6 +20,7 @@ import { NagSuppressions } from "cdk-nag";
 import { Construct, ConstructOrder } from "constructs";
 import { AttributeExtractionTask } from "./attribute-extraction";
 import { CategorizationTask } from "./categorization";
+import { getBranchPrefix } from "../../branch-prefix";
 import { ErrorStatusFragment } from "../api-persistence/error-status";
 import { createUpdateStatusTask } from "../api-persistence/update-status-task-builder";
 import { SfnCsvResultwriter } from "../sfn-csv-resultwriter/sfn-csv-resultwriter";
@@ -52,9 +52,7 @@ export class CategorizationWorkflow extends Construct {
     props: CategorizationWorkflowProps,
   ) {
     super(scope, id);
-    const branchPrefix = PDKPipeline.getBranchPrefix({
-      node: Stack.of(this).node,
-    });
+    const branchPrefix = getBranchPrefix(Stack.of(this).node);
 
     const extractImagesTask = new ExtractImagesTask(this, "ExtractImagesTask", {
       imagesBucket: props.inputBucket,
