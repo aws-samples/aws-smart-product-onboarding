@@ -17,8 +17,8 @@ import secrets
 HERE = pathlib.Path(__file__).parent
 REGION = "us-west-2"
 LANES = {
-    "opus": {"name": "Claude Opus", "model": "us.anthropic.claude-opus-5-5"},
-    "gpt": {"name": "GPT", "model": "us.openai.gpt-6.2-sol"},
+    "opus": {"name": "Claude Opus", "model": "global.anthropic.claude-opus-5-5"},
+    "gpt": {"name": "GPT", "model": "global.openai.gpt-6.2-sol"},
 }
 ANCHORS = {
     "auth-on-route",

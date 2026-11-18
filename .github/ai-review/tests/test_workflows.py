@@ -4,8 +4,10 @@
 
 import pathlib
 import re
+import sys
 import unittest
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 WORKFLOWS = pathlib.Path(__file__).resolve().parents[2] / "workflows"
 LANE = (WORKFLOWS / "ai-review-lane.yml").read_text()
 PR = (WORKFLOWS / "ai-review.yml").read_text()
@@ -67,6 +69,22 @@ class Hardening(unittest.TestCase):
         self.assertIn("environment: ai-review", LANE)
         self.assertIn("role-to-assume: ${{ vars.AI_REVIEW_ROLE_ARN }}", LANE)
         self.assertNotRegex(LANE + PR + COMMAND, r"\d{12}")
+
+    def test_iam_policy_covers_exactly_the_lane_models(self):
+        import ai_review
+
+        iam = (WORKFLOWS.parent / "ai-review" / "iam.yaml").read_text()
+        for lane in ai_review.LANES.values():
+            profile = lane["model"]
+            model = profile.split(".", 1)[1]
+            self.assertTrue(profile.startswith("global."), profile)
+            # the profile resource, plus the profile condition on both model statements
+            self.assertEqual(iam.count(f":inference-profile/{profile}"), 3, profile)
+            self.assertIn(f"bedrock:${{AWS::Region}}::foundation-model/{model}", iam)
+            self.assertIn(f"bedrock:::foundation-model/{model}", iam)
+        self.assertEqual(set(re.findall(r"Action: \[(.*)\]", iam)),
+                         {"bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream"})
+        self.assertIn("aws:RequestedRegion: unspecified", iam)
 
 
 if __name__ == "__main__":

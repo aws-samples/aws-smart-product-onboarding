@@ -50,30 +50,44 @@ Resources:
         - PolicyName: invoke-review-models
           PolicyDocument:
             Version: "2012-10-17"
+            # The three-part form for global cross-Region inference profiles:
+            # https://docs.aws.amazon.com/bedrock/latest/userguide/global-cross-region-inference.html
+            # Converse and ConverseStream are authorized by these two actions.
             Statement:
-              # Converse and ConverseStream are authorized by these two actions.
-              - Sid: InvokeReviewInferenceProfiles
+              - Sid: InvokeGlobalInferenceProfilesInSourceRegion
                 Effect: Allow
                 Action: [bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream]
                 Resource:
-                  - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.anthropic.claude-opus-5-5
-                  - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.openai.gpt-6.2-sol
-              # The US profiles route to these regions; the models are reachable only through the profiles.
-              - Sid: InvokeReviewModelsThroughProfiles
-                Effect: Allow
-                Action: [bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream]
-                Resource:
-                  - !Sub arn:${AWS::Partition}:bedrock:us-east-1::foundation-model/anthropic.claude-opus-5-5
-                  - !Sub arn:${AWS::Partition}:bedrock:us-east-2::foundation-model/anthropic.claude-opus-5-5
-                  - !Sub arn:${AWS::Partition}:bedrock:us-west-2::foundation-model/anthropic.claude-opus-5-5
-                  - !Sub arn:${AWS::Partition}:bedrock:us-east-1::foundation-model/openai.gpt-6.2-sol
-                  - !Sub arn:${AWS::Partition}:bedrock:us-east-2::foundation-model/openai.gpt-6.2-sol
-                  - !Sub arn:${AWS::Partition}:bedrock:us-west-2::foundation-model/openai.gpt-6.2-sol
+                  - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/global.anthropic.claude-opus-5-5
+                  - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/global.openai.gpt-6.2-sol
                 Condition:
                   StringEquals:
+                    aws:RequestedRegion: !Ref AWS::Region
+              - Sid: InvokeSourceRegionModelsThroughProfiles
+                Effect: Allow
+                Action: [bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream]
+                Resource:
+                  - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/anthropic.claude-opus-5-5
+                  - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/openai.gpt-6.2-sol
+                Condition:
+                  StringEquals:
+                    aws:RequestedRegion: !Ref AWS::Region
                     bedrock:InferenceProfileArn:
-                      - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.anthropic.claude-opus-5-5
-                      - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.openai.gpt-6.2-sol
+                      - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/global.anthropic.claude-opus-5-5
+                      - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/global.openai.gpt-6.2-sol
+              # The region-less model ARN is what global routing to other Regions is evaluated against.
+              - Sid: InvokeGlobalModelsThroughProfiles
+                Effect: Allow
+                Action: [bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream]
+                Resource:
+                  - !Sub arn:${AWS::Partition}:bedrock:::foundation-model/anthropic.claude-opus-5-5
+                  - !Sub arn:${AWS::Partition}:bedrock:::foundation-model/openai.gpt-6.2-sol
+                Condition:
+                  StringEquals:
+                    aws:RequestedRegion: unspecified
+                    bedrock:InferenceProfileArn:
+                      - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/global.anthropic.claude-opus-5-5
+                      - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/global.openai.gpt-6.2-sol
 
 Outputs:
   RoleArn:

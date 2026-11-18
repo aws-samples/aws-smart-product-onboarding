@@ -1,7 +1,7 @@
 # AI pull request review
 
-Two advisory review lanes run on Amazon Bedrock: Claude Opus (`us.anthropic.claude-opus-5-5`) and
-GPT (`us.openai.gpt-6.2-sol`). Each lane works alone and never sees the other lane's output. It
+Two advisory review lanes run on Amazon Bedrock: Claude Opus (`global.anthropic.claude-opus-5-5`) and
+GPT (`global.openai.gpt-6.2-sol`). Each lane works alone and never sees the other lane's output. It
 makes two model calls:
 
 1. **Discovery** lists candidate defects in the change.
