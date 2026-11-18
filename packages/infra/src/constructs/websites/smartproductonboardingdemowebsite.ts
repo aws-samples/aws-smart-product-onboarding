@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: MIT-0
  */
 
-import { UserIdentity } from "@aws/pdk/identity";
 import { aws_s3 as s3, Stack } from "aws-cdk-lib";
 import { BucketDeployment, Source } from "aws-cdk-lib/aws-s3-deployment";
 import { Construct } from "constructs";
 import { SmartProductOnboardingAPI } from "../apis/smartproductonboardingapi";
+import { UserIdentity } from "../user-identity/user-identity";
 
 /**
  * Website construct props
