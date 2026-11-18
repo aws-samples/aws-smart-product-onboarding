@@ -10,6 +10,7 @@ import {
   generateProductHandler,
   INTERCEPTORS,
   LoggingInterceptor,
+  OperationApiGatewayLambdaHandler,
   Response,
 } from "@aws-samples/smart-product-onboarding-api-typescript-runtime";
 import {
@@ -133,8 +134,18 @@ export const generateProduct: GenerateProductChainedHandlerFunction = async (
   }
 };
 
+const generatedHandler = generateProductHandler(
+  ...INTERCEPTORS,
+  generateProduct,
+);
+
 /**
  * Entry point for the AWS Lambda handler for the GenerateProduct operation.
- * The generateProductHandler method wraps the type-safe handler and manages marshalling inputs and outputs
+ * The generateProductHandler method wraps the type-safe handler and manages marshalling inputs and outputs.
+ * The generated wrapper also declares a callback parameter, and Node.js 24 rejects handlers
+ * that take three or more parameters, so only the event and context are passed through.
  */
-export const handler = generateProductHandler(...INTERCEPTORS, generateProduct);
+export const handler: OperationApiGatewayLambdaHandler<"generateProduct"> = (
+  event,
+  context,
+) => generatedHandler(event, context);
