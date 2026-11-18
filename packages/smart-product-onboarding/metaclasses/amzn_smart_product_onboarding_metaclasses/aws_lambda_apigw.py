@@ -128,7 +128,7 @@ metaclass_classifier = MetaclassClassifier(
 
 
 def metaclass(event: MetaclassRequest, **kwargs) -> MetaclassOperationResponses:
-    logger.debug(f"Event received {event}")
+    logger.debug(f"Request body: {event.body}")
     demo = event.body.demo
     try:
         prediction = metaclass_classifier.classify(
