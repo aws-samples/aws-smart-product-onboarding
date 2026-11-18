@@ -23,6 +23,10 @@ jobs:
           python-version: '3.14'
       - name: Install dependencies
         run: pnpm install
+      - name: Check that the generated API types match the OpenAPI definition
+        run: |
+          npx nx run @aws-samples/smart-product-onboarding-api-types:generate
+          git diff --exit-code -- packages/api/generated/types
       - name: CDK Synth
         run: npx nx run @aws-samples/smart-product-onboarding-infra:synth
 
