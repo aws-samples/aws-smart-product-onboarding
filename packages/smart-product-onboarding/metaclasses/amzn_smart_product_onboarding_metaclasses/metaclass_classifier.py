@@ -32,6 +32,15 @@ if TYPE_CHECKING:
 
 WORD_LIMIT = 20
 
+
+def split_words(text: str) -> list[str]:
+    """Split on whitespace and hyphens so "t-shirt" can match the vocabulary word "shirt"; drop 1-letter parts."""
+    words = []
+    for token in text.split():
+        parts = token.split("-") if "-" in token else [token]
+        words.extend(p for p in parts if len(p) > 1 or p == token)
+    return words
+
 logger.name = "MetaclassClassifier"
 
 LOW_THRESHOLD_SIMILARITY = 0.4
@@ -122,7 +131,7 @@ class MetaclassClassifier:
         clean_text = rephrased.lower()
         clean_text = self.text_cleaner.singularize_sentence(clean_text)
         logger.info(f"Clean text: {clean_text}")
-        words = clean_text.split()
+        words = split_words(clean_text)
         if len(words) > WORD_LIMIT:
             logger.warn(f"Truncating text at {WORD_LIMIT} words")
             words = words[:WORD_LIMIT]

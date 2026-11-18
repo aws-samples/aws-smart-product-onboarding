@@ -18,7 +18,8 @@ def handler(event, _context):
         "description": event.get("description", ""),
         "short_description": event.get("short_description", ""),
         "metadata": event.get("metadata", ""),
-        "images": ast.literal_eval(event.get("images", "[]")),
+        # An empty CSV cell arrives as "", which literal_eval rejects.
+        "images": ast.literal_eval(event.get("images") or "[]"),
     }
 
     if not (input["title"] and input["description"]) and not input["images"]:

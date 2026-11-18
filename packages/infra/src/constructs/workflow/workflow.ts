@@ -266,6 +266,7 @@ export class CategorizationWorkflow extends Construct {
           branchPrefix + "ProductCategorization",
           {
             removalPolicy: RemovalPolicy.DESTROY,
+            retention: logs.RetentionDays.ONE_MONTH,
             logGroupName:
               "/aws/vendedlogs/states/" +
               branchPrefix +

@@ -13,12 +13,20 @@ import {
   ArnFormat,
   aws_iam as iam,
   aws_lambda as lambda,
+  aws_logs as logs,
   aws_s3 as s3,
   aws_stepfunctions as sfn,
   Duration,
+  RemovalPolicy,
   Stack,
 } from "aws-cdk-lib";
-import { EndpointType, ResponseType } from "aws-cdk-lib/aws-apigateway";
+import {
+  AccessLogFormat,
+  EndpointType,
+  LogGroupLogDestination,
+  MethodLoggingLevel,
+  ResponseType,
+} from "aws-cdk-lib/aws-apigateway";
 import { Effect, PolicyDocument, PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { NagSuppressions } from "cdk-nag";
 import { Construct } from "constructs";
@@ -305,6 +313,11 @@ export class SmartProductOnboardingAPI extends Construct {
       );
     }
 
+    const accessLogs = new logs.LogGroup(this, "AccessLogs", {
+      retention: logs.RetentionDays.ONE_MONTH,
+      removalPolicy: RemovalPolicy.RETAIN,
+    });
+
     this.api = new Api(this, id, {
       defaultAuthorizer: Authorizers.cognito({
         authorizerId: "CognitoUserPool",
@@ -346,7 +359,21 @@ export class SmartProductOnboardingAPI extends Construct {
         },
       },
       policy: new PolicyDocument({}),
+      // Matches the TypeSafeRestApi defaults field for field, with the log retention set explicitly.
+      // The props spread replaces deployOptions as a whole, so every default field is restated here.
+      deployOptions: {
+        accessLogDestination: new LogGroupLogDestination(accessLogs),
+        accessLogFormat: AccessLogFormat.clf(),
+        loggingLevel: MethodLoggingLevel.INFO,
+      },
     });
+    // TypeSafeRestApi always creates its own "AccessLogs" group while building its defaults, even when
+    // deployOptions is passed. Remove that unused group, and keep its logical ID on ours so existing
+    // stacks update the log group in place instead of retaining an orphaned copy.
+    this.api.node.tryRemoveChild("AccessLogs");
+    (accessLogs.node.defaultChild as logs.CfnLogGroup).overrideLogicalId(
+      "ApiAccessLogs02C2A02B",
+    );
     this.api.api.addGatewayResponse("Default4XX", {
       responseHeaders: {
         "Access-Control-Allow-Origin": `'${props.corsOrigin}'`,
