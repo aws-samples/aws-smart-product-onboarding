@@ -23,6 +23,30 @@ Then you can start the website by running
 pnpm dev
 ```
 
+The first time you sign in with a temporary password, the website asks you to choose a new one. Use **Forgot your password?** on the sign-in page to reset a password with a code sent to the user's email address.
+
+## How it is built
+
+- [React Aria Components](https://react-spectrum.adobe.com/react-aria/) for accessible, unstyled UI components, styled with [Tailwind CSS](https://tailwindcss.com/) v4. The colors are CSS variables in `src/styles.css`, one set per theme, so you can restyle the app by changing them.
+- [TanStack Query](https://tanstack.com/query) with [openapi-fetch](https://openapi-ts.dev/openapi-fetch/) and [openapi-react-query](https://openapi-ts.dev/openapi-react-query/) to call the API. The calls are typed from the OpenAPI definition in `packages/api/model/src/main/openapi/main.yaml`.
+- [Amplify Auth](https://docs.amplify.aws/react/build-a-backend/auth/) to sign in to the Amazon Cognito user pool. Requests send the user's ID token in the `Authorization` header.
+
+### Regenerating the API types
+
+`src/api/schema.d.ts` is generated from the OpenAPI definition and checked in. After you change the API definition, regenerate it:
+
+```shell
+pnpm exec nx run @aws-samples/smart-product-onboarding-demo-website:generate-api
+```
+
+The PR build fails if the checked-in file doesn't match the definition.
+
+### Tests
+
+```shell
+pnpm exec nx run @aws-samples/smart-product-onboarding-demo-website:test
+```
+
 ## Warning about hosting
 
 It is definitely recommended to perform a thorough security testing, including pen-tests, before hosting this Front-end

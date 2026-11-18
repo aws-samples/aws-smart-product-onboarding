@@ -23,5 +23,11 @@ jobs:
           python-version: '3.14'
       - name: Install dependencies
         run: pnpm install
+      - name: Check that the website's API types match the OpenAPI definition
+        run: |
+          npx nx run @aws-samples/smart-product-onboarding-demo-website:generate-api
+          git diff --exit-code -- packages/website/src/api/schema.d.ts
+      - name: Build and test the website
+        run: npx nx run @aws-samples/smart-product-onboarding-demo-website:build
       - name: CDK Synth
         run: npx nx run @aws-samples/smart-product-onboarding-infra:synth
