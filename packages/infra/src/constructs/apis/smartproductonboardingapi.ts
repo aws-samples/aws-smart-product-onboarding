@@ -4,7 +4,6 @@
  */
 
 import * as path from "path";
-import { UserIdentity } from "@aws/pdk/identity";
 import {
   ArnFormat,
   aws_iam as iam,
@@ -39,6 +38,7 @@ import { ApiPersistence } from "../api-persistence/api-persistence";
 import { AttributeExtractionTaskFunction } from "../sfn-attributes-task/sfn-attributes-task";
 import { ClassificationTaskFunction } from "../sfn-classification-task/sfn-classification-task";
 import { MetaclassTaskFunction } from "../sfn-metaclass-task/sfn-metaclass-task";
+import { UserIdentity } from "../user-identity/user-identity";
 
 /**
  * Api construct props.
