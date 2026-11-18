@@ -14,7 +14,7 @@ import pathlib
 import time
 
 import github_api as gh
-from ai_review import LANES, comment_marker, redact
+from ai_review import LANES, comment_marker, redact, truncate
 
 BOT = "github-actions[bot]"
 # Advisory phase: a BLOCK is reported as neutral, so it never reads as failed CI. Change BLOCK to
@@ -58,7 +58,7 @@ def post_check(repo: str, lane: str, head_sha: str, verdict: str, summary: str, 
         "status": "completed",
         "conclusion": CONCLUSIONS[verdict],
         "output": {"title": f"{verdict} (advisory)" + (f", base {base_sha[:12]}" if base_sha else ""),
-                   "summary": summary[:60_000]},
+                   "summary": truncate(summary, 60_000)},
     })
 
 

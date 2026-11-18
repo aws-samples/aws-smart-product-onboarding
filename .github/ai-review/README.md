@@ -39,7 +39,8 @@ them should be made required.
   `persist-credentials: false`, and actions are pinned to commits.
 - Python dependencies are installed with `--require-hashes` before any AWS credentials exist. The
   role is assumed only for the review step.
-- Comments and check output are redacted for account IDs, ARNs and key or token shapes, and
+- Comments and check output are redacted for account IDs, ARNs, key and token shapes (including JWTs,
+  GitHub tokens, private keys and `Authorization` values) before they are cut to length, and
   `@mentions` are neutralized.
 
 ## Setup
