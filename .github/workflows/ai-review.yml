@@ -1,0 +1,69 @@
+# Advisory AI review of same-repo pull requests: a Claude lane and a GPT lane, blind to each other.
+# Fork pull requests are never reviewed automatically; a maintainer comments /ai-review instead
+# (see ai-review-command.yml). Dependabot pull requests are skipped.
+name: AI review
+
+on:
+  pull_request:
+    # `edited` only matters when the base branch changed (a retarget); see the job condition.
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+
+permissions: {}
+
+jobs:
+  reviewer:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository
+      && github.event.pull_request.user.login != 'dependabot[bot]'
+      && github.actor != 'dependabot[bot]'
+      && !github.event.pull_request.draft
+      && (github.event.action != 'edited' || github.event.changes.base)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      ref: ${{ steps.pick.outputs.ref }}
+    steps:
+      # The reviewer runs from the base commit. Only when the base has no reviewer yet (the pull
+      # request that adds it) does it use this same-repo pull request's copy; this workflow file
+      # comes from the pull request in that case anyway, so that widens nothing.
+      - name: Choose the commit the reviewer runs from
+        id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Only a confirmed 404 for the reviewer on the base selects the pull request's copy. Any
+          # other answer, or no answer, fails here rather than guessing.
+          code=$(gh api --include "repos/$GITHUB_REPOSITORY/contents/.github/ai-review/ai_review.py?ref=$BASE_SHA" \
+            2>/dev/null | head -n1 | awk '{print $2}') || true
+          case "$code" in
+            200)
+              echo "ref=$BASE_SHA" >> "$GITHUB_OUTPUT" ;;
+            404)
+              echo "::warning::The base commit has no reviewer; using this pull request's copy."
+              echo "ref=$HEAD_SHA" >> "$GITHUB_OUTPUT" ;;
+            *)
+              echo "::error::Could not tell whether the base commit has a reviewer (HTTP '${code}')."
+              exit 1 ;;
+          esac
+
+  lanes:
+    needs: reviewer
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: [opus, gpt]
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+      id-token: write
+    uses: ./.github/workflows/ai-review-lane.yml
+    with:
+      lane: ${{ matrix.lane }}
+      pr-number: ${{ github.event.pull_request.number }}
+      head-sha: ${{ github.event.pull_request.head.sha }}
+      trusted-ref: ${{ needs.reviewer.outputs.ref }}
