@@ -23,9 +23,13 @@
       },
       "inputs": [
         "{projectRoot}/src/**/*.ts",
+        "{projectRoot}/src/templates/**/*",
         "{projectRoot}/test/**/*.ts",
+        "{projectRoot}/test/**/*.json",
         "{projectRoot}/tsconfig.dev.json",
-        "{projectRoot}/.eslintrc.json"
+        "{projectRoot}/.eslintrc.json",
+        "{workspaceRoot}/packages/api/model/src/main/openapi/**/*",
+        "^default"
       ],
       "outputs": ["{projectRoot}/coverage", "{projectRoot}/test-reports"],
       "dependsOn": ["compile"]
