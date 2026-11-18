@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT-0
 """Unit tests for the AI review scripts. Run: python3 -m unittest discover -s .github/ai-review/tests"""
 
+import base64
 import json
 import os
 import pathlib
@@ -343,6 +344,96 @@ class EmptyLabels(unittest.TestCase):
         r = self.verdict("**Trigger:** An unauthenticated call.")
         self.assertEqual(r["verdict"], "BLOCK")
         self.assertEqual(r["items"][0]["trigger"], "An unauthenticated call.")
+
+
+def b64url(raw: str) -> str:
+    return base64.urlsafe_b64encode(raw.encode()).decode().rstrip("=")
+
+
+# Made-up values with real shapes, assembled at run time so no scanner mistakes them for real secrets.
+FAKE_JWT = ".".join([b64url('{"alg":"RS256","kid":"test-key","typ":"JWT"}'),
+                     b64url('{"sub":"00000000-0000-0000-0000-000000000000","token_use":"id"}'),
+                     b64url("not-a-real-signature-" * 4)])
+PEM_HEAD, PEM_TAIL = "-----BEGIN " + "RSA PRIVATE KEY-----", "-----END " + "RSA PRIVATE KEY-----"
+PEM_LINE = "MIIEowIBAAKCAQEAfakefakefakefakefakefakefakefakefakefakefakefake"
+USAGE = {"inputTokens": 1, "outputTokens": 1}
+
+
+class MoreRedaction(unittest.TestCase):
+    """JWTs, GitHub tokens, private keys and Authorization values, and the false positives to avoid."""
+
+    def test_jwt(self):
+        out = ai_review.redact(f"the id token is {FAKE_JWT}, sent on every call")
+        for segment in FAKE_JWT.split("."):
+            self.assertNotIn(segment, out)
+        self.assertIn("<redacted-jwt>, sent on every call", out)
+
+    def test_github_tokens(self):
+        for prefix in ("ghp_", "gho_", "ghu_", "ghs_", "ghr_"):
+            token = prefix + "Ab1" * 12
+            self.assertNotIn(token[4:], ai_review.redact(f"GH_TOKEN={token} in the log"), prefix)
+        pat = "github_" + "pat_" + "11ABCDEFG0" * 2 + "_" + "xYz9" * 15
+        self.assertNotIn(pat[11:], ai_review.redact(f"use {pat}"))
+
+    def test_pem_private_key(self):
+        block = f"{PEM_HEAD}\n{PEM_LINE}\n{PEM_LINE}\n{PEM_TAIL}"
+        out = ai_review.redact(f"key:\n{block}\nafter")
+        self.assertNotIn("MIIEow", out)
+        self.assertIn("<redacted-private-key>\nafter", out)
+        for text in (f"{PEM_HEAD}\n{PEM_LINE}\n{PEM_LINE}", f'"{PEM_HEAD}\\n{PEM_LINE}\\n{PEM_LINE}"'):
+            self.assertNotIn("MIIEow", ai_review.redact(text), "no END line")
+
+    def test_authorization_values(self):
+        sig = "0a1b2c3d" * 8
+        cases = {
+            "Authorization: Bearer abcDEF123456789.ghiJKL-mno_pqr": "abcDEF123456789",
+            "Authorization: Basic dXNlcjpwYXNzd29yZA==": "dXNlcjpwYXNz",
+            '{"Authorization": "token ZZ99yy88xx77ww66"}': "ZZ99yy88",
+            "authorization=Q1w2E3r4T5y6U7i8": "Q1w2E3r4",
+            "Authorization: AWS4-HMAC-SHA256 Credential=EXAMPLE/20260101/us-west-2/s3/aws4_request, "
+            f"SignedHeaders=host, Signature={sig}": sig,
+            "curl -H 'X-Auth: Bearer 9f8e7d6c5b4a39281706f5e4'": "9f8e7d6c5b4a",
+        }
+        for text, secret in cases.items():
+            out = ai_review.redact(text)
+            self.assertNotIn(secret, out, text)
+            self.assertIn("<redacted>", out, text)
+
+    def test_shas_paths_code_and_prose_survive(self):
+        text = (f"commit {SHA} vs {OTHER}, short {SHA[:12]}\n"
+                "packages/infra/src/api.ts:42 and .github/ai-review/ai_review.py\n"
+                'headers = {"Authorization": f"Bearer {token}"}\n'
+                'req.headers["Authorization"] = "Bearer " + token\n'
+                "authorizationType: AuthorizationType.IAM,\n"
+                "Authorization: required on every route. The bearer of the token must be signed in.\n"
+                "Tokens start with ghp_ or eyJ; the key starts with -----BEGIN.\n"
+                "const x = someFunction(argumentOne, argumentTwo);")
+        out = ai_review.redact(text)
+        self.assertEqual(out, text)
+
+    def test_mentions_neutralised_once(self):
+        once = ai_review.redact("ping @maintainers")
+        self.assertEqual(ai_review.redact(once), once)
+
+
+class RedactBeforeTruncate(unittest.TestCase):
+    def test_secret_at_the_limit_is_redacted(self):
+        review = f"[AI-REVIEWED] {SHA}\nVerdict: PASS\n"
+        filler = ("lorem ipsum " * (ai_review.COMMENT_LIMIT // 12 + 1))[:ai_review.COMMENT_LIMIT - len(review) - 10]
+        review += filler + " " + FAKE_JWT
+        body = ai_review.render_comment("opus", SHA, {"verdict": "PASS", "items": [], "dropped": 0}, review, USAGE)
+        for segment in FAKE_JWT.split("."):
+            self.assertNotIn(segment[:8], body)
+        self.assertIn(SHA, body)
+
+    def test_cut_never_splits_a_placeholder(self):
+        text = "a" * 95 + " <redacted-github-token> tail"
+        for limit in range(90, 125):
+            cut = ai_review.truncate(text, limit)
+            self.assertLessEqual(len(cut), limit)
+            if "<" in cut:
+                self.assertIn("<redacted-github-token>", cut)
+        self.assertEqual(ai_review.truncate("short", 10), "short")
 
 
 if __name__ == "__main__":

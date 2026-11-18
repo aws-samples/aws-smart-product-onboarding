@@ -139,7 +139,24 @@ def decide(text: str, head_sha: str) -> dict:
 
 # ---------- output hygiene ----------
 
+# a credential-looking value: 8 or more token characters, not a plain lowercase word
+_CRED = r"(?![{$<])(?=[\w.~+/=-]*[A-Z0-9~+/=_-])[\w.~+/=-]{8,}"
+
 REDACTIONS = [
+    # PEM private key block; without an END line, the BEGIN line and the base64 lines after it
+    (re.compile(r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY[A-Z ]*-----"
+                r"(?:.*?-----END [A-Z0-9 ]*PRIVATE KEY[A-Z ]*-----|(?:(?:\r?\n[ \t>]*|\\n)[A-Za-z0-9+/=]+)*)",
+                re.DOTALL), "<redacted-private-key>"),
+    # Authorization header value, with or without its scheme (AWS SigV4 keeps going over its comma list)
+    (re.compile(r"\b((?i:(?:proxy-)?authorization)[\"']?\s*[:=]\s*[\"']?"
+                r"(?i:(?:bearer|basic|token|digest|negotiate|aws4-hmac-sha256)\s+)?)"
+                + _CRED + r"(?:,\s*[A-Za-z]+=[^\s,\"'`<>]+)*"), r"\1<redacted>"),
+    # a bearer token anywhere else; the value needs a digit or symbol so prose like "bearer of" survives
+    (re.compile(r"\b((?i:bearer)\s+)(?![{$<])(?=[\w.~+/=-]*[0-9~+/=_-])[\w.~+/=-]{16,}"), r"\1<redacted>"),
+    # JWT (header.payload[.signature]); the header is base64url JSON, so it starts with eyJ
+    (re.compile(r"(?<![\w-])eyJ[\w-]{7,}\.[\w-]{2,}(?:\.[\w-]+){0,3}"), "<redacted-jwt>"),
+    (re.compile(r"(?<![A-Za-z0-9_])(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})"),
+     "<redacted-github-token>"),
     (re.compile(r"arn:aws[a-z-]*:[^\s`'\"<>)]+"), "arn:<redacted>"),
     (re.compile(r"\b(?:AKIA|ASIA|ABIA|ACCA)[A-Z0-9]{16}\b"), "<redacted-key-id>"),
     (re.compile(r"(?i)(secret[_ -]?access[_ -]?key|session[_ -]?token|aws_secret\w*)(\s*[:=]\s*)\S+"),
@@ -161,7 +178,20 @@ def redact(text: str, keep: tuple[str, ...] = ()) -> str:
         text = pattern.sub(repl, text)
     for placeholder, k in saved.items():
         text = text.replace(placeholder, k)
-    return text.replace("@", "@\u200b")  # no mentions or team pings from model text
+    return re.sub("@(?!\u200b)", "@\u200b", text)  # no mentions or team pings from model text
+
+
+PLACEHOLDER = re.compile(r"<(?:redacted|account-id)[a-z0-9-]*>")
+
+
+def truncate(text: str, limit: int) -> str:
+    """Cut redacted text to `limit` characters without splitting a redaction placeholder."""
+    if len(text) <= limit:
+        return text
+    for m in PLACEHOLDER.finditer(text, max(0, limit - 40), limit + 40):
+        if m.start() < limit < m.end():
+            return text[:m.start()]
+    return text[:limit]
 
 
 def comment_marker(lane: str) -> str:
@@ -178,18 +208,21 @@ def render_comment(lane: str, head_sha: str, result: dict, review_text: str, usa
         "Advisory only; this check does not block merging.",
         "",
     ]
+    keep = (head_sha, result.get("base_sha", head_sha), comment_marker(lane))
     if verdict == "INCOMPLETE":
         lines.append("The review produced no verdict for this commit. Re-run the job to try again.")
     elif result.get("rejected_block"):
         lines.append("The model proposed a block, but no blocking item met the bar (a Trigger, an Outcome and a "
                      "rule Anchor), so the verdict is PASS.")
     else:
-        lines += ["<details><summary>Review</summary>", "", review_text.strip()[:COMMENT_LIMIT], "", "</details>"]
+        # redact before cutting, so a secret straddling the limit is never left half-matched
+        review = truncate(redact(review_text.strip(), keep=keep), COMMENT_LIMIT)
+        lines += ["<details><summary>Review</summary>", "", review, "", "</details>"]
     if result.get("dropped") and not result.get("rejected_block"):
         lines.append(f"\n{result['dropped']} blocking item(s) without a Trigger, Outcome and rule Anchor were ignored.")
     tokens_in = usage["inputTokens"] + usage.get("cacheReadInputTokens", 0) + usage.get("cacheWriteInputTokens", 0)
     lines.append(f"\nTokens: {tokens_in} in, {usage['outputTokens']} out (both passes).")
-    return redact("\n".join(lines), keep=(head_sha, result.get("base_sha", head_sha), comment_marker(lane)))
+    return redact("\n".join(lines), keep=keep)
 
 
 # ---------- main ----------
