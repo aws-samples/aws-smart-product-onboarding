@@ -228,7 +228,23 @@ def test_split_words_handles_punctuation_and_repeats():
     assert split_words("cordless drill/driver, kids' toddler's bike") == [
         "cordless", "drill", "driver", "kids", "toddler", "bike"
     ]
-    assert split_words("black tea tea bag") == ["black", "tea", "bag"]
+    assert split_words("toddler\u2019s bike") == ["toddler", "bike"]
+    assert split_words("black tea tea bag") == ["black", "tea", "tea", "bag"]
+
+
+def test_classify_looks_up_repeated_words_once_at_their_title_position(
+    classifier, mock_text_cleaner, mock_word_embeddings_repo, mock_category_vector_index
+):
+    mock_text_cleaner.singularize_sentence.return_value = "book book toy"
+    mock_word_embeddings_repo.get_vectors_by_words.return_value = [None, [0.2]]
+    mock_category_vector_index.search.return_value = [("game", 0.6)]
+    classifier.word_map = {"book": ["BOOK"], "game": ["GAME"]}
+
+    with patch.object(classifier, "normalize_product", return_value="book book toy"):
+        result = classifier.classify(Product(title="Book Book Toy", description="A toy"))
+
+    mock_word_embeddings_repo.get_vectors_by_words.assert_called_once_with(["book", "toy"])
+    assert {(f.word, f.position) for f in result.findings} == {("book", 0), ("game", 2)}
 
 
 def test_classify_looks_up_neighbours_for_every_word(
