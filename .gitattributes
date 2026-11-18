@@ -14,7 +14,7 @@
 /package.json linguist-generated
 /packages/api/generated/documentation/README.md linguist-generated
 /packages/api/generated/libraries/README.md linguist-generated
-/packages/api/generated/runtime/README.md linguist-generated
+/packages/api/generated/types/typescript/src/api.d.ts linguist-generated
 /packages/api/handlers/README.md linguist-generated
 /pnpm-lock.yaml linguist-generated
 /pnpm-workspace.yaml linguist-generated

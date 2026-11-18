@@ -3,13 +3,16 @@
  * SPDX-License-Identifier: MIT-0
  */
 
-import { BatchExecutionStatus } from "@aws-samples/smart-product-onboarding-api-typescript-runtime";
+import type { components } from "@aws-samples/smart-product-onboarding-api-types";
 import {
   aws_dynamodb as dynamodb,
   aws_stepfunctions as sfn,
   aws_stepfunctions_tasks as tasks,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
+
+export type BatchExecutionStatus =
+  components["schemas"]["BatchExecutionStatus"];
 
 export interface CreateUpdateStatusTaskProps {
   readonly sessionTable: dynamodb.ITableV2;
