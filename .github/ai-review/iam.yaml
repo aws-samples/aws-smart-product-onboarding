@@ -40,7 +40,11 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Federated: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com
+              # Ref on the provider makes CloudFormation create it before the role.
+              Federated: !If
+                - CreateProvider
+                - !Ref GitHubOidcProvider
+                - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com
             Action: sts:AssumeRoleWithWebIdentity
             Condition:
               StringEquals:
@@ -52,11 +56,11 @@ Resources:
             Version: "2012-10-17"
             # The three-part form for global cross-Region inference profiles:
             # https://docs.aws.amazon.com/bedrock/latest/userguide/global-cross-region-inference.html
-            # Converse and ConverseStream are authorized by these two actions.
+            # Converse is authorized by bedrock:InvokeModel; the lanes never stream.
             Statement:
               - Sid: InvokeGlobalInferenceProfilesInSourceRegion
                 Effect: Allow
-                Action: [bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream]
+                Action: bedrock:InvokeModel
                 Resource:
                   - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/global.anthropic.claude-opus-5-5
                   - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/global.openai.gpt-6.2-sol
@@ -65,7 +69,7 @@ Resources:
                     aws:RequestedRegion: !Ref AWS::Region
               - Sid: InvokeSourceRegionModelsThroughProfiles
                 Effect: Allow
-                Action: [bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream]
+                Action: bedrock:InvokeModel
                 Resource:
                   - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/anthropic.claude-opus-5-5
                   - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/openai.gpt-6.2-sol
@@ -78,7 +82,7 @@ Resources:
               # The region-less model ARN is what global routing to other Regions is evaluated against.
               - Sid: InvokeGlobalModelsThroughProfiles
                 Effect: Allow
-                Action: [bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream]
+                Action: bedrock:InvokeModel
                 Resource:
                   - !Sub arn:${AWS::Partition}:bedrock:::foundation-model/anthropic.claude-opus-5-5
                   - !Sub arn:${AWS::Partition}:bedrock:::foundation-model/openai.gpt-6.2-sol

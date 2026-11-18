@@ -19,15 +19,9 @@ on:
         type: string
         required: true
       trusted-ref:
+        description: The commit the reviewer scripts and prompts are checked out from.
         type: string
         required: true
-      allow-head-fallback:
-        description: >-
-          Same-repo pull requests only: if the trusted ref has no reviewer scripts yet (the pull
-          request that adds them), use the pull request's copy. The calling workflow file comes
-          from the pull request in that case anyway, so this widens nothing.
-        type: boolean
-        default: false
 
 permissions: {}
 
@@ -60,24 +54,10 @@ jobs:
           persist-credentials: false
           sparse-checkout: .github/ai-review
 
-      - name: Use the pull request's reviewer when the base has none
-        if: inputs.allow-head-fallback && hashFiles('trusted/.github/ai-review/ai_review.py') == ''
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ inputs.head-sha }}
-          path: trusted
-          persist-credentials: false
-          sparse-checkout: .github/ai-review
-
       - name: Install the reviewer's dependencies
         run: |
           python3 -m venv "$RUNNER_TEMP/venv"
           "$RUNNER_TEMP/venv/bin/pip" install --quiet --require-hashes --no-deps -r "$REVIEWER/requirements.txt"
-
-      - name: Fetch the pull request as data
-        run: |
-          "$RUNNER_TEMP/venv/bin/python" "$REVIEWER/fetch_pr.py" \
-            --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" --head-sha "$HEAD_SHA" --out "$RUNNER_TEMP/data"
 
       - name: Skip when the review role is not configured
         id: configured
@@ -92,6 +72,12 @@ jobs:
           else
             echo "ok=true" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Fetch the pull request as data
+        if: steps.configured.outputs.ok == 'true'
+        run: |
+          "$RUNNER_TEMP/venv/bin/python" "$REVIEWER/fetch_pr.py" \
+            --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" --head-sha "$HEAD_SHA" --out "$RUNNER_TEMP/data"
 
       # Credentials are assumed only now, after every dependency is installed.
       - name: Assume the review role

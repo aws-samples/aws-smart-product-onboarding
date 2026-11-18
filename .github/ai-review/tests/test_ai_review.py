@@ -222,3 +222,42 @@ class FetchSelection(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ReviewFindings(unittest.TestCase):
+    """Cases a review of this reviewer found."""
+
+    def test_blank_field_does_not_borrow_the_next_line(self):
+        text = BLOCK_REVIEW.replace("Trigger: An unauthenticated client calls POST /uploadFile.", "Trigger:")
+        self.assertEqual(ai_review.decide(text, SHA)["verdict"], "PASS")
+
+    def test_reply_cut_off_at_the_token_limit_is_no_verdict(self):
+        client = mock.Mock()
+        client.converse.return_value = {
+            "output": {"message": {"content": [{"text": BLOCK_REVIEW.split("[BLOCK-MERGE]")[0]}]}},
+            "stopReason": "max_tokens",
+            "usage": {"inputTokens": 1, "outputTokens": 2},
+        }
+        text, _ = ai_review.converse(client, "m", "p")
+        self.assertEqual(ai_review.decide(text, SHA)["verdict"], "INCOMPLETE")
+
+    def test_incomplete_check_summary_says_no_verdict(self):
+        summary = post.check_summary("gpt", {"verdict": "INCOMPLETE", "items": []})
+        self.assertIn("no verdict", summary)
+
+    def test_stale_review_does_not_replace_the_lane_comment(self):
+        with tempfile.TemporaryDirectory() as d:
+            d = pathlib.Path(d)
+            (d / "result.json").write_text(json.dumps({"head_sha": OTHER, "verdict": "PASS", "items": []}))
+            (d / "comment.md").write_text("body")
+            with mock.patch.dict(os.environ, {"GITHUB_REPOSITORY": "o/r"}), \
+                    mock.patch.object(sys, "argv", ["post.py", "--lane", "gpt", "--pr", "5", "--out", str(d)]), \
+                    mock.patch.object(post.gh, "get", return_value={"head": {"sha": SHA}}), \
+                    mock.patch.object(post, "upsert_comment") as upsert, \
+                    mock.patch.object(post, "post_check") as check:
+                post.main()
+        upsert.assert_not_called()
+        self.assertEqual(check.call_args.args[2], OTHER)
+
+    def test_git_shas_stay_readable(self):
+        self.assertIn(OTHER, ai_review.redact(f"pinned at {OTHER}"))

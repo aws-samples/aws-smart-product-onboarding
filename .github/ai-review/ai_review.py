@@ -82,6 +82,8 @@ def converse(client, model_id: str, text: str) -> tuple[str, dict]:
     )
     blocks = resp["output"]["message"]["content"]
     out = "".join(b["text"] for b in blocks if "text" in b)
+    if resp.get("stopReason") == "max_tokens":
+        out = ""  # a cut-off reply may have lost its last finding or its closing marker; treat it as no verdict
     return out, {k: resp["usage"].get(k, 0) for k in USAGE_KEYS}
 
 
@@ -101,7 +103,7 @@ def blocking_items(text: str) -> list[dict]:
             continue
         item = {"title": title.split(":", 1)[-1].strip()}
         for key in ("Location", "Trigger", "Outcome", "Anchor"):
-            m = re.search(rf"^\s*{key}:\s*(.+)$", rest, re.MULTILINE)
+            m = re.search(rf"^[ \t]*{key}:[ \t]*(\S.*)$", rest, re.MULTILINE)
             item[key.lower()] = m.group(1).strip() if m else ""
         items.append(item)
     return items
@@ -130,7 +132,9 @@ REDACTIONS = [
     (re.compile(r"\b(?:AKIA|ASIA|ABIA|ACCA)[A-Z0-9]{16}\b"), "<redacted-key-id>"),
     (re.compile(r"(?i)(secret[_ -]?access[_ -]?key|session[_ -]?token|aws_secret\w*)(\s*[:=]\s*)\S+"),
      r"\1\2<redacted>"),
-    (re.compile(r"(?<![A-Za-z0-9/+=])[A-Za-z0-9/+]{40}(?![A-Za-z0-9/+=])"), "<redacted-40>"),
+    # secret-key shape; an all-lowercase-hex 40 (a git SHA) is left readable
+    (re.compile(r"(?<![A-Za-z0-9/+=])(?=[A-Za-z0-9/+]{0,39}[A-Z/+])[A-Za-z0-9/+]{40}(?![A-Za-z0-9/+=])"),
+     "<redacted-40>"),
     (re.compile(r"(?<![\w/+=-])[A-Za-z0-9/+=]{200,}"), "<redacted-token>"),
     (re.compile(r"(?<!\d)\d{12}(?!\d)"), "<account-id>"),
 ]

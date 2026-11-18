@@ -44,8 +44,8 @@ run on the head commit. The checks are advisory: don't make them required.
 1. Deploy [`iam.yaml`](iam.yaml) as a CloudFormation stack in `us-west-2`, with `CAPABILITY_IAM`. If
    the account already has the GitHub OIDC provider, set `CreateOidcProvider=false`. The role trusts
    only `repo:<owner>/<repo>:environment:ai-review` with audience `sts.amazonaws.com`. It can only
-   call `bedrock:InvokeModel` and `bedrock:InvokeModelWithResponseStream` on the two inference
-   profiles, and on their models through those profiles.
+   call `bedrock:InvokeModel` (which authorizes Converse) on the two global inference profiles, and
+   on their models through those profiles.
 2. Create a repository environment named `ai-review`.
 3. Store the stack's `RoleArn` output in the repository variable `AI_REVIEW_ROLE_ARN`. Until it is
    set, the lanes post a neutral "not configured" check and stop.

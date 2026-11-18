@@ -61,11 +61,21 @@ def main():
     out = pathlib.Path(a.out)
     result = json.loads((out / "result.json").read_text())
     body = (out / "comment.md").read_text()
-    upsert_comment(repo, a.pr, a.lane, body)
-    items = "\n".join(f"- {i['anchor']}: {i['title']} ({i['location']})" for i in result["items"])
-    post_check(repo, a.lane, result["head_sha"], result["verdict"],
-               redact(items or f"No blocking findings from {LANES[a.lane]['name']}.", keep=(result["head_sha"],)))
+    head_sha = result["head_sha"]
+    current = gh.get(f"/repos/{repo}/pulls/{a.pr}")["head"]["sha"]
+    if current == head_sha:
+        upsert_comment(repo, a.pr, a.lane, body)
+    else:
+        print(f"::notice::the head moved to {current}; the lane comment is left for that commit's review")
+    post_check(repo, a.lane, head_sha, result["verdict"], redact(check_summary(a.lane, result), keep=(head_sha,)))
     print(f"posted {a.lane}: {result['verdict']}")
+
+
+def check_summary(lane: str, result: dict) -> str:
+    if result["verdict"] == "INCOMPLETE":
+        return f"{LANES[lane]['name']} produced no verdict for this commit."
+    items = "\n".join(f"- {i['anchor']}: {i['title']} ({i['location']})" for i in result["items"])
+    return items or f"No blocking findings from {LANES[lane]['name']}."
 
 
 if __name__ == "__main__":

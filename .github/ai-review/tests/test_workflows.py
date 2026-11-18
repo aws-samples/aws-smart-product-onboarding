@@ -38,16 +38,18 @@ class Hardening(unittest.TestCase):
 
     def test_reviewer_comes_from_trusted_ref(self):
         checkouts = [s for s in steps(LANE) if "actions/checkout@" in s]
+        self.assertEqual(len(checkouts), 1)
         self.assertIn("ref: ${{ inputs.trusted-ref }}", checkouts[0])
-        # the only other checkout is the same-repo fallback, gated on its input and on a missing reviewer
-        for step in checkouts[1:]:
-            self.assertIn("if: inputs.allow-head-fallback && hashFiles(", step)
-            self.assertIn("sparse-checkout: .github/ai-review", step)
-        self.assertIn("trusted-ref: ${{ github.event.pull_request.base.sha }}", PR)
+        self.assertIn("sparse-checkout: .github/ai-review", checkouts[0])
+        # the reusable lane never refers to the pull request head as something to check out
+        self.assertNotRegex(LANE, r"ref: \$\{\{ inputs\.head-sha")
+        # same-repo: the base commit, or this pull request's copy only when the base has no reviewer
+        self.assertIn("trusted-ref: ${{ needs.reviewer.outputs.ref }}", PR)
+        self.assertIn('contents/.github/ai-review/ai_review.py?ref=$BASE_SHA" --silent; then\n'
+                      '            echo "ref=$BASE_SHA"', PR)
         self.assertIn("trusted-ref: ${{ github.sha }}", COMMAND)
 
     def test_command_path_never_uses_pull_request_code(self):
-        self.assertNotIn("allow-head-fallback", COMMAND)
         self.assertNotRegex(COMMAND, r"ref: .*(head|refs/pull)")
         self.assertIn("ref: ${{ github.event.repository.default_branch }}", COMMAND)
         self.assertIn("head-sha: ${{ needs.authorize.outputs.head-sha }}", COMMAND)
@@ -82,8 +84,8 @@ class Hardening(unittest.TestCase):
             self.assertEqual(iam.count(f":inference-profile/{profile}"), 3, profile)
             self.assertIn(f"bedrock:${{AWS::Region}}::foundation-model/{model}", iam)
             self.assertIn(f"bedrock:::foundation-model/{model}", iam)
-        self.assertEqual(set(re.findall(r"Action: \[(.*)\]", iam)),
-                         {"bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream"})
+        self.assertEqual(re.findall(r"Action: (.*)", iam).count("bedrock:InvokeModel"), 3)
+        self.assertEqual(len(re.findall(r"Action: (.*)", iam)), 4)  # plus sts:AssumeRoleWithWebIdentity
         self.assertIn("aws:RequestedRegion: unspecified", iam)
 
 

@@ -73,7 +73,11 @@ def main():
         if not entry["included"]:
             continue
         blob = gh.get(f"/repos/{a.repo}/contents/{gh.quote(entry['path'])}?ref={a.head_sha}")
-        data = base64.b64decode(blob.get("content", "")) if blob.get("encoding") == "base64" else b""
+        if blob.get("encoding") != "base64":
+            # the contents API returns no inline content for files over 1 MB
+            entry.update(included=False, reason=f"larger than {MAX_FILE_BYTES} bytes")
+            continue
+        data = base64.b64decode(blob.get("content", ""))
         if b"\0" in data[:8000]:
             entry.update(included=False, reason="binary")
         elif len(data) > MAX_FILE_BYTES:

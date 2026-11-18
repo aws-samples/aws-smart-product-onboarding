@@ -10,12 +10,38 @@ on:
 permissions: {}
 
 jobs:
-  lanes:
+  reviewer:
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository
       && github.event.pull_request.user.login != 'dependabot[bot]'
       && github.actor != 'dependabot[bot]'
       && !github.event.pull_request.draft
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      ref: ${{ steps.pick.outputs.ref }}
+    steps:
+      # The reviewer runs from the base commit. Only when the base has no reviewer yet (the pull
+      # request that adds it) does it use this same-repo pull request's copy; this workflow file
+      # comes from the pull request in that case anyway, so that widens nothing.
+      - name: Choose the commit the reviewer runs from
+        id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/contents/.github/ai-review/ai_review.py?ref=$BASE_SHA" --silent; then
+            echo "ref=$BASE_SHA" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::The base commit has no reviewer; using this pull request's copy."
+            echo "ref=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          fi
+
+  lanes:
+    needs: reviewer
     strategy:
       fail-fast: false
       matrix:
@@ -30,5 +56,4 @@ jobs:
       lane: ${{ matrix.lane }}
       pr-number: ${{ github.event.pull_request.number }}
       head-sha: ${{ github.event.pull_request.head.sha }}
-      trusted-ref: ${{ github.event.pull_request.base.sha }}
-      allow-head-fallback: true
+      trusted-ref: ${{ needs.reviewer.outputs.ref }}
