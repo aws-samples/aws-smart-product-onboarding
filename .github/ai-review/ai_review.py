@@ -108,7 +108,9 @@ def blocking_items(text: str) -> list[dict]:
         for key in ("Location", "Trigger", "Outcome", "Anchor"):
             # accepts `Trigger: x`, `**Trigger:** x` and `**Trigger**: x`; the value stays on its own line
             m = re.search(rf"^[ \t]*(?:\*\*)?{key}(?:\*\*)?:(?:\*\*)?[ \t]*(\S.*)$", rest, re.MULTILINE)
-            item[key.lower()] = m.group(1).strip() if m else ""
+            value = m.group(1).strip() if m else ""
+            # an empty bold label (`**Trigger:**`) leaves only markup behind; that is no value
+            item[key.lower()] = value if value.strip("*_ \t") else ""
         items.append(item)
     return items
 

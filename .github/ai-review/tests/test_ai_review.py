@@ -311,5 +311,39 @@ class ThirdReviewFindings(unittest.TestCase):
         self.assertIn(BASE, post.check_summary("opus", result))
 
 
+TRIGGER_LINE = "Trigger: An unauthenticated client calls POST /uploadFile."
+
+
+class EmptyLabels(unittest.TestCase):
+    """A label with no value is missing, whatever markup surrounds it."""
+
+    def verdict(self, trigger_line):
+        return ai_review.decide(BLOCK_REVIEW.replace(TRIGGER_LINE, trigger_line), SHA)
+
+    def test_empty_bold_label_colon_inside(self):
+        r = self.verdict("**Trigger:**")
+        self.assertEqual(r["verdict"], "PASS")
+        self.assertEqual(r["dropped"], 1)
+
+    def test_empty_bold_label_colon_outside(self):
+        r = self.verdict("**Trigger**:")
+        self.assertEqual(r["verdict"], "PASS")
+        self.assertEqual(r["dropped"], 1)
+
+    def test_label_with_only_markup_or_spaces(self):
+        for line in ("**Trigger:**   ", "**Trigger:** ** **", "Trigger: _ _", "Trigger:   "):
+            self.assertEqual(self.verdict(line)["verdict"], "PASS", line)
+
+    def test_empty_plain_label(self):
+        r = self.verdict("Trigger:")
+        self.assertEqual(r["verdict"], "PASS")
+        self.assertEqual(r["dropped"], 1)
+
+    def test_bold_label_with_value_still_counts(self):
+        r = self.verdict("**Trigger:** An unauthenticated call.")
+        self.assertEqual(r["verdict"], "BLOCK")
+        self.assertEqual(r["items"][0]["trigger"], "An unauthenticated call.")
+
+
 if __name__ == "__main__":
     unittest.main()
