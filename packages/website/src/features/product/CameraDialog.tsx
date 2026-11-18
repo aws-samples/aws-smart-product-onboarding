@@ -14,10 +14,12 @@ const DEVICE_KEY = "selectedCameraDevice";
 
 /** Captures product photos from a device camera. Prefers a rear camera on phones. */
 export const CameraDialog: React.FC<{
-  onCapture: (file: File) => void;
+  /** Returns false when the photo was not added, for example at the image limit. */
+  onCapture: (file: File) => boolean;
   onClose: () => void;
   count: number;
-}> = ({ onCapture, onClose, count }) => {
+  full: boolean;
+}> = ({ onCapture, onClose, count, full }) => {
   const video = useRef<HTMLVideoElement>(null);
   const stream = useRef<MediaStream>();
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
@@ -27,35 +29,54 @@ export const CameraDialog: React.FC<{
   const [state, setState] = useState<"starting" | "live" | "error">("starting");
   const [captured, setCaptured] = useState(0);
 
+  // Each start attempt gets a number, so a stream that arrives after the dialog
+  // closed or after another camera was picked is stopped instead of used.
+  const attempt = useRef(0);
   const stop = () => {
+    attempt.current++;
     stream.current?.getTracks().forEach((t) => t.stop());
     stream.current = undefined;
   };
 
   const start = useCallback(async (id: string) => {
     stop();
+    const mine = attempt.current;
     setState("starting");
-    try {
-      const s = await navigator.mediaDevices.getUserMedia({
+    const open = (cameraId: string) =>
+      navigator.mediaDevices.getUserMedia({
         video: {
-          deviceId: id ? { exact: id } : undefined,
+          deviceId: cameraId ? { exact: cameraId } : undefined,
           facingMode:
-            !id && /Mobi|Android/i.test(navigator.userAgent)
+            !cameraId && /Mobi|Android/i.test(navigator.userAgent)
               ? "environment"
               : undefined,
           width: { ideal: 1280 },
           height: { ideal: 1280 },
         },
       });
+    try {
+      let s: MediaStream;
+      try {
+        s = await open(id);
+      } catch (e) {
+        // The saved camera may be unplugged: fall back to any camera.
+        if (!id) throw e;
+        s = await open("");
+      }
+      if (mine !== attempt.current) {
+        s.getTracks().forEach((t) => t.stop());
+        return;
+      }
       stream.current = s;
       if (video.current) video.current.srcObject = s;
       const list = (await navigator.mediaDevices.enumerateDevices()).filter(
         (d) => d.kind === "videoinput",
       );
+      if (mine !== attempt.current) return;
       setDevices(list);
       setState("live");
     } catch {
-      setState("error");
+      if (mine === attempt.current) setState("error");
     }
   }, []);
 
@@ -76,10 +97,13 @@ export const CameraDialog: React.FC<{
     canvas.toBlob(
       (blob) => {
         if (!blob) return;
-        onCapture(
-          new File([blob], `photo_${Date.now()}.jpg`, { type: "image/jpeg" }),
-        );
-        setCaptured((c) => c + 1);
+        if (
+          onCapture(
+            new File([blob], `photo_${Date.now()}.jpg`, { type: "image/jpeg" }),
+          )
+        ) {
+          setCaptured((c) => c + 1);
+        }
       },
       "image/jpeg",
       0.9,
@@ -132,9 +156,11 @@ export const CameraDialog: React.FC<{
       </div>
       <div className="flex items-center gap-2">
         <span className="text-muted text-[13px]" role="status">
-          {captured > 0
-            ? `${captured} photo(s) added · ${count} image(s) in total`
-            : "Photos are added to the product's images."}
+          {full
+            ? "The product has the maximum of 20 images."
+            : captured > 0
+              ? `${captured} photo(s) added · ${count} image(s) in total`
+              : "Photos are added to the product's images."}
         </span>
         <Button className="ml-auto" onPress={onClose}>
           Done
@@ -142,7 +168,7 @@ export const CameraDialog: React.FC<{
         <Button
           variant="primary"
           onPress={takePhoto}
-          isDisabled={state !== "live"}
+          isDisabled={state !== "live" || full}
         >
           <Icon name="camera" />
           Take photo

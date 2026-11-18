@@ -25,6 +25,7 @@ jobs:
         run: pnpm install
       - name: Check that the website's API types match the OpenAPI definition
         run: |
+          git ls-files --error-unmatch packages/website/src/api/schema.d.ts
           npx nx run @aws-samples/smart-product-onboarding-demo-website:generate-api
           git diff --exit-code -- packages/website/src/api/schema.d.ts
       - name: Build and test the website

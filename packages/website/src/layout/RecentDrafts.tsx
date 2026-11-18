@@ -17,7 +17,10 @@ import { Button } from "../ui/Button";
 import { useToast } from "../ui/Toast";
 
 /** Drafts saved in this browser, newest first, with a confirm-before-clear control. */
-export const RecentDrafts: React.FC = () => {
+export const RecentDrafts: React.FC<{
+  variant?: "rail" | "menu";
+  onNavigate?: () => void;
+}> = ({ variant = "rail", onNavigate }) => {
   const drafts = useDrafts();
   const activeId = useActiveDraftId();
   const notify = useToast();
@@ -30,12 +33,16 @@ export const RecentDrafts: React.FC = () => {
 
   return (
     <section
-      aria-labelledby="drafts-heading"
-      className="mt-2.5 grid min-h-0 gap-0.5 max-md:hidden"
+      aria-labelledby={`drafts-heading-${variant}`}
+      className={
+        variant === "rail"
+          ? "mt-2.5 grid min-h-0 gap-0.5 max-md:hidden"
+          : "grid gap-0.5"
+      }
     >
       <div className="rail-collapsed:hidden flex items-center px-2.5 py-1.5">
         <h2
-          id="drafts-heading"
+          id={`drafts-heading-${variant}`}
           className="text-faint font-mono text-[11px] font-medium tracking-[0.1em] uppercase"
         >
           Recent drafts
@@ -98,6 +105,7 @@ export const RecentDrafts: React.FC = () => {
               <li key={d.id}>
                 <Link
                   to={`/drafts/${d.id}`}
+                  onClick={onNavigate}
                   title={title}
                   aria-current={d.id === activeId ? "page" : undefined}
                   className="hover:bg-raised aria-[current=page]:bg-raised rail-collapsed:justify-center rail-collapsed:px-0 flex items-center gap-2.5 rounded-md px-2 py-1.5 aria-[current=page]:shadow-[inset_0_0_0_1px_var(--line-2)]"

@@ -124,7 +124,8 @@ export const NewBatchDrawer: React.FC<{
   const { $api, fetchClient } = useApi();
   const [csv, setCsv] = useState<File>();
   const [zip, setZip] = useState<File>();
-  const [summary, setSummary] = useState<CsvSummary>();
+  // The summary records which file it describes, so a replacement file is never submitted on an old check.
+  const [summary, setSummary] = useState<{ file: File; csv: CsvSummary }>();
   const [csvError, setCsvError] = useState<string>();
   const [zipError, setZipError] = useState<string>();
   const [submitError, setSubmitError] = useState<string>();
@@ -150,9 +151,11 @@ export const NewBatchDrawer: React.FC<{
       return undefined;
     }
     let live = true;
+    setSummary(undefined);
+    setCsvError(undefined);
     csv
       .text()
-      .then((t) => live && setSummary(summarizeCsv(t)))
+      .then((t) => live && setSummary({ file: csv, csv: summarizeCsv(t) }))
       .catch(() => live && setCsvError("The file could not be read."));
     return () => {
       live = false;
@@ -160,7 +163,7 @@ export const NewBatchDrawer: React.FC<{
   }, [csv]);
 
   useEffect(() => {
-    if (summary) setCsvError(validateCatalog(summary, !!zip));
+    if (summary) setCsvError(validateCatalog(summary.csv, !!zip));
   }, [summary, zip]);
 
   useEffect(() => {
@@ -171,7 +174,7 @@ export const NewBatchDrawer: React.FC<{
     );
   }, [zip]);
 
-  const ready = !!csv && !!summary && !csvError && !zipError;
+  const ready = !!csv && summary?.file === csv && !csvError && !zipError;
 
   const start = async () => {
     if (!csv || !ready) return;
@@ -217,14 +220,16 @@ export const NewBatchDrawer: React.FC<{
         hint="A CSV with a header row: 'title' and 'description', or 'images'."
         error={csvError}
         summary={
-          summary && (
+          summary &&
+          summary.file === csv && (
             <>
               <span className="text-muted text-[12.5px]">
-                {summary.rows} {summary.rows === 1 ? "product" : "products"} ·{" "}
-                {summary.columns.length} columns
+                {summary.csv.rows}{" "}
+                {summary.csv.rows === 1 ? "product" : "products"} ·{" "}
+                {summary.csv.columns.length} columns
               </span>
               <span className="flex flex-wrap gap-1.5" aria-label="Columns">
-                {summary.columns.map((c) => (
+                {summary.csv.columns.map((c) => (
                   <span
                     key={c}
                     className="bg-surface border-line-2 rounded border px-1.5 font-mono text-[12px]"

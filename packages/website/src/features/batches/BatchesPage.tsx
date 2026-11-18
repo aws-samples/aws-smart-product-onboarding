@@ -27,6 +27,7 @@ import {
   formatDateTime,
   formatDuration,
   localDate,
+  parseLocalDate,
   relativeTime,
 } from "../../lib/time";
 import { ErrorAlert } from "../../ui/Alert";
@@ -153,21 +154,37 @@ export const BatchesPage: React.FC = () => {
   const [now, setNow] = useState(Date.now());
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const { start, end } = useMemo(() => {
-    if (range === "custom")
-      return dayRange(new Date(`${from}T00:00:00`), new Date(`${to}T00:00:00`));
+  // Recomputed when the local day changes, so a page left open keeps covering today.
+  const today = localDate(new Date(now));
+  const fromDate = parseLocalDate(from);
+  const toDate = parseLocalDate(to);
+  const rangeError =
+    range !== "custom"
+      ? undefined
+      : !fromDate || !toDate
+        ? "Enter both dates."
+        : fromDate > toDate
+          ? "The start date must be on or before the end date."
+          : undefined;
+  const bounds = useMemo(() => {
+    if (range === "custom") {
+      const f = parseLocalDate(from);
+      const t = parseLocalDate(to);
+      return f && t && f <= t ? dayRange(f, t) : undefined;
+    }
     // "All time" keeps the previous website's window of 1000 days.
     return dayRange(
       daysAgo(range === "all" ? 1000 : Number(range) - 1),
-      new Date(),
+      new Date(`${today}T12:00:00`),
     );
-  }, [range, from, to]);
+  }, [range, from, to, today]);
 
   const query = $api.useQuery(
     "get",
     "/listBatchExecutions",
-    { params: { query: { start_time: start, end_time: end } } },
+    { params: { query: { start_time: bounds?.start, end_time: bounds?.end } } },
     {
+      enabled: !!bounds,
       refetchOnWindowFocus: false,
       refetchInterval: (q) =>
         autoRefresh &&
@@ -252,7 +269,7 @@ export const BatchesPage: React.FC = () => {
               className={`border-line flex-1 px-4 py-3 max-md:basis-1/2 ${n ? "md:border-l" : ""} ${n % 2 ? "max-md:border-l" : ""} ${n > 1 ? "max-md:border-t" : ""}`}
             >
               <div className="font-mono text-[22px] font-medium tracking-tight">
-                {query.isPending ? "–" : s.v}
+                {query.isLoading || !bounds ? "–" : s.v}
               </div>
               <div className="text-muted flex items-center gap-1.5 text-[12.5px]">
                 {s.dot && (
@@ -265,22 +282,28 @@ export const BatchesPage: React.FC = () => {
               </div>
             </div>
           ))}
-          <div className="border-line flex-1 border-l px-4 py-3 max-md:hidden">
-            <div className="text-muted text-[12.5px]">Started, last 7 days</div>
-            <div
-              className="mt-1 flex h-[26px] items-end gap-[3px]"
-              role="img"
-              aria-label={`Batches started per day, last 7 days: ${week.map((d) => d.count).join(", ")}`}
-            >
-              {week.map((d) => (
-                <i
-                  key={d.day}
-                  className="bg-accent w-[7px] rounded-t-[2px] opacity-70"
-                  style={{ height: `${Math.max(2, (d.count / peak) * 26)}px` }}
-                />
-              ))}
+          {range !== "custom" && (
+            <div className="border-line flex-1 border-l px-4 py-3 max-md:hidden">
+              <div className="text-muted text-[12.5px]">
+                Started, last 7 days
+              </div>
+              <div
+                className="mt-1 flex h-[26px] items-end gap-[3px]"
+                role="img"
+                aria-label={`Batches started per day, last 7 days: ${week.map((d) => d.count).join(", ")}`}
+              >
+                {week.map((d) => (
+                  <i
+                    key={d.day}
+                    className="bg-accent w-[7px] rounded-t-[2px] opacity-70"
+                    style={{
+                      height: `${Math.max(2, (d.count / peak) * 26)}px`,
+                    }}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </section>
 
         <section className="panel" aria-label="Batch list">
@@ -362,6 +385,14 @@ export const BatchesPage: React.FC = () => {
                     className="field-input py-1.5"
                   />
                 </div>
+                {rangeError && (
+                  <p
+                    role="alert"
+                    className="text-err self-center text-[12.5px]"
+                  >
+                    {rangeError}
+                  </p>
+                )}
               </div>
             )}
             <div className="text-muted ml-auto flex items-center gap-2 text-[12.5px] max-md:ml-0">
@@ -408,7 +439,7 @@ export const BatchesPage: React.FC = () => {
               />
             </div>
           )}
-          {query.isPending && (
+          {query.isLoading && (
             <div
               className="text-muted grid place-items-center p-10"
               role="status"

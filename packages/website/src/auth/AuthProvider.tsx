@@ -19,6 +19,7 @@ import React, {
 } from "react";
 import { SignIn } from "./SignIn";
 import { useRuntimeConfig } from "../config/runtime";
+import { setDraftsOwner } from "../lib/drafts";
 import { FullPageMessage } from "../ui/FullPageMessage";
 
 interface AuthState {
@@ -77,6 +78,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setUser(null);
   }, []);
 
+  // Drafts belong to the signed-in user.
+  setDraftsOwner(user ?? "");
+
   if (user === undefined) return <FullPageMessage title="Loading…" busy />;
   if (user === null) {
     return (
@@ -92,7 +96,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }
   return (
     <AuthContext.Provider value={{ username: user, getIdToken, signOut }}>
-      {children}
+      {/* Keyed by user so nothing from a previous session is reused. */}
+      <React.Fragment key={user}>{children}</React.Fragment>
     </AuthContext.Provider>
   );
 };

@@ -30,6 +30,7 @@ export const ModalPanel: React.FC<{
     isOpen={isOpen}
     onOpenChange={onOpenChange}
     isDismissable={isDismissable}
+    isKeyboardDismissDisabled={!isDismissable}
     className={`fixed inset-0 z-40 flex bg-black/55 ${placement === "side" ? "justify-end" : "items-center justify-center p-4"}`}
   >
     <Modal
@@ -54,6 +55,7 @@ export const ModalPanel: React.FC<{
                 size="sm"
                 className="ml-auto"
                 onPress={close}
+                isDisabled={!isDismissable}
                 aria-label="Close"
               >
                 <Icon name="close" />

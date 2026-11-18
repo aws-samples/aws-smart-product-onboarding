@@ -6,7 +6,7 @@
 import type { GenerationModel } from "../../api/client";
 import type { GenerationOptions } from "../../lib/drafts";
 
-/** Multimodal models the API accepts. The first one is the API's default. */
+/** Multimodal models the API accepts. Without a choice, the API uses the model configured for the deployment. */
 export const MODELS: { id: GenerationModel; label: string }[] = [
   {
     id: "global.anthropic.claude-haiku-5-5",
@@ -31,7 +31,7 @@ export const modelLabel = (id?: string) =>
 export const DEFAULT_OPTIONS: GenerationOptions = {
   language: "",
   descriptionLength: "long",
-  model: MODELS[0].id,
+  model: "",
   temperature: 0.1,
 };
 

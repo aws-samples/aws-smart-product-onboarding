@@ -25,6 +25,7 @@ import {
 } from "../../lib/drafts";
 import {
   ACCEPTED_IMAGE_TYPES,
+  dataUrlToFile,
   MAX_IMAGES,
   makePreview,
   resizeForUpload,
@@ -34,7 +35,7 @@ export interface FlowImage {
   id: string;
   name: string;
   type: string;
-  /** What the gallery shows: an object URL for new files, or the saved preview. */
+  /** What the gallery shows: an object URL for new files, or the saved preview. Empty when no preview was kept. */
   url: string;
   /** Downscaled preview saved with the draft. */
   dataUrl?: string;
@@ -64,20 +65,31 @@ export const STEPS = [
   "Review",
 ] as const;
 
+const IDLE: Stages = {
+  metaclass: "idle",
+  categorize: "idle",
+  attributes: "idle",
+};
+
 const newId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 
+/** Restores images. Images that were never uploaded are rebuilt from their saved preview. */
 const fromDraft = (d?: Draft): FlowImage[] =>
   (d?.images ?? []).map((i) => ({
     id: i.id,
     name: i.name,
-    type: i.type,
+    type: i.dataUrl && !i.key ? "image/jpeg" : i.type,
     url: i.dataUrl,
     dataUrl: i.dataUrl,
     key: i.key,
+    file: !i.key && i.dataUrl ? dataUrlToFile(i.dataUrl, i.name) : undefined,
   }));
+
+const listingText = (p?: ProductData) =>
+  p ? `${p.title}\n${p.description}` : "";
 
 /**
  * State and actions for onboarding one product: images and details, listing
@@ -87,9 +99,11 @@ const fromDraft = (d?: Draft): FlowImage[] =>
 export function useProductFlow({
   draftId,
   persist,
+  onSaveFailed,
 }: {
   draftId?: string;
   persist: boolean;
+  onSaveFailed?: () => void;
 }) {
   const { $api, fetchClient } = useApi();
   const initial = useRef(draftId ? getDraft(draftId) : undefined).current;
@@ -118,6 +132,7 @@ export function useProductFlow({
   const [attributes, setAttributes] = useState<ProductAttribute[] | undefined>(
     initial?.attributes,
   );
+  const [classifiedFor, setClassifiedFor] = useState(initial?.classifiedFor);
 
   const [genStatus, setGenStatus] = useState<GenStatus>(
     initial?.product ? "done" : "idle",
@@ -139,6 +154,17 @@ export function useProductFlow({
   );
   const extractM = $api.useMutation("post", "/extractAttributes", modelRetry);
 
+  /** Each run gets a number; a response from an older run is discarded. */
+  const run = useRef(0);
+  const live = useRef(true);
+  useEffect(() => {
+    live.current = true;
+    return () => {
+      live.current = false;
+      run.current++;
+    };
+  }, []);
+
   const imagesRef = useRef(images);
   imagesRef.current = images;
   useEffect(
@@ -149,39 +175,62 @@ export function useProductFlow({
     [],
   );
 
-  // Save the draft once there is a listing to come back to.
+  // Draft persistence: debounce saves, but flush on unmount and page exit so edits are not lost.
   const savedOnce = useRef(!!initial);
-  useEffect(() => {
-    if (!persist || !product) return;
-    const t = setTimeout(() => {
-      saveDraft({
-        id,
-        updatedAt: Date.now(),
-        step,
-        images: images.map((i) => ({
-          id: i.id,
-          name: i.name,
-          type: i.type,
-          dataUrl: i.dataUrl ?? "",
-          key: i.key,
-        })),
-        metadata,
-        options,
-        examples,
-        product,
-        usage,
-        modelId,
-        possibleCategories,
-        classification,
-        attributes,
-      });
-      if (!savedOnce.current) {
-        savedOnce.current = true;
-        // Keep the router state; only the address changes so a reload reopens this draft.
-        window.history.replaceState(window.history.state, "", `/drafts/${id}`);
+  const deleted = useRef(false);
+  const pending = useRef<Draft>();
+  const flush = useCallback(() => {
+    const draft = pending.current;
+    pending.current = undefined;
+    if (!draft || deleted.current) return;
+    if (savedOnce.current && !getDraft(draft.id)) {
+      // The draft was cleared from Recent drafts: stop saving it again.
+      deleted.current = true;
+      return;
+    }
+    if (!saveDraft(draft)) {
+      onSaveFailed?.();
+      return;
+    }
+    if (!savedOnce.current) {
+      savedOnce.current = true;
+      // Keep the router state; only the address changes so a reload reopens this draft.
+      if (window.location.pathname === "/new") {
+        window.history.replaceState(
+          window.history.state,
+          "",
+          `/drafts/${draft.id}`,
+        );
       }
-      setActiveDraftId(id);
-    }, 300);
+    }
+    setActiveDraftId(draft.id);
+  }, [onSaveFailed]);
+
+  useEffect(() => {
+    if (!persist || !product || deleted.current) return undefined;
+    pending.current = {
+      id,
+      updatedAt: Date.now(),
+      step,
+      images: images.map((i) => ({
+        id: i.id,
+        name: i.name,
+        type: i.type,
+        dataUrl: i.dataUrl ?? "",
+        key: i.key,
+      })),
+      metadata,
+      options,
+      examples,
+      product,
+      usage,
+      modelId,
+      possibleCategories,
+      classification,
+      attributes,
+      classifiedFor,
+    };
+    const t = setTimeout(flush, 300);
     return () => clearTimeout(t);
   }, [
     persist,
@@ -197,45 +246,62 @@ export function useProductFlow({
     possibleCategories,
     classification,
     attributes,
+    classifiedFor,
+    flush,
   ]);
+
+  useEffect(() => {
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [flush]);
 
   useEffect(() => {
     if (persist && initial) setActiveDraftId(id);
     return () => setActiveDraftId(undefined);
   }, [persist, initial, id]);
 
-  /** Adds image files. Returns a message for files that were skipped. */
-  const addImages = useCallback((files: File[]): string | undefined => {
-    const accepted = files.filter((f) => ACCEPTED_IMAGE_TYPES.includes(f.type));
-    const room = MAX_IMAGES - imagesRef.current.length;
-    const added = accepted.slice(0, Math.max(0, room)).map(
-      (file): FlowImage => ({
-        id: newId(),
-        name: file.name,
-        type: file.type,
-        url: URL.createObjectURL(file),
-        file,
-      }),
-    );
-    setImages((all) => [...all, ...added]);
-    added.forEach((img) => {
-      if (!img.file) return;
-      makePreview(img.file)
-        .then((dataUrl) =>
-          setImages((all) =>
-            all.map((i) => (i.id === img.id ? { ...i, dataUrl } : i)),
-          ),
-        )
-        .catch(() => undefined);
-    });
-    const skippedType = files.length - accepted.length;
-    const skippedRoom = accepted.length - added.length;
-    if (skippedType)
-      return `${skippedType} file(s) skipped: use JPEG, PNG, WebP or GIF images.`;
-    if (skippedRoom)
-      return `Up to ${MAX_IMAGES} images per product. ${skippedRoom} file(s) skipped.`;
-    return undefined;
-  }, []);
+  /** Adds image files. Returns how many were added and a message for files that were skipped. */
+  const addImages = useCallback(
+    (files: File[]): { added: number; message?: string } => {
+      const accepted = files.filter((f) =>
+        ACCEPTED_IMAGE_TYPES.includes(f.type),
+      );
+      const room = MAX_IMAGES - imagesRef.current.length;
+      const added = accepted.slice(0, Math.max(0, room)).map(
+        (file): FlowImage => ({
+          id: newId(),
+          name: file.name,
+          type: file.type,
+          url: URL.createObjectURL(file),
+          file,
+        }),
+      );
+      imagesRef.current = [...imagesRef.current, ...added];
+      setImages((all) => [...all, ...added]);
+      added.forEach((img) => {
+        if (!img.file) return;
+        makePreview(img.file)
+          .then((dataUrl) =>
+            setImages((all) =>
+              all.map((i) => (i.id === img.id ? { ...i, dataUrl } : i)),
+            ),
+          )
+          .catch(() => undefined);
+      });
+      const skippedType = files.length - accepted.length;
+      const skippedRoom = accepted.length - added.length;
+      let message: string | undefined;
+      if (skippedType)
+        message = `${skippedType} file(s) skipped: use JPEG, PNG, WebP or GIF images.`;
+      else if (skippedRoom)
+        message = `Up to ${MAX_IMAGES} images per product. ${skippedRoom} file(s) skipped.`;
+      return { added: added.length, message };
+    },
+    [],
+  );
 
   const removeImage = (imageId: string) =>
     setImages((all) => {
@@ -263,25 +329,40 @@ export function useProductFlow({
   const generating = ["preparing", "uploading", "generating"].includes(
     genStatus,
   );
+  const classifying = Object.values(stages).includes("running");
+
+  const clearClassification = () => {
+    setPossibleCategories(undefined);
+    setClassification(undefined);
+    setAttributes(undefined);
+    setClassifiedFor(undefined);
+    setStages(IDLE);
+    setClassifyError(undefined);
+  };
 
   const generate = useCallback(async () => {
     if (!canGenerate || generating) return;
+    const token = ++run.current;
+    const current = () => live.current && token === run.current;
     setGenError(undefined);
+    setStages(IDLE);
     try {
-      const pending = images.filter((i) => !i.key && i.file);
+      const pendingImages = images.filter((i) => !i.key && i.file);
       let keyed = images;
-      if (pending.length) {
+      if (pendingImages.length) {
         setGenStatus("preparing");
         const blobs = await Promise.all(
-          pending.map((i) => resizeForUpload(i.file!)),
+          pendingImages.map((i) => resizeForUpload(i.file!)),
         );
+        if (!current()) return;
         setGenStatus("uploading");
         const keys = await Promise.all(
-          pending.map((img, n) =>
+          pendingImages.map((img, n) =>
             uploadFile(fetchClient, blobs[n], img.name, img.type),
           ),
         );
-        const byId = new Map(pending.map((img, n) => [img.id, keys[n]]));
+        if (!current()) return;
+        const byId = new Map(pendingImages.map((img, n) => [img.id, keys[n]]));
         keyed = images.map((i) =>
           byId.has(i.id) ? { ...i, key: byId.get(i.id) } : i,
         );
@@ -298,18 +379,23 @@ export function useProductFlow({
           metadata: metadata.trim() || undefined,
           language: options.language.trim() || undefined,
           descriptionLength: options.descriptionLength as DescriptionLength,
-          model: options.model as GenerationModel,
+          // Leave the model out so the API uses the one configured for the deployment.
+          model: (options.model || undefined) as GenerationModel | undefined,
           temperature: options.temperature,
           examples: examples.filter(
             (e) => e.title.trim() || e.description.trim(),
           ),
         },
       });
+      if (!current()) return;
       setProduct(result.product);
       setUsage(result.usage);
-      setModelId(options.model);
+      setModelId(options.model || undefined);
+      // New listing text: the old category and attributes no longer describe it.
+      clearClassification();
       setGenStatus("done");
     } catch (e) {
+      if (!current()) return;
       setGenError(
         e instanceof Error
           ? e.message
@@ -328,41 +414,59 @@ export function useProductFlow({
     examples,
   ]);
 
-  const extract = useCallback(
-    async (categoryId?: string) => {
-      const id_ = categoryId ?? classification?.categoryId;
-      if (!product || !id_) return;
-      setClassifyError(undefined);
+  const extractFor = useCallback(
+    async (token: number, input: ProductData, categoryId: string) => {
+      const current = () => live.current && token === run.current;
       setStages((s) => ({ ...s, attributes: "running" }));
       try {
         const res = await extractM.mutateAsync({
           body: {
-            product: { ...product, metadata: metadata.trim() || undefined },
-            categoryId: id_,
+            product: { ...input, metadata: metadata.trim() || undefined },
+            categoryId,
           },
         });
+        if (!current()) return;
         setAttributes(res.attributes);
         setStages((s) => ({ ...s, attributes: "done" }));
       } catch (e) {
+        if (!current()) return;
         setClassifyError(errorMessage(e, "Attributes could not be extracted."));
         setStages((s) => ({ ...s, attributes: "error" }));
       }
     },
-    [product, classification, metadata, extractM],
+    [metadata, extractM],
   );
 
-  /** Metaclass, then categorization, then attribute extraction. */
-  const classify = useCallback(async () => {
-    if (!product) return;
+  /** Re-extracts attributes for the current category. */
+  const extract = useCallback(async () => {
+    if (!product || !classification || classifying || generating) return;
+    const token = ++run.current;
     setClassifyError(undefined);
+    setAttributes(undefined);
+    await extractFor(token, product, classification.categoryId);
+  }, [product, classification, classifying, generating, extractFor]);
+
+  /** Metaclass, then categorization, then attribute extraction, for the listing as it is now. */
+  const classify = useCallback(async () => {
+    if (!product || classifying || generating) return;
+    const token = ++run.current;
+    const current = () => live.current && token === run.current;
+    const input = product;
+    setClassifyError(undefined);
+    setPossibleCategories(undefined);
+    setClassification(undefined);
+    setAttributes(undefined);
+    setClassifiedFor(listingText(input));
     setStages({ metaclass: "running", categorize: "idle", attributes: "idle" });
     let categories: string[];
     try {
-      const meta = await metaclassM.mutateAsync({ body: { product } });
+      const meta = await metaclassM.mutateAsync({ body: { product: input } });
+      if (!current()) return;
       categories = meta.possibleCategories;
       setPossibleCategories(categories);
       setStages((s) => ({ ...s, metaclass: "done", categorize: "running" }));
     } catch (e) {
+      if (!current()) return;
       setClassifyError(
         errorMessage(e, "Candidate categories could not be found."),
       );
@@ -371,28 +475,35 @@ export function useProductFlow({
     }
     try {
       const cat = await categorizeM.mutateAsync({
-        body: { product, possibleCategories: categories, demo: true },
+        body: { product: input, possibleCategories: categories, demo: true },
       });
+      if (!current()) return;
       setClassification(cat);
-      setAttributes(undefined);
       setStages((s) => ({ ...s, categorize: "done" }));
-      await extract(cat.categoryId);
+      await extractFor(token, input, cat.categoryId);
     } catch (e) {
+      if (!current()) return;
       setClassifyError(
         errorMessage(e, "The product could not be categorized."),
       );
       setStages((s) => ({ ...s, categorize: "error" }));
     }
-  }, [product, metaclassM, categorizeM, extract]);
-
-  const classifying = Object.values(stages).includes("running");
+  }, [product, classifying, generating, metaclassM, categorizeM, extractFor]);
 
   /** Re-runs whichever stage failed last. */
   const retryClassification = () =>
-    stages.attributes === "error" ? extract() : classify();
+    stages.attributes === "error" && classification ? extract() : classify();
 
   const updateProduct = (patch: Partial<ProductData>) =>
     setProduct((p) => (p ? { ...p, ...patch } : p));
+
+  /** True when the listing was edited after the category and attributes were computed. */
+  const classificationStale =
+    !!classification &&
+    classifiedFor !== undefined &&
+    classifiedFor !== listingText(product);
+  const classified =
+    stages.attributes === "done" && !!classification && !!attributes;
 
   return {
     id,
@@ -416,6 +527,8 @@ export function useProductFlow({
     possibleCategories,
     classification,
     attributes,
+    classificationStale,
+    classified,
     genStatus,
     genError,
     generating,

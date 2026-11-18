@@ -10,7 +10,7 @@ import {
   signIn,
   type SignInOutput,
 } from "aws-amplify/auth";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Form,
   Input,
@@ -113,14 +113,36 @@ export const SignIn: React.FC<{ appName: string; onSignedIn: () => void }> = ({
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
   const [busy, setBusy] = useState(false);
+  // Ignore responses that arrive after the user moved to another screen.
+  const screen = useRef(0);
 
   const go = (next: Step, message?: string) => {
+    screen.current++;
     setStep(next);
     setError(undefined);
     setNotice(message);
     setCode("");
     setNewPassword("");
     setConfirmPassword("");
+  };
+
+  const sendResetCode = async (prefix = "") => {
+    const mine = screen.current;
+    const out = await resetPassword({ username: username.trim() });
+    if (mine !== screen.current) return;
+    const lead = prefix ? `${prefix} ` : "";
+    if (out.nextStep.resetPasswordStep === "DONE")
+      go("signIn", "Your password has been reset.");
+    else {
+      const to = out.nextStep.codeDeliveryDetails?.destination;
+      go(
+        "reset",
+        lead +
+          (to
+            ? `We sent a code to ${to}.`
+            : "We sent you a verification code."),
+      );
+    }
   };
 
   const handleSignInStep = (output: SignInOutput) => {
@@ -138,6 +160,10 @@ export const SignIn: React.FC<{ appName: string; onSignedIn: () => void }> = ({
       case "CONFIRM_SIGN_IN_WITH_EMAIL_CODE":
         go("code", "Enter the verification code we sent you.");
         return;
+      case "RESET_PASSWORD":
+        // An administrator requires a new password: send a reset code for this user.
+        void run(() => sendResetCode("Your password must be reset."));
+        return;
       default:
         setError(
           `This sign-in step (${output.nextStep.signInStep}) is not supported by the demo website.`,
@@ -146,11 +172,13 @@ export const SignIn: React.FC<{ appName: string; onSignedIn: () => void }> = ({
   };
 
   const run = async (action: () => Promise<void>) => {
+    const mine = screen.current;
     setBusy(true);
     setError(undefined);
     try {
       await action();
     } catch (e) {
+      if (mine !== screen.current) return;
       if (
         (e as { name?: string })?.name === "UserAlreadyAuthenticatedException"
       )
@@ -192,20 +220,7 @@ export const SignIn: React.FC<{ appName: string; onSignedIn: () => void }> = ({
         );
         break;
       case "forgot":
-        void run(async () => {
-          const out = await resetPassword({ username: username.trim() });
-          if (out.nextStep.resetPasswordStep === "DONE")
-            go("signIn", "Your password has been reset.");
-          else {
-            const to = out.nextStep.codeDeliveryDetails?.destination;
-            go(
-              "reset",
-              to
-                ? `We sent a code to ${to}.`
-                : "We sent you a verification code.",
-            );
-          }
-        });
+        void run(() => sendResetCode());
         break;
       case "reset":
         if (mismatch) return;
@@ -337,6 +352,7 @@ export const SignIn: React.FC<{ appName: string; onSignedIn: () => void }> = ({
               <button
                 type="button"
                 className="text-accent font-semibold hover:underline"
+                disabled={busy}
                 onClick={() => go("forgot")}
               >
                 Forgot your password?
@@ -345,6 +361,7 @@ export const SignIn: React.FC<{ appName: string; onSignedIn: () => void }> = ({
               <button
                 type="button"
                 className="text-accent font-semibold hover:underline"
+                disabled={busy}
                 onClick={() => go("signIn")}
               >
                 Back to sign in

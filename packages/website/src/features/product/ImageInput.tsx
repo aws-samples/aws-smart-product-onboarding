@@ -29,7 +29,7 @@ const filesFromDrop = (items: DropItem[]) =>
 export const ImageInput: React.FC<{ flow: ProductFlow }> = ({ flow }) => {
   const [message, setMessage] = useState<string>();
   const [cameraOpen, setCameraOpen] = useState(false);
-  const add = (files: File[]) => setMessage(flow.addImages(files));
+  const add = (files: File[]) => setMessage(flow.addImages(files).message);
   const full = flow.images.length >= MAX_IMAGES;
 
   return (
@@ -84,11 +84,21 @@ export const ImageInput: React.FC<{ flow: ProductFlow }> = ({ flow }) => {
               key={img.id}
               className="border-line bg-surface group relative overflow-hidden rounded-md border"
             >
-              <img
-                src={img.url}
-                alt={`Image ${n + 1}: ${img.name}`}
-                className="bg-img aspect-square w-full object-contain"
-              />
+              {img.url ? (
+                <img
+                  src={img.url}
+                  alt={`Image ${n + 1}: ${img.name}`}
+                  className="bg-img aspect-square w-full object-contain"
+                />
+              ) : (
+                <span
+                  role="img"
+                  aria-label={`Image ${n + 1}: ${img.name}, preview not saved`}
+                  className="bg-raised text-faint grid aspect-square w-full place-items-center p-2 text-center text-[11px]"
+                >
+                  Preview not saved
+                </span>
+              )}
               <div className="flex items-center justify-between gap-1 p-1">
                 <span className="text-muted truncate px-1 font-mono text-[11px]">
                   {n + 1}
@@ -132,8 +142,13 @@ export const ImageInput: React.FC<{ flow: ProductFlow }> = ({ flow }) => {
       {cameraOpen && (
         <CameraDialog
           onClose={() => setCameraOpen(false)}
-          onCapture={(file) => setMessage(flow.addImages([file]))}
+          onCapture={(file) => {
+            const result = flow.addImages([file]);
+            setMessage(result.message);
+            return result.added > 0;
+          }}
           count={flow.images.length}
+          full={full}
         />
       )}
     </div>

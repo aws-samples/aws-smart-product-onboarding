@@ -31,12 +31,36 @@ export function localOffset(d: Date): string {
   return `${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
 }
 
-/** ISO 8601 bounds covering whole local days, as the batch list API expects. */
+/** ISO 8601 bounds covering whole local days, as the batch list API expects. Each offset is the one in effect at that instant. */
 export function dayRange(from: Date, to: Date): { start: string; end: string } {
+  const start = new Date(
+    from.getFullYear(),
+    from.getMonth(),
+    from.getDate(),
+    0,
+    0,
+    0,
+  );
+  const end = new Date(
+    to.getFullYear(),
+    to.getMonth(),
+    to.getDate(),
+    23,
+    59,
+    59,
+  );
   return {
-    start: `${localDate(from)}T00:00:00${localOffset(from)}`,
-    end: `${localDate(to)}T23:59:59${localOffset(to)}`,
+    start: `${localDate(start)}T00:00:00${localOffset(start)}`,
+    end: `${localDate(end)}T23:59:59${localOffset(end)}`,
   };
+}
+
+/** Parses a YYYY-MM-DD date input value as a local date, or undefined when incomplete. */
+export function parseLocalDate(value: string): Date | undefined {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!m) return undefined;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return Number.isNaN(d.getTime()) ? undefined : d;
 }
 
 export function formatDateTime(iso: string, now = new Date()): string {

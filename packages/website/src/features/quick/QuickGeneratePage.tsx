@@ -17,7 +17,7 @@ import { useProductFlow } from "../product/useProductFlow";
 /** Generates listing text only, without categorization or drafts. */
 const QuickGenerate: React.FC<{ onReset: () => void }> = ({ onReset }) => {
   const flow = useProductFlow({ persist: false });
-  const { copy } = useListingActions(flow);
+  const { copy } = useListingActions(flow, { canDownload: false });
   const hasResult =
     !!flow.product || flow.generating || flow.genStatus === "error";
 
@@ -87,6 +87,9 @@ const QuickGenerate: React.FC<{ onReset: () => void }> = ({ onReset }) => {
       </main>
       {flow.product && (
         <MobileActions>
+          <Button variant="quiet" onPress={onReset}>
+            Start over
+          </Button>
           <Button onPress={() => void copy()}>Copy JSON</Button>
         </MobileActions>
       )}

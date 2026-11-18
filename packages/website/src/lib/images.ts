@@ -38,6 +38,14 @@ export async function makePreview(file: Blob, maxSize = 640): Promise<string> {
   return canvas.toDataURL("image/jpeg", 0.78);
 }
 
+/** Rebuilds a File from a data URL, for images saved in a draft before they were uploaded. */
+export function dataUrlToFile(dataUrl: string, name: string): File {
+  const [head, body] = dataUrl.split(",");
+  const type = /data:([^;]+)/.exec(head)?.[1] ?? "image/jpeg";
+  const bytes = Uint8Array.from(atob(body), (c) => c.charCodeAt(0));
+  return new File([bytes], name.replace(/\.[^.]+$/, "") + ".jpg", { type });
+}
+
 /** Saves a Blob as a file download. */
 export function downloadBlob(blob: Blob, fileName: string) {
   const url = URL.createObjectURL(blob);

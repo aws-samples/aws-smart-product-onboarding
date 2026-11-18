@@ -108,9 +108,15 @@ export const GenerationSettings: React.FC<{ flow: ProductFlow }> = ({
       </div>
       <SelectField
         label="Model"
-        value={options.model}
-        options={MODELS.map((m) => ({ id: m.id, label: m.label }))}
-        onChange={(model) => setOptions({ ...options, model })}
+        description="The default is the model configured for this deployment."
+        value={options.model || "default"}
+        options={[
+          { id: "default", label: "Default model" },
+          ...MODELS.map((m) => ({ id: m.id, label: m.label })),
+        ]}
+        onChange={(model) =>
+          setOptions({ ...options, model: model === "default" ? "" : model })
+        }
       />
       <Slider
         minValue={0}

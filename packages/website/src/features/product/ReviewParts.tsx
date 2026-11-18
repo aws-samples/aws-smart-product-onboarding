@@ -50,11 +50,22 @@ export const Gallery: React.FC<{
         <span className="absolute top-2.5 left-2.5 z-10 rounded bg-[#0b0f14]/80 px-1.5 py-0.5 font-mono text-[11px] text-[#e6edf5]">
           {index + 1} / {images.length}
         </span>
-        <img
-          src={current.url}
-          alt={`Product image ${index + 1} of ${images.length}`}
-          className="absolute inset-0 size-full object-contain p-[4%]"
-        />
+        {current.url ? (
+          <img
+            src={current.url}
+            alt={`Product image ${index + 1} of ${images.length}`}
+            className="absolute inset-0 size-full object-contain p-[4%]"
+          />
+        ) : (
+          <span
+            role="img"
+            aria-label={`Product image ${index + 1} of ${images.length}, preview not saved`}
+            className="text-faint bg-raised absolute inset-0 grid place-items-center p-6 text-center text-[13px]"
+          >
+            This browser ran out of space, so the preview was not saved. The
+            image is still used for generation.
+          </span>
+        )}
       </div>
       {images.length > 1 && (
         <div
@@ -71,7 +82,15 @@ export const Gallery: React.FC<{
               onClick={() => setIndex(n)}
               className="bg-img border-line aria-pressed:border-accent aspect-square rounded-md border p-1 aria-pressed:shadow-[0_0_0_1px_var(--accent)]"
             >
-              <img src={img.url} alt="" className="size-full object-contain" />
+              {img.url ? (
+                <img
+                  src={img.url}
+                  alt=""
+                  className="size-full object-contain"
+                />
+              ) : (
+                <span className="bg-raised block size-full rounded" />
+              )}
             </button>
           ))}
         </div>

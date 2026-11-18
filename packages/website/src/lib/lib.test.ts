@@ -12,9 +12,10 @@ import {
   MAX_DRAFTS,
   resetDraftCache,
   saveDraft,
+  setDraftsOwner,
   type Draft,
 } from "./drafts";
-import { dayRange, formatDuration, relativeTime } from "./time";
+import { dayRange, formatDuration, parseLocalDate, relativeTime } from "./time";
 import type { BatchExecution } from "../api/client";
 import { parseRuntimeConfig } from "../config/runtime";
 
@@ -107,7 +108,32 @@ const draft = (
 describe("recent drafts", () => {
   beforeEach(() => {
     localStorage.clear();
+    setDraftsOwner("maria");
     resetDraftCache();
+  });
+
+  it("keeps each user's drafts separate", () => {
+    saveDraft(draft("mine", 1));
+    setDraftsOwner("li");
+    expect(listDrafts()).toEqual([]);
+    saveDraft(draft("theirs", 2));
+    setDraftsOwner("maria");
+    expect(listDrafts().map((d) => d.id)).toEqual(["mine"]);
+    setDraftsOwner("");
+    expect(listDrafts()).toEqual([]);
+    expect(saveDraft(draft("nobody", 3))).toBe(false);
+  });
+
+  it("reports a failed save when nothing fits", () => {
+    const spy = vi
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw new DOMException("full", "QuotaExceededError");
+      });
+    expect(saveDraft(draft("x", 1))).toBe(false);
+    spy.mockRestore();
+    resetDraftCache();
+    expect(listDrafts()).toEqual([]);
   });
 
   it("keeps the newest drafts first and caps the list", () => {
@@ -129,7 +155,7 @@ describe("recent drafts", () => {
     expect(listDrafts()[0].product?.title).toBe("Renamed");
     clearDrafts();
     expect(listDrafts()).toEqual([]);
-    expect(localStorage.getItem(DRAFTS_KEY)).toBe("[]");
+    expect(localStorage.getItem(`${DRAFTS_KEY}:maria`)).toBe("[]");
   });
 
   it("drops images when storage is full instead of losing the draft", () => {
@@ -167,6 +193,9 @@ describe("time helpers", () => {
     expect(formatDuration(45_000)).toBe("45s");
     expect(formatDuration(124_000)).toBe("2m 04s");
     expect(formatDuration(-1)).toBe("—");
+    expect(parseLocalDate("2026-11-18")?.getDate()).toBe(18);
+    expect(parseLocalDate("")).toBeUndefined();
+    expect(parseLocalDate("2026-11")).toBeUndefined();
   });
 });
 

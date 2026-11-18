@@ -28,6 +28,7 @@ export interface StoredImage {
 export interface GenerationOptions {
   language: string;
   descriptionLength: "short" | "medium" | "long";
+  /** Empty means the model configured for the deployment. */
   model: string;
   temperature: number;
 }
@@ -46,16 +47,32 @@ export interface Draft {
   possibleCategories?: string[];
   classification?: Classification;
   attributes?: ProductAttribute[];
+  /** The listing text the category and attributes were computed for. */
+  classifiedFor?: string;
 }
 
 export const draftTitle = (d: Draft) =>
   d.product?.title?.trim() || "Untitled product";
 
+/** Drafts are kept per signed-in user, so another account in the same browser doesn't see them. */
+let owner = "";
 let cache: Draft[] | undefined;
+const storageKey = () => `${DRAFTS_KEY}:${owner}`;
+
+export function setDraftsOwner(username: string) {
+  if (owner === username) return;
+  owner = username;
+  cache = undefined;
+  // Called while rendering, so notify subscribers afterwards.
+  queueMicrotask(() => window.dispatchEvent(new Event(CHANGED)));
+}
+
+const NONE: Draft[] = [];
 
 export function listDrafts(): Draft[] {
+  if (!owner) return NONE;
   if (!cache) {
-    const raw = readJson<unknown>(DRAFTS_KEY, []);
+    const raw = readJson<unknown>(storageKey(), []);
     cache = (Array.isArray(raw) ? (raw as Draft[]) : []).sort(
       (a, b) => b.updatedAt - a.updatedAt,
     );
@@ -63,14 +80,17 @@ export function listDrafts(): Draft[] {
   return cache;
 }
 
-function commit(drafts: Draft[]) {
+/** Writes the list. Returns false when nothing could be stored. */
+function commit(drafts: Draft[]): boolean {
+  if (!owner) return false;
   // localStorage can run out of space: drop the oldest drafts, then images, until it fits.
   let list = [...drafts]
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .slice(0, MAX_DRAFTS);
-  while (!writeJson(DRAFTS_KEY, list)) {
+  let ok = writeJson(storageKey(), list);
+  while (!ok && list.length) {
     if (list.length > 1) list = list.slice(0, -1);
-    else if (list[0]?.images.some((i) => i.dataUrl)) {
+    else if (list[0].images.some((i) => i.dataUrl)) {
       list = [
         {
           ...list[0],
@@ -78,15 +98,21 @@ function commit(drafts: Draft[]) {
         },
       ];
     } else break;
+    ok = writeJson(storageKey(), list);
   }
-  cache = list;
+  cache = ok ? list : undefined;
   window.dispatchEvent(new Event(CHANGED));
+  return ok;
 }
 
 export const getDraft = (id: string) => listDrafts().find((d) => d.id === id);
 
-export function saveDraft(draft: Draft) {
-  commit([draft, ...listDrafts().filter((d) => d.id !== draft.id)]);
+/** Saves a draft. Returns false when the browser could not store it. */
+export function saveDraft(draft: Draft): boolean {
+  return (
+    commit([draft, ...listDrafts().filter((d) => d.id !== draft.id)]) &&
+    !!getDraft(draft.id)
+  );
 }
 
 export function clearDrafts() {
@@ -95,7 +121,7 @@ export function clearDrafts() {
 
 function subscribe(listener: () => void) {
   const onStorage = (e: StorageEvent) => {
-    if (e.key === DRAFTS_KEY) {
+    if (e.key === storageKey()) {
       cache = undefined;
       listener();
     }

@@ -51,6 +51,27 @@ describe("SignIn", () => {
     expect(onSignedIn).toHaveBeenCalled();
   });
 
+  it("starts the reset flow when Cognito requires a password reset", async () => {
+    auth.signIn.mockResolvedValue({
+      nextStep: { signInStep: "RESET_PASSWORD" },
+    });
+    auth.resetPassword.mockResolvedValue({
+      nextStep: {
+        resetPasswordStep: "CONFIRM_RESET_PASSWORD_WITH_CODE",
+        codeDeliveryDetails: {},
+      },
+    });
+    render(<SignIn appName="Test" onSignedIn={vi.fn()} />);
+    await userEvent.type(screen.getByLabelText("Username"), "maria");
+    await userEvent.type(screen.getByLabelText("Password"), "Old-pass1");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    expect(auth.resetPassword).toHaveBeenCalledWith({ username: "maria" });
+    expect(
+      await screen.findByText(/Your password must be reset/),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Verification code")).toBeInTheDocument();
+  });
+
   it("shows a readable error for a wrong password", async () => {
     auth.signIn.mockRejectedValue(
       Object.assign(new Error("x"), { name: "NotAuthorizedException" }),

@@ -4,10 +4,17 @@
  */
 
 import React, { useEffect } from "react";
-import { ToggleButton, ToggleButtonGroup } from "react-aria-components";
+import {
+  Dialog,
+  DialogTrigger,
+  Popover,
+  ToggleButton,
+  ToggleButtonGroup,
+} from "react-aria-components";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { RecentDrafts } from "./RecentDrafts";
 import { useAuth } from "../auth/AuthProvider";
+import { useDrafts } from "../lib/drafts";
 import { useStoredState } from "../lib/storage";
 import { useTheme } from "../lib/theme";
 import { Button } from "../ui/Button";
@@ -70,6 +77,29 @@ const NavItem: React.FC<{
         </>
       )}
     </NavLink>
+  );
+};
+
+/** Recent drafts in a popover, for phones where the rail is a top bar. */
+const MobileDrafts: React.FC = () => {
+  const drafts = useDrafts();
+  return (
+    <DialogTrigger>
+      <Button
+        variant="quiet"
+        size="sm"
+        className="px-2 md:hidden"
+        aria-label={`Recent drafts, ${drafts.length}`}
+      >
+        <Icon name="batches" className="size-[18px] rotate-90" />
+        <span className="font-mono text-[11px]">{drafts.length}</span>
+      </Button>
+      <Popover placement="bottom end" className="panel w-[min(320px,92vw)] p-2">
+        <Dialog aria-label="Recent drafts" className="outline-none">
+          {({ close }) => <RecentDrafts variant="menu" onNavigate={close} />}
+        </Dialog>
+      </Popover>
+    </DialogTrigger>
   );
 };
 
@@ -181,6 +211,7 @@ export const AppShell: React.FC = () => {
           <NavItem to="/quick" icon="bolt" label="Quick generate" />
         </div>
         <RecentDrafts />
+        <MobileDrafts />
         <div className="flex items-center gap-2 md:mt-auto md:grid md:border-t md:border-line md:pt-3">
           <ThemeSwitch />
           <div className="rail-collapsed:flex-col rail-collapsed:justify-center flex items-center gap-2.5 md:px-2">

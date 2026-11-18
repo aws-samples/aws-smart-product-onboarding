@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: MIT-0
  */
 
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import { useNavigate } from "react-router-dom";
 import { AdvancedOptions } from "./AdvancedOptions";
@@ -46,7 +46,10 @@ const slug = (s = "") =>
     .slice(0, 60) || "product";
 
 /** Copy and download actions shared by the review screen and Quick generate. */
-export function useListingActions(flow: ProductFlow) {
+export function useListingActions(
+  flow: ProductFlow,
+  { canDownload = true } = {},
+) {
   const notify = useToast();
   return {
     copy: async () => {
@@ -57,7 +60,9 @@ export function useListingActions(flow: ProductFlow) {
         notify("Listing JSON copied", "success");
       } catch {
         notify(
-          "Copying is not allowed in this browser. Use Download instead.",
+          canDownload
+            ? "Copying is not allowed in this browser. Use Download instead."
+            : "Copying is not allowed in this browser.",
           "error",
         );
       }
@@ -74,12 +79,46 @@ export function useListingActions(flow: ProductFlow) {
   };
 }
 
+/** Moves to a step. Opening the category step starts categorization when it hasn't run for this listing. */
+const goToStep = (flow: ProductFlow, n: number) => {
+  flow.setStep(n);
+  if (
+    n === 2 &&
+    (!flow.classification || flow.classificationStale) &&
+    !flow.classifying
+  )
+    void flow.classify();
+};
+
+/** Shown when the listing was edited after the category and attributes were computed. */
+const StaleNotice: React.FC<{ flow: ProductFlow }> = ({ flow }) =>
+  flow.classificationStale ? (
+    <div
+      role="status"
+      className="border-run bg-run-soft mb-4 flex flex-wrap items-center gap-3 rounded-md border p-3 text-[13px]"
+    >
+      <Icon name="alert" className="text-run" />
+      <span className="flex-1">
+        The listing changed after it was categorized. Categorize it again before
+        you export it.
+      </span>
+      <Button
+        size="sm"
+        onPress={() => void flow.classify()}
+        isDisabled={flow.classifying}
+      >
+        <Icon name="refresh" className="size-3.5" />
+        Categorize again
+      </Button>
+    </div>
+  ) : null;
+
 const Steps: React.FC<{ flow: ProductFlow }> = ({ flow }) => {
   const reachable = [
     true,
     !!flow.product || flow.generating,
-    !!flow.product,
-    !!flow.classification,
+    !!flow.product && !flow.generating,
+    flow.classified && !flow.classifying && !flow.generating,
   ];
   return (
     <nav aria-label="Steps" className="max-md:w-full max-md:overflow-x-auto">
@@ -93,7 +132,7 @@ const Steps: React.FC<{ flow: ProductFlow }> = ({ flow }) => {
                 type="button"
                 disabled={!reachable[n] || current}
                 aria-current={current ? "step" : undefined}
-                onClick={() => flow.setStep(n)}
+                onClick={() => goToStep(flow, n)}
                 className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[13px] whitespace-nowrap ${
                   current
                     ? "bg-raised text-text font-semibold shadow-[0_0_0_1px_var(--line-2)]"
@@ -189,7 +228,8 @@ const GenerateStep: React.FC<{ flow: ProductFlow }> = ({ flow }) => (
         isDisabled={!flow.product || flow.generating}
         onPress={() => {
           flow.setStep(2);
-          if (!flow.classification) void flow.classify();
+          if (!flow.classification || flow.classificationStale)
+            void flow.classify();
         }}
       >
         Categorize
@@ -243,7 +283,7 @@ const ClassifyStep: React.FC<{ flow: ProductFlow }> = ({ flow }) => (
       </Button>
       <Button
         variant="primary"
-        isDisabled={!flow.classification || flow.classifying}
+        isDisabled={!flow.classified || flow.classifying}
         onPress={() => flow.setStep(3)}
       >
         Review
@@ -381,8 +421,23 @@ const ReviewStep: React.FC<{ flow: ProductFlow }> = ({ flow }) => {
 
 /** Single-product onboarding: images and details, generate, categorize, review. */
 export const ProductPage: React.FC<{ draftId?: string }> = ({ draftId }) => {
-  const flow = useProductFlow({ draftId, persist: true });
+  const notify = useToast();
+  const warned = useRef(false);
+  const onSaveFailed = useCallback(() => {
+    if (warned.current) return;
+    warned.current = true;
+    notify(
+      "This browser has no space left to save the draft. Download the listing to keep it.",
+      "error",
+    );
+  }, [notify]);
+  const flow = useProductFlow({ draftId, persist: true, onSaveFailed });
   const navigate = useNavigate();
+  const exportBlocked =
+    flow.generating ||
+    flow.classifying ||
+    flow.classificationStale ||
+    !flow.classified;
   const { copy, download } = useListingActions(flow);
   const heading = useRef<HTMLHeadingElement>(null);
   const first = useRef(true);
@@ -419,8 +474,14 @@ export const ProductPage: React.FC<{ draftId?: string }> = ({ draftId }) => {
         {onReview ? (
           <>
             <RegenerateMenu flow={flow} />
-            <Button onPress={() => void copy()}>Copy JSON</Button>
-            <Button variant="primary" onPress={download}>
+            <Button onPress={() => void copy()} isDisabled={exportBlocked}>
+              Copy JSON
+            </Button>
+            <Button
+              variant="primary"
+              onPress={download}
+              isDisabled={exportBlocked}
+            >
               <Icon name="download" />
               Download listing
             </Button>
@@ -460,6 +521,7 @@ export const ProductPage: React.FC<{ draftId?: string }> = ({ draftId }) => {
           </div>
           <Steps flow={flow} />
         </div>
+        {(flow.step === 2 || flow.step === 3) && <StaleNotice flow={flow} />}
         {flow.step === 0 && <ImagesStep flow={flow} />}
         {flow.step === 1 && <GenerateStep flow={flow} />}
         {flow.step === 2 && <ClassifyStep flow={flow} />}
@@ -467,8 +529,15 @@ export const ProductPage: React.FC<{ draftId?: string }> = ({ draftId }) => {
       </main>
       {onReview && (
         <MobileActions>
-          <Button onPress={() => void copy()}>Copy JSON</Button>
-          <Button variant="primary" onPress={download}>
+          <RegenerateMenu flow={flow} />
+          <Button onPress={() => void copy()} isDisabled={exportBlocked}>
+            Copy
+          </Button>
+          <Button
+            variant="primary"
+            onPress={download}
+            isDisabled={exportBlocked}
+          >
             Download
           </Button>
         </MobileActions>
