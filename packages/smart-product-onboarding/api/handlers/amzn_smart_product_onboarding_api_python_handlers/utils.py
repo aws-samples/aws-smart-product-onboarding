@@ -1,5 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
+from functools import cache
 from typing import Optional, TYPE_CHECKING
 
 from boto3 import Session
@@ -18,18 +19,28 @@ else:
     S3Client = object
 
 
+# Clients are created once per execution environment and reused across invocations.
+# Creating a new Session and client on every request costs CPU time and memory that
+# is not released, so a warm function eventually runs out of memory.
+# Tests can reset a cached client with e.g. get_s3_client.cache_clear().
+
+
+@cache
 def get_sfn_client() -> SFNClient:
     return Session().client("stepfunctions")
 
 
+@cache
 def get_dynamodb_client() -> DynamoDBClient:
     return Session().client("dynamodb")
 
 
+@cache
 def get_dynamodb_resource() -> DynamoDBServiceResource:
     return Session().resource("dynamodb")
 
 
+@cache
 def get_s3_client() -> S3Client:
     return Session().client(
         "s3",
