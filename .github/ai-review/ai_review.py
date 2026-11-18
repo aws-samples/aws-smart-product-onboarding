@@ -139,20 +139,24 @@ def decide(text: str, head_sha: str) -> dict:
 
 # ---------- output hygiene ----------
 
-# a credential-looking value: 8 or more token characters, not a plain lowercase word
-_CRED = r"(?![{$<])(?=[\w.~+/=-]*[A-Z0-9~+/=_-])[\w.~+/=-]{8,}"
+# pieces of the PEM and Authorization patterns below
+_NL = r"(?:\r?\n[ \t>]*|\\n)"  # a line break, also inside quotes (`> `) or as an escaped `\n`
+_PEM_LABEL = r"[A-Z0-9 ]*PRIVATE KEY[A-Z ]*-----"
+_AUTH = r"\b((?i:(?:proxy-)?authorization)[\"']?\s*[:=]\s*[\"']?"
+_PARAM = r"[A-Za-z-]+\s*=\s*(?:\"[^\"\r\n]*\"|[^\s,\"'`<>]+)"  # name=value or name="value"
 
 REDACTIONS = [
-    # PEM private key block; without an END line, the BEGIN line and the base64 lines after it
-    (re.compile(r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY[A-Z ]*-----"
-                r"(?:.*?-----END [A-Z0-9 ]*PRIVATE KEY[A-Z ]*-----|(?:(?:\r?\n[ \t>]*|\\n)[A-Za-z0-9+/=]+)*)",
-                re.DOTALL), "<redacted-private-key>"),
-    # Authorization header value, with or without its scheme (AWS SigV4 keeps going over its comma list)
-    (re.compile(r"\b((?i:(?:proxy-)?authorization)[\"']?\s*[:=]\s*[\"']?"
-                r"(?i:(?:bearer|basic|token|digest|negotiate|aws4-hmac-sha256)\s+)?)"
-                + _CRED + r"(?:,\s*[A-Za-z]+=[^\s,\"'`<>]+)*"), r"\1<redacted>"),
-    # a bearer token anywhere else; the value needs a digit or symbol so prose like "bearer of" survives
-    (re.compile(r"\b((?i:bearer)\s+)(?![{$<])(?=[\w.~+/=-]*[0-9~+/=_-])[\w.~+/=-]{16,}"), r"\1<redacted>"),
+    # PEM private key: the BEGIN line, any Proc-Type/DEK-Info style headers and the blank line after
+    # them, the base64 body and the END line if present. A blank or non-base64 line ends the match.
+    (re.compile(rf"-----BEGIN {_PEM_LABEL}(?:(?:{_NL}[A-Za-z-]+:[^\r\n\\]*)+(?:{_NL}(?={_NL}))?)?"
+                rf"(?:{_NL}[A-Za-z0-9+/=]+)*(?:{_NL}-----END {_PEM_LABEL})?"), "<redacted-private-key>"),
+    # Authorization values. Digest and SigV4 carry a list of parameters, spaces allowed around = and ,
+    (re.compile(_AUTH + rf"(?i:digest|aws4-hmac-sha256)\s+){_PARAM}(?:\s*,\s*{_PARAM})*"), r"\1<redacted>"),
+    (re.compile(_AUTH + r"(?i:bearer|basic|token|negotiate)\s+)(?![{$<])[^\s\"'`<>,]+"), r"\1<redacted>"),
+    # no scheme: a long opaque value
+    (re.compile(_AUTH + r")(?![{$<])[\w.~+/=-]{16,}"), r"\1<redacted>"),
+    # a bearer token anywhere else
+    (re.compile(r"\b((?i:bearer)\s+)(?![{$<])[\w.~+/=-]{16,}"), r"\1<redacted>"),
     # JWT (header.payload[.signature]); the header is base64url JSON, so it starts with eyJ
     (re.compile(r"(?<![\w-])eyJ[\w-]{7,}\.[\w-]{2,}(?:\.[\w-]+){0,3}"), "<redacted-jwt>"),
     (re.compile(r"(?<![A-Za-z0-9_])(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})"),

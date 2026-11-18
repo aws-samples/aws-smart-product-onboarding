@@ -415,6 +415,38 @@ class MoreRedaction(unittest.TestCase):
         once = ai_review.redact("ping @maintainers")
         self.assertEqual(ai_review.redact(once), once)
 
+    def test_authorization_any_case_digest_and_spaced_sigv4(self):
+        sig = "9e8d7c6b" * 8
+        cases = {
+            "authorization: bearer lowercaseopaquevalue": "lowercaseopaque",
+            "AUTHORIZATION: BEARER lowercaseopaquevalue": "lowercaseopaque",
+            "send it as bearer lowercaseopaquevalue here": "lowercaseopaque",
+            'Authorization: Digest username="tester", realm="example", nonce="dcd98b7102dd2f0e", '
+            'uri="/x", response="6629fae49393a05397450978507c4ef1"': "6629fae4",
+            'Authorization: Digest username="tester", nonce="dcd98b7102dd2f0e"': "dcd98b71",
+            "Authorization: AWS4-HMAC-SHA256 Credential = EXAMPLE/20260101/us-west-2/s3/aws4_request , "
+            f"SignedHeaders = host;x-amz-date , Signature = {sig}": sig,
+        }
+        for text, secret in cases.items():
+            self.assertNotIn(secret, ai_review.redact(text), text)
+
+    def test_footerless_encrypted_pem_and_the_text_after_it(self):
+        key = "\n".join([PEM_HEAD, "Proc-Type: 4,ENCRYPTED", "DEK-Info: AES-128-CBC,0123456789ABCDEF0123456789ABCDEF",
+                         "", PEM_LINE, PEM_LINE])
+        later = "### BLOCKING 2: Something else\nLocation: packages/infra/src/api.ts:42"
+        out = ai_review.redact(f"{key}\n\n{later}")
+        for leaked in ("MIIEow", "DEK-Info", "0123456789ABCDEF"):
+            self.assertNotIn(leaked, out)
+        self.assertEqual(out, f"<redacted-private-key>\n\n{later}")
+
+    def test_footerless_pem_does_not_reach_a_later_end_line(self):
+        between = "This paragraph sits between two excerpts and must stay."
+        text = f"{PEM_HEAD}\n{PEM_LINE}\n\n{between}\n\n{PEM_HEAD}\n{PEM_LINE}\n{PEM_TAIL}\nend"
+        out = ai_review.redact(text)
+        self.assertNotIn("MIIEow", out)
+        self.assertIn(between, out)
+        self.assertTrue(out.endswith("<redacted-private-key>\nend"))
+
 
 class RedactBeforeTruncate(unittest.TestCase):
     def test_secret_at_the_limit_is_redacted(self):
