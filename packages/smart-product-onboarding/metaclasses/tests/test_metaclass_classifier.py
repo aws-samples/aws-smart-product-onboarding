@@ -220,3 +220,35 @@ def test_split_words_handles_hyphens():
 
     assert split_words("chile map design t-shirt") == ["chile", "map", "design", "shirt"]
     assert split_words("all-purpose a b") == ["all", "purpose", "a", "b"]
+
+
+def test_split_words_handles_punctuation_and_repeats():
+    from amzn_smart_product_onboarding_metaclasses.metaclass_classifier import split_words
+
+    assert split_words("cordless drill/driver, kids' toddler's bike") == [
+        "cordless", "drill", "driver", "kids", "toddler", "bike"
+    ]
+    assert split_words("black tea tea bag") == ["black", "tea", "bag"]
+
+
+def test_classify_looks_up_neighbours_for_every_word(
+    classifier, mock_text_cleaner, mock_word_embeddings_repo, mock_category_vector_index
+):
+    from amzn_smart_product_onboarding_metaclasses.metaclass_classifier import EMBEDDING_NEIGHBORS
+
+    mock_text_cleaner.singularize_sentence.return_value = "balance bike"
+    mock_word_embeddings_repo.get_vectors_by_words.return_value = [[0.1], [0.2]]
+    mock_category_vector_index.search.side_effect = [
+        [("balance", 1.0), ("weight", 0.5)],
+        [("motorcycle", 0.7), ("ride", 0.6)],
+    ]
+    classifier.word_map = {"balance": ["WINDOW"], "motorcycle": ["MOTORCYCLE"], "ride": ["RIDE_ON_TOY"], "weight": []}
+
+    with patch.object(classifier, "normalize_product", return_value="balance bike"):
+        result = classifier.classify(Product(title="Balance Bike", description="A toddler balance bike"))
+
+    # the exact match "balance" is looked up too, and each lookup asks for several neighbours
+    mock_word_embeddings_repo.get_vectors_by_words.assert_called_once_with(["balance", "bike"])
+    assert all(c.args[1] == EMBEDDING_NEIGHBORS for c in mock_category_vector_index.search.call_args_list)
+    assert set(result.possible_categories) == {"WINDOW", "MOTORCYCLE", "RIDE_ON_TOY"}
+    assert [f.word for f in result.findings].count("balance") == 1
