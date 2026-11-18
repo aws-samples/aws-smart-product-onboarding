@@ -14,6 +14,8 @@ import type {
 export const DRAFTS_KEY = "spo:drafts";
 export const MAX_DRAFTS = 8;
 const CHANGED = "spo:drafts-changed";
+/** Event that asks open editors to save their pending draft now, for example before signing out. */
+export const FLUSH_DRAFTS = "spo:flush-drafts";
 
 export interface StoredImage {
   id: string;
@@ -115,8 +117,9 @@ export function saveDraft(draft: Draft): boolean {
   );
 }
 
-export function clearDrafts() {
-  commit([]);
+/** Returns false when the browser refused the change. */
+export function clearDrafts(): boolean {
+  return commit([]);
 }
 
 function subscribe(listener: () => void) {

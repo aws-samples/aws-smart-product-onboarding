@@ -76,9 +76,13 @@ export const RecentDrafts: React.FC<{
                         size="sm"
                         variant="danger"
                         onPress={() => {
-                          clearDrafts();
                           close();
-                          notify("Recent drafts cleared");
+                          if (clearDrafts()) notify("Recent drafts cleared");
+                          else
+                            notify(
+                              "The drafts could not be cleared in this browser.",
+                              "error",
+                            );
                         }}
                       >
                         Clear drafts

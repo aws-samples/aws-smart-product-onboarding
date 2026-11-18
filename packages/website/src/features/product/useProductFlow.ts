@@ -17,6 +17,7 @@ import {
   type ProductData,
 } from "../../api/client";
 import {
+  FLUSH_DRAFTS,
   getDraft,
   saveDraft,
   setActiveDraftId,
@@ -76,20 +77,25 @@ const newId = () =>
     ? crypto.randomUUID()
     : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 
-/** Restores images. Images that were never uploaded are rebuilt from their saved preview. */
+/** Restores images. Images that were never uploaded are rebuilt from their saved JPEG preview. */
 const fromDraft = (d?: Draft): FlowImage[] =>
-  (d?.images ?? []).map((i) => ({
-    id: i.id,
-    name: i.name,
-    type: i.dataUrl && !i.key ? "image/jpeg" : i.type,
-    url: i.dataUrl,
-    dataUrl: i.dataUrl,
-    key: i.key,
-    file: !i.key && i.dataUrl ? dataUrlToFile(i.dataUrl, i.name) : undefined,
-  }));
+  (d?.images ?? []).map((i) => {
+    const file =
+      !i.key && i.dataUrl ? dataUrlToFile(i.dataUrl, i.name) : undefined;
+    return {
+      id: i.id,
+      name: file?.name ?? i.name,
+      type: file?.type ?? i.type,
+      url: i.dataUrl,
+      dataUrl: i.dataUrl,
+      key: i.key,
+      file,
+    };
+  });
 
-const listingText = (p?: ProductData) =>
-  p ? `${p.title}\n${p.description}` : "";
+/** What the category and attributes depend on: the listing text and metadata. */
+const classificationInputs = (p: ProductData | undefined, metadata: string) =>
+  p ? JSON.stringify([p.title, p.description, metadata.trim()]) : "";
 
 /**
  * State and actions for onboarding one product: images and details, listing
@@ -179,32 +185,40 @@ export function useProductFlow({
   const savedOnce = useRef(!!initial);
   const deleted = useRef(false);
   const pending = useRef<Draft>();
-  const flush = useCallback(() => {
-    const draft = pending.current;
-    pending.current = undefined;
-    if (!draft || deleted.current) return;
-    if (savedOnce.current && !getDraft(draft.id)) {
-      // The draft was cleared from Recent drafts: stop saving it again.
-      deleted.current = true;
-      return;
-    }
-    if (!saveDraft(draft)) {
-      onSaveFailed?.();
-      return;
-    }
-    if (!savedOnce.current) {
-      savedOnce.current = true;
-      // Keep the router state; only the address changes so a reload reopens this draft.
-      if (window.location.pathname === "/new") {
-        window.history.replaceState(
-          window.history.state,
-          "",
-          `/drafts/${draft.id}`,
-        );
+  const flush = useCallback(
+    (updateAddress = true) => {
+      const draft = pending.current;
+      pending.current = undefined;
+      if (!draft || deleted.current) return;
+      if (savedOnce.current && !getDraft(draft.id)) {
+        // The draft was cleared from Recent drafts: stop saving it again.
+        deleted.current = true;
+        return;
       }
-    }
-    setActiveDraftId(draft.id);
-  }, [onSaveFailed]);
+      if (!saveDraft(draft)) {
+        onSaveFailed?.();
+        return;
+      }
+      if (!savedOnce.current) {
+        savedOnce.current = true;
+        // Keep the router state; only the address changes so a reload reopens this draft.
+        // Not on unmount: the user may already be on another page, such as a new product.
+        if (
+          updateAddress &&
+          live.current &&
+          window.location.pathname === "/new"
+        ) {
+          window.history.replaceState(
+            window.history.state,
+            "",
+            `/drafts/${draft.id}`,
+          );
+        }
+      }
+      setActiveDraftId(draft.id);
+    },
+    [onSaveFailed],
+  );
 
   useEffect(() => {
     if (!persist || !product || deleted.current) return undefined;
@@ -230,7 +244,7 @@ export function useProductFlow({
       attributes,
       classifiedFor,
     };
-    const t = setTimeout(flush, 300);
+    const t = setTimeout(() => flush(), 300);
     return () => clearTimeout(t);
   }, [
     persist,
@@ -251,10 +265,14 @@ export function useProductFlow({
   ]);
 
   useEffect(() => {
-    window.addEventListener("pagehide", flush);
+    const now = () => flush();
+    window.addEventListener("pagehide", now);
+    // Sent before signing out, while the draft still has an owner.
+    window.addEventListener(FLUSH_DRAFTS, now);
     return () => {
-      window.removeEventListener("pagehide", flush);
-      flush();
+      window.removeEventListener("pagehide", now);
+      window.removeEventListener(FLUSH_DRAFTS, now);
+      flush(false);
     };
   }, [flush]);
 
@@ -345,8 +363,13 @@ export function useProductFlow({
     const token = ++run.current;
     const current = () => live.current && token === run.current;
     setGenError(undefined);
-    setStages(IDLE);
     try {
+      const lost = images.filter((i) => !i.key && !i.file).length;
+      if (lost) {
+        throw new Error(
+          `${lost} image(s) in this draft were never uploaded and their previews were not saved. Remove them and add them again.`,
+        );
+      }
       const pendingImages = images.filter((i) => !i.key && i.file);
       let keyed = images;
       if (pendingImages.length) {
@@ -456,7 +479,7 @@ export function useProductFlow({
     setPossibleCategories(undefined);
     setClassification(undefined);
     setAttributes(undefined);
-    setClassifiedFor(listingText(input));
+    setClassifiedFor(classificationInputs(input, metadata));
     setStages({ metaclass: "running", categorize: "idle", attributes: "idle" });
     let categories: string[];
     try {
@@ -501,7 +524,7 @@ export function useProductFlow({
   const classificationStale =
     !!classification &&
     classifiedFor !== undefined &&
-    classifiedFor !== listingText(product);
+    classifiedFor !== classificationInputs(product, metadata);
   const classified =
     stages.attributes === "done" && !!classification && !!attributes;
 

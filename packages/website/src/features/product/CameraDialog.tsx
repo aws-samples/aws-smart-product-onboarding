@@ -68,13 +68,16 @@ export const CameraDialog: React.FC<{
         return;
       }
       stream.current = s;
+      // Show the camera that actually opened, which may differ from the saved one.
+      const active = s.getVideoTracks()[0]?.getSettings().deviceId;
+      if (active) setDeviceId(active);
       if (video.current) video.current.srcObject = s;
       const list = (await navigator.mediaDevices.enumerateDevices()).filter(
         (d) => d.kind === "videoinput",
       );
       if (mine !== attempt.current) return;
       setDevices(list);
-      setState("live");
+      if (video.current && video.current.readyState >= 2) setState("live");
     } catch {
       if (mine === attempt.current) setState("error");
     }
@@ -89,7 +92,8 @@ export const CameraDialog: React.FC<{
 
   const takePhoto = () => {
     const v = video.current;
-    if (!v) return;
+    // The preview has no frame yet: nothing to capture.
+    if (!v || !v.videoWidth || !v.videoHeight) return;
     const canvas = document.createElement("canvas");
     canvas.width = v.videoWidth;
     canvas.height = v.videoHeight;
@@ -145,6 +149,9 @@ export const CameraDialog: React.FC<{
             )}
             <video
               ref={video}
+              onLoadedData={() =>
+                setState((st) => (st === "starting" ? "live" : st))
+              }
               autoPlay
               playsInline
               muted

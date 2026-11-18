@@ -290,6 +290,7 @@ export const SignIn: React.FC<{ appName: string; onSignedIn: () => void }> = ({
                 onChange={setUsername}
                 isRequired
                 autoComplete="username"
+                isDisabled={busy}
                 autoFocus
               />
             )}

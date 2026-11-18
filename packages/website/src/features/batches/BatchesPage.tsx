@@ -401,7 +401,8 @@ export const BatchesPage: React.FC = () => {
                 variant="quiet"
                 className="px-1.5"
                 aria-label="Refresh now"
-                onPress={() => void query.refetch()}
+                onPress={() => bounds && void query.refetch()}
+                isDisabled={!bounds}
                 isPending={query.isFetching}
               >
                 {!query.isFetching && (
@@ -593,7 +594,7 @@ export const BatchesPage: React.FC = () => {
             "success",
           );
           setAutoRefresh(true);
-          void query.refetch();
+          if (bounds) void query.refetch();
         }}
       />
     </>

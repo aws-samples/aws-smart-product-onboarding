@@ -42,78 +42,107 @@ const FilePicker: React.FC<{
   ok?: boolean;
   summary?: React.ReactNode;
   error?: string;
+  disabled?: boolean;
   onFile: (f: File | undefined) => void;
-}> = ({ label, hint, required, file, accept, ok, summary, error, onFile }) => (
-  <div className="grid gap-1.5">
-    <span className="text-[13px] font-semibold">
-      {label}{" "}
-      <span className="text-muted font-normal">
-        ({required ? "required" : "optional"})
+}> = ({
+  label,
+  hint,
+  required,
+  file,
+  accept,
+  ok,
+  summary,
+  error,
+  disabled,
+  onFile,
+}) => {
+  const [note, setNote] = useState<string>();
+  return (
+    <div className="grid gap-1.5">
+      <span className="text-[13px] font-semibold">
+        {label}{" "}
+        <span className="text-muted font-normal">
+          ({required ? "required" : "optional"})
+        </span>
       </span>
-    </span>
-    <DropZone
-      aria-label={`${label} drop zone`}
-      onDrop={async (e) => onFile(await firstFile(e.items))}
-      className={`grid gap-1.5 rounded-lg border p-4 data-[drop-target]:border-accent ${
-        file && ok
-          ? "border-ok bg-ok-soft"
-          : error
-            ? "border-err bg-err-soft"
-            : "border-line-2 bg-bg border-dashed"
-      }`}
-    >
-      {file ? (
-        <>
-          <Text slot="label" className="font-semibold break-all">
-            {file.name}
-          </Text>
-          {summary}
-          <div className="flex gap-2">
+      <DropZone
+        aria-label={`${label} drop zone`}
+        isDisabled={disabled}
+        onDrop={async (e) => {
+          const files = e.items.filter((i) => i.kind === "file");
+          if (files.length > 1) {
+            setNote("Drop one file at a time.");
+            return;
+          }
+          setNote(undefined);
+          onFile(await firstFile(e.items));
+        }}
+        className={`grid gap-1.5 rounded-lg border p-4 data-[drop-target]:border-accent ${
+          file && ok
+            ? "border-ok bg-ok-soft"
+            : error
+              ? "border-err bg-err-soft"
+              : "border-line-2 bg-bg border-dashed"
+        }`}
+      >
+        {file ? (
+          <>
+            <Text slot="label" className="font-semibold break-all">
+              {file.name}
+            </Text>
+            {summary}
+            <div className="flex gap-2">
+              <FileTrigger
+                acceptedFileTypes={accept}
+                onSelect={(l) => l?.[0] && onFile(l[0])}
+              >
+                <AriaButton
+                  className={buttonClass("secondary", "sm")}
+                  isDisabled={disabled}
+                >
+                  Replace
+                </AriaButton>
+              </FileTrigger>
+              <Button
+                size="sm"
+                variant="quiet"
+                isDisabled={disabled}
+                onPress={() => onFile(undefined)}
+                aria-label={`Remove ${file.name}`}
+              >
+                Remove
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <Text slot="label" className="font-semibold">
+              Drop the file here
+            </Text>
+            <span className="text-muted text-[12.5px]">{hint}</span>
             <FileTrigger
               acceptedFileTypes={accept}
               onSelect={(l) => l?.[0] && onFile(l[0])}
             >
-              <AriaButton className={buttonClass("secondary", "sm")}>
-                Replace
+              <AriaButton
+                className={`${buttonClass("secondary", "sm")} justify-self-start`}
+                isDisabled={disabled}
+              >
+                <Icon name="upload" className="size-3.5" />
+                Choose file
               </AriaButton>
             </FileTrigger>
-            <Button
-              size="sm"
-              variant="quiet"
-              onPress={() => onFile(undefined)}
-              aria-label={`Remove ${file.name}`}
-            >
-              Remove
-            </Button>
-          </div>
-        </>
-      ) : (
-        <>
-          <Text slot="label" className="font-semibold">
-            Drop the file here
-          </Text>
-          <span className="text-muted text-[12.5px]">{hint}</span>
-          <FileTrigger
-            acceptedFileTypes={accept}
-            onSelect={(l) => l?.[0] && onFile(l[0])}
-          >
-            <AriaButton
-              className={`${buttonClass("secondary", "sm")} justify-self-start`}
-            >
-              <Icon name="upload" className="size-3.5" />
-              Choose file
-            </AriaButton>
-          </FileTrigger>
-        </>
+          </>
+        )}
+      </DropZone>
+      {(note || error) && (
+        <p className="text-err text-[12.5px]" role="alert">
+          {note || error}
+        </p>
       )}
-    </DropZone>
-    {error && (
-      <p className="text-err text-[12.5px]" role="alert">
-        {error}
-      </p>
-    )}
-  </div>
-);
+    </div>
+  );
+};
 
 /** Upload a catalog CSV and an optional images ZIP, then start a batch. */
 export const NewBatchDrawer: React.FC<{
@@ -241,6 +270,7 @@ export const NewBatchDrawer: React.FC<{
             </>
           )
         }
+        disabled={busy}
         onFile={setCsv}
       />
       <FilePicker
@@ -262,6 +292,7 @@ export const NewBatchDrawer: React.FC<{
             </span>
           )
         }
+        disabled={busy}
         onFile={setZip}
       />
       <Section title="CSV format">

@@ -27,6 +27,7 @@ import {
 } from "./config/runtime";
 import { ProductPage } from "./features/product/ProductPage";
 import { AppShell } from "./layout/AppShell";
+import { PageErrorBoundary } from "./ui/ErrorBoundary";
 import { Spinner } from "./ui/Spinner";
 import { ToastProvider } from "./ui/Toast";
 
@@ -83,17 +84,21 @@ export const AppRoutes: React.FC = () => (
       <Route
         path="/batches"
         element={
-          <Suspense fallback={<Loading />}>
-            <BatchesPage />
-          </Suspense>
+          <PageErrorBoundary>
+            <Suspense fallback={<Loading />}>
+              <BatchesPage />
+            </Suspense>
+          </PageErrorBoundary>
         }
       />
       <Route
         path="/quick"
         element={
-          <Suspense fallback={<Loading />}>
-            <QuickGeneratePage />
-          </Suspense>
+          <PageErrorBoundary>
+            <Suspense fallback={<Loading />}>
+              <QuickGeneratePage />
+            </Suspense>
+          </PageErrorBoundary>
         }
       />
       {/* Paths used by the previous website. */}

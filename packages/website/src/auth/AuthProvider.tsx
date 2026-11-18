@@ -19,7 +19,7 @@ import React, {
 } from "react";
 import { SignIn } from "./SignIn";
 import { useRuntimeConfig } from "../config/runtime";
-import { setDraftsOwner } from "../lib/drafts";
+import { FLUSH_DRAFTS, setDraftsOwner } from "../lib/drafts";
 import { FullPageMessage } from "../ui/FullPageMessage";
 
 interface AuthState {
@@ -29,6 +29,8 @@ interface AuthState {
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
+// One stable token function per user, so the API client is not rebuilt on every render.
+const tokenGetters = new Map<string, () => Promise<string | undefined>>();
 
 export const useAuth = (): AuthState => {
   const auth = useContext(AuthContext);
@@ -37,8 +39,22 @@ export const useAuth = (): AuthState => {
 };
 
 /** Returns the current ID token. Amplify refreshes it with the refresh token when it has expired. */
-export const getIdToken = async (): Promise<string | undefined> =>
-  (await fetchAuthSession()).tokens?.idToken?.toString();
+/**
+ * Returns the current ID token. Amplify refreshes it when it has expired.
+ * If another tab signed in as a different user, reload so the page and the
+ * API calls belong to the same account.
+ */
+export const idTokenFor = async (
+  username: string,
+): Promise<string | undefined> => {
+  const token = (await fetchAuthSession()).tokens?.idToken;
+  const owner = token?.payload["cognito:username"];
+  if (token && owner !== username) {
+    window.location.reload();
+    throw new Error("The signed-in user changed in another tab.");
+  }
+  return token?.toString();
+};
 
 /**
  * Signs users in against the stack's Cognito user pool and renders the app only
@@ -74,6 +90,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [config.userPoolId, config.userPoolWebClientId]);
 
   const signOut = useCallback(async () => {
+    // Let open editors save their drafts while the user is still known.
+    window.dispatchEvent(new Event(FLUSH_DRAFTS));
     await amplifySignOut();
     setUser(null);
   }, []);
@@ -94,8 +112,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       />
     );
   }
+  const signedIn = user;
+  const tokenGetter =
+    tokenGetters.get(signedIn) ??
+    tokenGetters.set(signedIn, () => idTokenFor(signedIn)).get(signedIn)!;
   return (
-    <AuthContext.Provider value={{ username: user, getIdToken, signOut }}>
+    <AuthContext.Provider
+      value={{ username: user, getIdToken: tokenGetter, signOut }}
+    >
       {/* Keyed by user so nothing from a previous session is reused. */}
       <React.Fragment key={user}>{children}</React.Fragment>
     </AuthContext.Provider>
