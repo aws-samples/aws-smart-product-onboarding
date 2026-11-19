@@ -7,7 +7,7 @@ description = "API handlers for Smart Product Onboarding Lambda functions"
 requires-python = ">=3.12,<4"
 readme = "README.md"
 dependencies = [
-    "amzn-smart-product-onboarding-api-runtime",
+    "amzn-smart-product-onboarding-api-common",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -27,7 +27,7 @@ dev = [
 publish = false
 
 [tool.uv.sources]
-amzn-smart-product-onboarding-api-runtime = { workspace = true }
+amzn-smart-product-onboarding-api-common = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

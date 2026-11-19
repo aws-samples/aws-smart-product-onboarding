@@ -1,0 +1,49 @@
+{
+  "name": "amzn-smart-product-onboarding-api-python-common",
+  "root": "packages/smart-product-onboarding/api/common",
+  "tags": ["python"],
+  "targets": {
+    "install": {
+      "dependsOn": ["^install"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv sync --all-packages",
+        "cwd": "packages/smart-product-onboarding"
+      }
+    },
+    "generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "uv run datamodel-codegen --input ../../../api/model/src/main/openapi/main.yaml --input-file-type openapi --output amzn_smart_product_onboarding_api_common/models.py --output-model-type pydantic_v2.BaseModel --target-python-version 3.12 --snake-case-field --allow-population-by-field-name --use-subclass-enum --capitalise-enum-members --use-standard-collections --use-union-operator --use-schema-description --field-constraints --use-double-quotes --type-mappings uri=string --disable-timestamp --formatters builtin",
+          "uv run ruff check --fix --quiet amzn_smart_product_onboarding_api_common/models.py",
+          "uv run ruff format --quiet amzn_smart_product_onboarding_api_common/models.py"
+        ],
+        "parallel": false,
+        "cwd": "packages/smart-product-onboarding/api/common"
+      },
+      "inputs": [
+        "{workspaceRoot}/packages/api/model/src/**/*",
+        "{projectRoot}/project.json"
+      ],
+      "outputs": [
+        "{projectRoot}/amzn_smart_product_onboarding_api_common/models.py"
+      ]
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "uv run --package amzn-smart-product-onboarding-api-common pytest api/common/tests/",
+        "cwd": "packages/smart-product-onboarding"
+      }
+    },
+    "build": {
+      "dependsOn": ["test"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "echo 'Build completed'",
+        "cwd": "packages/smart-product-onboarding/api/common"
+      }
+    }
+  }
+}

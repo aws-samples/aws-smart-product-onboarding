@@ -19,9 +19,6 @@
       }
     },
     "test": {
-      "dependsOn": [
-        "amzn-smart-product-onboarding-api-python-runtime:generate"
-      ],
       "executor": "nx:run-commands",
       "options": {
         "command": "uv run pytest",
@@ -37,10 +34,7 @@
       }
     },
     "build": {
-      "dependsOn": [
-        "test",
-        "amzn-smart-product-onboarding-api-python-runtime:generate"
-      ],
+      "dependsOn": ["test"],
       "executor": "nx:run-commands",
       "options": {
         "command": "uv build",

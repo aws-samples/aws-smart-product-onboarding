@@ -4,14 +4,11 @@
 import json
 import os
 
-from amzn_smart_product_onboarding_api_runtime import MetaclassResponseContent
-from amzn_smart_product_onboarding_api_runtime.api.operation_config import (
-    metaclass_handler,
-    MetaclassOperationResponses,
-    MetaclassRequest,
+from amzn_smart_product_onboarding_api_common.handler import ApiRequest, ApiResponse, Response, api_handler
+from amzn_smart_product_onboarding_api_common.models import (
+    MetaclassRequestContent,
+    MetaclassResponseContent,
 )
-from amzn_smart_product_onboarding_api_runtime.interceptors import INTERCEPTORS
-from amzn_smart_product_onboarding_api_runtime.response import Response
 from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import (
     LAMBDA_BEDROCK_RUNTIME_CLIENT,
 )
@@ -127,7 +124,7 @@ metaclass_classifier = MetaclassClassifier(
 )
 
 
-def metaclass(event: MetaclassRequest, **kwargs) -> MetaclassOperationResponses:
+def metaclass(event: ApiRequest[MetaclassRequestContent]) -> ApiResponse:
     logger.debug(f"Request body: {event.body}")
     demo = event.body.demo
     try:
@@ -146,9 +143,12 @@ def metaclass(event: MetaclassRequest, **kwargs) -> MetaclassOperationResponses:
     try:
         return Response.success(
             MetaclassResponseContent(
-                possibleCategories=prediction.possible_categories,
-                cleanTitle=prediction.clean_title,
-                findings=prediction.findings,
+                possible_categories=prediction.possible_categories,
+                clean_title=prediction.clean_title,
+                # The classifier's findings are its own model; pass their values to the API model.
+                findings=[finding.model_dump() for finding in prediction.findings]
+                if prediction.findings is not None
+                else None,
             )
         )
     except Exception as e:
@@ -157,4 +157,4 @@ def metaclass(event: MetaclassRequest, **kwargs) -> MetaclassOperationResponses:
         return Response.internal_failure("Internal server error")
 
 
-handler = metaclass_handler(interceptors=INTERCEPTORS)(metaclass)
+handler = api_handler("metaclass", MetaclassRequestContent)(metaclass)
