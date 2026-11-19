@@ -104,7 +104,7 @@ pnpm dev
 
 ## Key Dependencies
 
-- Node.js 22 or 24
+- Node.js 22.19 or later, or 24
 - Python >= 3.12
 - uv >= 0.5.0 - Python package and project manager
 - pnpm >= 8.6.3

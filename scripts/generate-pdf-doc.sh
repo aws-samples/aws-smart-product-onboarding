@@ -27,7 +27,7 @@ generator_config=$(mktemp -d)
 trap 'rm -rf "$generator_config"' EXIT
 # Pins the OpenAPI Generator version without writing openapitools.json into the repository. Needs Java.
 printf '{"generator-cli":{"version":"7.27.0"}}\n' > "$generator_config/openapitools.json"
-find "$docs" -mindepth 1 ! -name .gitignore -delete
+rm -rf "$docs/Apis" "$docs/Models" "$docs/README.md" "$docs/.openapi-generator" "$docs/.openapi-generator-ignore"
 pnpm dlx @openapitools/openapi-generator-cli@2.42.2 generate \
   --openapitools "$generator_config/openapitools.json" \
   -g markdown -i packages/api/model/src/main/openapi/main.yaml -o "$docs"
