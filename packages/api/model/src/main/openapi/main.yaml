@@ -74,8 +74,6 @@ paths:
   /generateProduct:
     post:
       operationId: generateProduct
-      x-handler:
-        language: typescript
       description: |
         Using images in S3 and textual metadata, generate a title and description for the product.
       requestBody:
@@ -112,8 +110,6 @@ paths:
   /createBatchExecution:
     post:
       operationId: createBatchExecution
-      x-handler:
-        language: python
       requestBody:
         content:
           'application/json':
@@ -135,8 +131,6 @@ paths:
   /listBatchExecutions:
     get:
       operationId: listBatchExecutions
-      x-handler:
-        language: python
       parameters:
         - name: start_time
           in: query
@@ -164,8 +158,6 @@ paths:
   /getBatchExecution/{executionId}:
     get:
       operationId: getBatchExecution
-      x-handler:
-        language: python
       parameters:
         - name: executionId
           in: path
@@ -188,8 +180,6 @@ paths:
   /downloadFile:
     post:
       operationId: downloadFile
-      x-handler:
-        language: python
       requestBody:
         required: true
         content:
@@ -212,8 +202,6 @@ paths:
   /uploadFile:
     post:
       operationId: uploadFile
-      x-handler:
-        language: python
       requestBody:
         required: true
         content:
@@ -513,7 +501,7 @@ components:
           type: string
         expiration:
           type: integer
-          description: The expiration, in seconds for the generated URL
+          description: How long the generated URL stays valid, in seconds. When omitted, the URL is valid for 3600 seconds.
           minimum: 15
           maximum: 300
       required:
@@ -525,10 +513,9 @@ components:
           type: string
         expiration:
           type: integer
-          description: The expiration, in seconds for the generated URL
+          description: How long the generated URL stays valid, in seconds. When omitted, the URL is valid for 3600 seconds.
           minimum: 15
           maximum: 300
-          default: 300
       required:
         - fileName
     PresignedUrlResponse:

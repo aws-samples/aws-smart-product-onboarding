@@ -2,7 +2,6 @@
 
 ## Build System & Monorepo
 
-- **Projen** - Project configuration and generation (`.projenrc.ts`)
 - **Nx** - Monorepo build system and task orchestration
 - **pnpm** - Package manager with workspaces
 - **TypeScript** - Primary language for infrastructure and frontend
@@ -10,10 +9,9 @@
 ## AWS Infrastructure
 
 - **AWS CDK** v2.277.0 - Infrastructure as Code
-- **AWS PDK** v0.26.7 - AWS Project Development Kit for accelerated development
 - **Amazon Bedrock** - AI/ML models (Claude Haiku 5.5, Claude Sonnet 5.5, Nova Micro), called through cross-region inference profiles
 - **AWS Step Functions** - Workflow orchestration for batch processing
-- **AWS Lambda** - Serverless compute (Python 3.13, Node.js 22)
+- **AWS Lambda** - Serverless compute (Python 3.14, Node.js 24)
 - **Amazon S3** - Storage for images, configurations, and results
 - **Amazon DynamoDB** - Metaclass word vector store and process status
 - **Amazon Cognito** - Authentication for demo website
@@ -33,9 +31,9 @@
 ## Frontend
 
 - **React** - UI framework
-- **Cloudscape Design System** - AWS design components
+- **React Aria Components** and **Tailwind CSS** - UI components and styling
 - **TypeScript** - Type safety
-- **React Query** - API state management
+- **TanStack Query** with **openapi-fetch** - API calls typed from the OpenAPI definition
 
 ## Development Tools
 
@@ -55,9 +53,8 @@
 
 ```bash
 # Install dependencies
-pnpm i
-pnpm pdk install:ci
-pnpm pdk build
+pnpm install
+pnpm build
 
 # Docker login for public ECR
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
@@ -66,17 +63,14 @@ aws ecr-public get-login-password --region us-east-1 | docker login --username A
 ### Development
 
 ```bash
-# Regenerate project files after .projenrc.ts changes
-pnpm pdk
-
 # Build all packages
-pnpm pdk build
+pnpm build
 
 # Run tests
 pnpm test
 
-# Format code
-pnpm eslint
+# Lint code
+pnpm lint
 ```
 
 ### Deployment
@@ -105,12 +99,12 @@ uv run jupyter notebook
 cd packages/website
 # Download runtime config from S3
 aws s3 cp s3://<ConfigurationBucket>/frontend/runtime-config.json public/runtime-config.json
-pnpm pdk dev
+pnpm dev
 ```
 
 ## Key Dependencies
 
-- Node.js >= 18.0.0 and < 22
+- Node.js 22.19 or later, or 24
 - Python >= 3.12
 - uv >= 0.5.0 - Python package and project manager
 - pnpm >= 8.6.3

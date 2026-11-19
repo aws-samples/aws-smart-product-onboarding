@@ -1,5 +1,4 @@
 !/.gitattributes
-!/.projen/tasks.json
 !/package.json
 !/LICENSE
 logs
@@ -39,6 +38,4 @@ junit.xml
 /dist/
 !/.eslintrc.json
 !/.npmignore
-.openapi-generator
-.tsapi-metadata
 !/project.json

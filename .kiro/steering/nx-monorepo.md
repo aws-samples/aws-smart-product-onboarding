@@ -6,7 +6,7 @@ inclusion: always
 
 ## Overview
 
-This project uses NX monorepo with pnpm workspaces for efficient development and build management. NX provides intelligent build caching, task orchestration, and dependency graph analysis across all packages. The workspace is configured with AWS PDK patterns for accelerated development.
+This project uses NX monorepo with pnpm workspaces for efficient development and build management. NX provides intelligent build caching, task orchestration, and dependency graph analysis across all packages.
 
 ## Key NX Commands
 
@@ -27,8 +27,8 @@ pnpm exec nx destroy @aws-samples/smart-product-onboarding-infra
 pnpm exec nx synth @aws-samples/smart-product-onboarding-infra
 
 # API development
-pnpm exec nx build @aws-samples/smart-product-onboarding-api
-pnpm exec nx generate @aws-samples/smart-product-onboarding-api-model
+pnpm exec nx run @aws-samples/smart-product-onboarding-api-model:generate
+pnpm exec nx run @aws-samples/smart-product-onboarding-api-types:generate
 
 # Python packages
 pnpm exec nx build amzn-smart-product-onboarding-core-utils
@@ -93,10 +93,6 @@ pnpm exec nx run-many -t test
 - **default**: All project files (`{projectRoot}/**/*`)
 - **typescript**: TypeScript files, configs, and dependencies
 - **python**: Python files, pyproject.toml, uv.lock files
-
-### AWS PDK Integration
-
-API generators and generated packages include `AWS_PDK_VERSION=0.26.7` environment variable for consistent code generation.
 
 ## Project Structure
 
@@ -186,10 +182,7 @@ cd packages/website && pnpm build
 # Terminal 1: Start website with hot reload
 pnpm exec nx dev @aws-samples/smart-product-onboarding-demo-website
 
-# Terminal 2: Watch for API changes and regenerate
-pnpm exec nx watch @aws-samples/smart-product-onboarding-api-typescript-runtime
-
-# Terminal 3: Infrastructure development
+# Terminal 2: Infrastructure development
 pnpm exec nx watch @aws-samples/smart-product-onboarding-infra
 ```
 
@@ -223,11 +216,13 @@ pnpm exec nx destroy @aws-samples/smart-product-onboarding-infra
 ### API Development
 
 ```bash
-# Generate API code from OpenAPI spec
-pnpm exec nx generate @aws-samples/smart-product-onboarding-api-model
+# Bundle the OpenAPI definition for the infrastructure
+pnpm exec nx run @aws-samples/smart-product-onboarding-api-model:generate
 
-# Build all API components
-pnpm exec nx build @aws-samples/smart-product-onboarding-api
+# Regenerate the checked-in types and models after changing the definition
+pnpm exec nx run @aws-samples/smart-product-onboarding-api-types:generate
+pnpm exec nx run amzn-smart-product-onboarding-api-python-common:generate
+pnpm exec nx run @aws-samples/smart-product-onboarding-demo-website:generate-api
 ```
 
 ## Best Practices
@@ -237,8 +232,7 @@ pnpm exec nx build @aws-samples/smart-product-onboarding-api
 3. **Respect dependencies**: NX automatically handles build order based on project dependencies
 4. **Use affected commands**: Run `pnpm exec nx affected -t build` in CI/CD for efficiency
 5. **Visualize dependencies**: Use `pnpm exec nx graph` to understand project relationships
-6. **AWS PDK integration**: API generation targets include AWS_PDK_VERSION for consistent code generation
-7. **Mixed language support**: Workspace handles both TypeScript (pnpm) and Python (uv) packages seamlessly
+6. **Mixed language support**: Workspace handles both TypeScript (pnpm) and Python (uv) packages seamlessly
 
 ## Troubleshooting
 
@@ -281,11 +275,10 @@ pnpm exec nx show project amzn-smart-product-onboarding-metaclasses --with-targe
 
 - **TypeScript packages**: Use `@aws-samples/` prefix, managed by pnpm
 - **Python packages**: Use `amzn-` prefix, managed by uv
-- **Generated packages**: Auto-generated from API specifications, do not edit directly
+- **Generated files**: Types and models generated from the OpenAPI definition are checked in; regenerate them instead of editing them
 
 ### Key Dependencies
 
-- Infrastructure depends on website, API infrastructure, and runtime
+- Infrastructure depends on the website, the bundled API definition, and the API handlers
 - Python packages depend on core-utils for shared functionality
-- API handlers depend on their respective runtime packages
-- Generated packages depend on API model specifications
+- The Python API handlers depend on `api/common` for their models and handler wrapper

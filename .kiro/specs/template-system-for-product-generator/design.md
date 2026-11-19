@@ -266,9 +266,8 @@ export class TemplateRenderError extends TemplateError {}
 
 ### Dependency Management
 
-- Dependencies must be added to `.projenrc.ts` configuration file
-- Run `pnpm pdk` after updating `.projenrc.ts` to regenerate `package.json`
-- Follow the Projen workflow for all dependency changes
+- Add the dependencies to `packages/api/handlers/typescript/package.json` with `pnpm --filter @aws-samples/smart-product-onboarding-api-typescript-handlers add <dependency>`
+- Commit the updated `pnpm-lock.yaml`
 
 ### Build Process
 

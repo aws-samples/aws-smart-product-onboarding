@@ -44,11 +44,11 @@ export class Smartproductonboardingdemowebsite extends Construct {
       identityPoolId: props.userIdentity.identityPool.identityPoolId,
       userPoolId: props.userIdentity.userPool?.userPoolId,
       userPoolWebClientId: props.userIdentity.userPoolClient?.userPoolClientId,
+      // The website reads the API URL from this key. Renaming it means changing the website at the same time.
       typeSafeApis: {
         "smart-product-onboarding-api":
           props?.smartproductonboardingapi.api.api.urlForPath(),
       },
-      typeSafeWebSocketApis: {},
       inputBucket: props.inputBucket.bucketName,
     };
 

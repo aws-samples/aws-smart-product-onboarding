@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT-0
 
 """The categorizeProduct and extractAttributes handlers must keep returning the responses they returned
-through the PDK-generated runtime.
+through the generated API runtime used before.
 
 golden/apigw_responses.json was recorded from that runtime for every case below (RECORD_GOLDEN=1). Do
 not re-record it from the current handlers. Where the previous runtime crashed instead of answering, the

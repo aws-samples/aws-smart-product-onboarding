@@ -1,9 +1,3 @@
-node_modules/
-!/.gitattributes
-!/.projen/tasks.json
-Apis
-Models
-README.md
-.openapi-generator
-.tsapi-manifest
-!/project.json
+# Written by scripts/generate-pdf-doc.sh
+*
+!/.gitignore

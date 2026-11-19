@@ -1,5 +1,4 @@
 node_modules/
 !/.gitattributes
-!/.projen/tasks.json
 .api.json
 !/project.json

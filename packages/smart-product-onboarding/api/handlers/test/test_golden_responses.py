@@ -1,7 +1,8 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-"""The API handlers must keep returning the responses they returned through the PDK-generated runtime.
+"""The API handlers must keep returning the responses they returned through the generated API runtime
+used before.
 
 golden/responses.json was recorded from that runtime for every case below (RECORD_GOLDEN=1). Do not
 re-record it from the current handlers: it is the baseline they must keep matching. Where the previous

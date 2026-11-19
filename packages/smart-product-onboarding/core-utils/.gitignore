@@ -1,6 +1,5 @@
 node_modules/
 !/.gitattributes
-!/.projen/tasks.json
 !/pyproject.toml
 /poetry.toml
 __pycache__/

@@ -1,21 +1,5 @@
 {
   "name": "@aws-samples/smart-product-onboarding-infra",
-  "scripts": {
-    "build": "nx run infra:build",
-    "compile": "nx run infra:compile",
-    "deploy": "nx run infra:deploy",
-    "deploy:dev": "nx run infra:deploy:dev",
-    "destroy": "nx run infra:destroy",
-    "diff": "nx run infra:diff",
-    "lint": "nx run infra:lint",
-    "package": "nx run infra:package",
-    "post-compile": "nx run infra:post-compile",
-    "synth": "nx run infra:synth",
-    "synth:silent": "nx run infra:synth:silent",
-    "test": "nx run infra:test",
-    "test:watch": "nx run infra:test:watch",
-    "watch": "nx run infra:watch"
-  },
   "devDependencies": {
     "@aws-samples/smart-product-onboarding-demo-website": "0.0.0",
     "@types/jest": "^29.5.14",
@@ -39,7 +23,6 @@
   "dependencies": {
     "@aws-cdk/aws-lambda-python-alpha": "^2.277.0-alpha.0",
     "@aws-samples/smart-product-onboarding-api-types": "0.0.0",
-    "@aws/pdk": "^0.25.17",
     "@dontirun/state-machine-semaphore": "^0.1.583",
     "aws-cdk-lib": "^2.277.0",
     "cdk-nag": "^2.35.16",
