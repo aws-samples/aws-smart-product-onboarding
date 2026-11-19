@@ -1,8 +1,8 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-#checkov:skip=CKV_OPENAPI_4:security operations are applied at deploy time by PDK
-#checkov:skip=CKV_OPENAPI_5:security operations are applied at deploy time by PDK
+#checkov:skip=CKV_OPENAPI_4:the infrastructure adds the Cognito security scheme to every operation at synth time
+#checkov:skip=CKV_OPENAPI_5:the infrastructure adds the Cognito security scheme to every operation at synth time
 openapi: 3.0.3
 info:
   version: 1.0.0
