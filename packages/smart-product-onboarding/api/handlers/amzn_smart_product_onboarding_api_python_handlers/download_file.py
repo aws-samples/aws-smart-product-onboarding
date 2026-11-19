@@ -13,7 +13,7 @@ from amzn_smart_product_onboarding_api_runtime.api.operation_config import (
     DownloadFileOperationResponses,
 )
 
-from .utils import get_s3_client, create_presigned_url
+from .utils import get_s3_client, create_presigned_url, request_log_fields
 
 OUTPUT_BUCKET_NAME = os.getenv("OUTPUT_BUCKET_NAME")
 
@@ -23,8 +23,9 @@ def download_file(input: DownloadFileRequest, **kwargs) -> DownloadFileOperation
     Type-safe handler for the DownloadFile operation
     """
     logger = LoggingInterceptor.get_logger(input)
-    logger.info("Start CategorizeProductResult Operation")
-    logger.info(f"Input: {input}")
+    logger.info(
+        "Start DownloadFile operation", extra={**request_log_fields(input), "output_key": input.body.output_key}
+    )
 
     if not OUTPUT_BUCKET_NAME:
         logger.exception("OUTPUT_BUCKET_NAME is not set")

@@ -18,7 +18,7 @@ from amzn_smart_product_onboarding_api_runtime.api.operation_config import (
     CreateBatchExecutionOperationResponses,
 )
 
-from .utils import get_sfn_client, get_dynamodb_resource
+from .utils import get_sfn_client, get_dynamodb_resource, request_log_fields
 
 INPUT_BUCKET_NAME = os.getenv("INPUT_BUCKET_NAME")
 CATEGORIZATION_MACHINE = os.getenv("CATEGORIZATION_MACHINE")
@@ -30,8 +30,8 @@ def create_batch_execution(input: CreateBatchExecutionRequest, **kwargs) -> Crea
     Type-safe handler for the CreateBatchExecution operation
     """
     logger = LoggingInterceptor.get_logger(input)
-    logger.info("Start CategorizeProductResult Operation")
-    logger.debug(f"Input: {input}")
+    logger.info("Start CreateBatchExecution operation", extra=request_log_fields(input))
+    logger.debug(f"Request body: {input.body}")
 
     if not CATEGORIZATION_MACHINE:
         logger.exception("CATEGORIZATION_MACHINE is not set")

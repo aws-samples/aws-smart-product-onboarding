@@ -47,7 +47,7 @@ if os.getenv("BEDROCK_XACCT_ROLE"):
 def extract_attributes(
     event: ExtractAttributesRequest, **kwargs
 ) -> ExtractAttributesOperationResponses:
-    logger.debug(f"Event received: {event}")
+    logger.debug(f"Request body: {event.body}")
 
     try:
         schema_retriever = GPCSchemaRetriever(

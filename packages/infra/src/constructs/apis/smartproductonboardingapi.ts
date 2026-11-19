@@ -3,11 +3,7 @@
  * SPDX-License-Identifier: MIT-0
  */
 
-import { Authorizers, Integrations } from "@aws/pdk/type-safe-api";
-import {
-  Api,
-  GenerateProductFunction,
-} from "@aws-samples/smart-product-onboarding-api-typescript-infra";
+import * as path from "path";
 import {
   ArnFormat,
   aws_iam as iam,
@@ -32,10 +28,12 @@ import { Construct } from "constructs";
 import {
   CreateBatchExecutionFunction,
   DownloadFileFunction,
+  GenerateProductFunction,
   GetBatchExecutionFunction,
   ListBatchExecutionsFunction,
   UploadFileFunction,
 } from "./api-handler-functions";
+import { OpenApiRestApi } from "./open-api-rest-api";
 import { ApiPersistence } from "../api-persistence/api-persistence";
 import { AttributeExtractionTaskFunction } from "../sfn-attributes-task/sfn-attributes-task";
 import { ClassificationTaskFunction } from "../sfn-classification-task/sfn-classification-task";
@@ -64,13 +62,13 @@ export interface SmartProductOnboardingAPIProps {
 }
 
 /**
- * Infrastructure construct to deploy a Type Safe API.
+ * The Smart Product Onboarding REST API and its Lambda functions.
  */
 export class SmartProductOnboardingAPI extends Construct {
   /**
    * API instance
    */
-  public readonly api: Api;
+  public readonly api: OpenApiRestApi;
 
   public readonly metaclassFunction: MetaclassTaskFunction;
   public readonly categorizeProductFunction: ClassificationTaskFunction;
@@ -318,59 +316,39 @@ export class SmartProductOnboardingAPI extends Construct {
       removalPolicy: RemovalPolicy.RETAIN,
     });
 
-    this.api = new Api(this, id, {
-      defaultAuthorizer: Authorizers.cognito({
-        authorizerId: "CognitoUserPool",
-        userPools: [props.userIdentity.userPool],
-      }),
+    this.api = new OpenApiRestApi(this, id, {
+      specPath: path.resolve(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "..",
+        "api/model/.api.json",
+      ),
+      userPool: props.userIdentity.userPool,
+      authorizerId: "CognitoUserPool",
+      corsOrigin: props.corsOrigin,
+      corsAllowMethods: ["GET", "POST"],
       endpointTypes: [EndpointType.REGIONAL],
-      corsOptions: {
-        allowOrigins: [props.corsOrigin],
-        allowMethods: ["GET", "POST"],
-      },
       integrations: {
-        metaclass: {
-          integration: Integrations.lambda(metaclassFunction),
-        },
-        categorizeProduct: {
-          integration: Integrations.lambda(categorizeProductFunction),
-        },
-        extractAttributes: {
-          integration: Integrations.lambda(extractAttributesFunction),
-        },
-
-        generateProduct: {
-          integration: Integrations.lambda(generateProductFunction),
-        },
-        createBatchExecution: {
-          integration: Integrations.lambda(createBatchExecutionFunction),
-        },
-        listBatchExecutions: {
-          integration: Integrations.lambda(listBatchExecutionsFunction),
-        },
-        getBatchExecution: {
-          integration: Integrations.lambda(getBatchExecutionFunction),
-        },
-        downloadFile: {
-          integration: Integrations.lambda(downloadFileFunction),
-        },
-        uploadFile: {
-          integration: Integrations.lambda(uploadFileFunction),
-        },
+        metaclass: metaclassFunction,
+        categorizeProduct: categorizeProductFunction,
+        extractAttributes: extractAttributesFunction,
+        generateProduct: generateProductFunction,
+        createBatchExecution: createBatchExecutionFunction,
+        listBatchExecutions: listBatchExecutionsFunction,
+        getBatchExecution: getBatchExecutionFunction,
+        downloadFile: downloadFileFunction,
+        uploadFile: uploadFileFunction,
       },
       policy: new PolicyDocument({}),
-      // Matches the TypeSafeRestApi defaults field for field, with the log retention set explicitly.
-      // The props spread replaces deployOptions as a whole, so every default field is restated here.
       deployOptions: {
         accessLogDestination: new LogGroupLogDestination(accessLogs),
         accessLogFormat: AccessLogFormat.clf(),
         loggingLevel: MethodLoggingLevel.INFO,
       },
     });
-    // TypeSafeRestApi always creates its own "AccessLogs" group while building its defaults, even when
-    // deployOptions is passed. Remove that unused group, and keep its logical ID on ours so existing
-    // stacks update the log group in place instead of retaining an orphaned copy.
-    this.api.node.tryRemoveChild("AccessLogs");
+    // Keep the log group's existing logical ID so deployed stacks update it in place.
     (accessLogs.node.defaultChild as logs.CfnLogGroup).overrideLogicalId(
       "ApiAccessLogs02C2A02B",
     );
@@ -388,17 +366,6 @@ export class SmartProductOnboardingAPI extends Construct {
       },
       type: ResponseType.DEFAULT_5XX,
     });
-
-    NagSuppressions.addResourceSuppressions(
-      this.api,
-      [
-        {
-          id: "AwsSolutions-L1",
-          reason: "Lambda runtime versions managed upstream in PDK.",
-        },
-      ],
-      true,
-    );
 
     for (const resource of [
       generateProductFunction,

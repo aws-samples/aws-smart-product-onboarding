@@ -19,6 +19,16 @@ else:
     S3Client = object
 
 
+def request_log_fields(request) -> dict:
+    """Request metadata that is safe to log.
+
+    Never log the request object or the raw API Gateway event: they carry the request
+    headers (including Authorization) and the authorizer claims.
+    """
+    request_context = (request.event or {}).get("requestContext") or {}
+    return {"api_request_id": request_context.get("requestId")}
+
+
 # Clients are created once per execution environment and reused across invocations.
 # Creating a new Session and client on every request costs CPU time and memory that
 # is not released, so a warm function eventually runs out of memory.
