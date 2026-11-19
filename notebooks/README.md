@@ -89,6 +89,12 @@ The script will:
 
 To update to a newer GPC release, run the script again without `--skip-embeddings`. It reuses the word embeddings table and rebuilds the category vectors for the new category names.
 
+The metaclass, categorization and attribute extraction functions read the configuration when they start, so a deployed stack keeps the previous configuration until its functions start again. To apply the new configuration right away, update the configuration of each of those functions, for example:
+
+```bash
+aws lambda update-function-configuration --function-name <function name> --description ""
+```
+
 ### Option 2: Interactive Notebooks
 
 **Note:** Use the notebooks if you need to adapt the process for languages other than English or customize the configuration.
