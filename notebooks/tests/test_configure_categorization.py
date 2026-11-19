@@ -88,6 +88,45 @@ def test_missing_always_category_raises(tmp_path):
         cc.generate_always_categories(tree, tmp_path)
 
 
+def _write_config(path, always, vectors=None):
+    tree = {
+        "root": {"id": "root", "childs": [{"id": "1"}]},
+        "1": {"id": "1", "childs": [{"id": "10"}]},
+        "10": {"id": "10", "childs": []},
+    }
+    files = {
+        "labelcats.json": tree,
+        "always.json": always,
+        "word_map.json": {"lamp": ["10"]},
+        "mappings.json": {"name": {"0": "lamp"}, "id": {"0": "10"}},
+        "linted_attrs.json": {"10": {}},
+    }
+    if vectors is not None:
+        files["category_vectors.json"] = vectors
+    for name, content in files.items():
+        (path / name).write_text(cc.json.dumps(content))
+
+
+def test_consistent_configuration_passes(tmp_path):
+    _write_config(tmp_path, always=["10"], vectors={"lamp": [1.0]})
+
+    cc.validate_configuration(tmp_path)
+
+
+def test_always_category_from_another_release_fails(tmp_path):
+    _write_config(tmp_path, always=["10", "10008494"])
+
+    with pytest.raises(cc.ConfigurationError, match="always.json: 10008494"):
+        cc.validate_configuration(tmp_path)
+
+
+def test_category_vectors_from_another_release_fail(tmp_path):
+    _write_config(tmp_path, always=["10"], vectors={"lamp": [1.0], "bassinet": [0.5]})
+
+    with pytest.raises(cc.ConfigurationError, match="bassinet"):
+        cc.validate_configuration(tmp_path)
+
+
 @pytest.mark.parametrize(
     "gpc",
     [[], {}, {"Schema": []}, {"Schema": [{"Code": 1, "Title": "x"}]}],

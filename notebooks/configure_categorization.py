@@ -905,6 +905,34 @@ def generate_always_categories(category_tree: Dict, data_dir: Path):
     return always_categories
 
 
+def validate_configuration(data_dir: Path) -> None:
+    """Fail if a generated file refers to a category ID that isn't in labelcats.json.
+
+    The categorization functions look every ID up in the category tree, so one unknown ID
+    (for example an always-include category from another GPC release) fails every request.
+    """
+    print("Checking generated files against the category tree...")
+    load = lambda name: json.loads((data_dir / name).read_text())
+    tree = load("labelcats.json")
+    leaves = {cat_id for cat_id, cat in tree.items() if cat_id != "root" and not cat["childs"]}
+    unknown = {
+        "always.json": [i for i in load("always.json") if i not in tree],
+        "word_map.json": sorted({i for ids in load("word_map.json").values() for i in ids if i not in tree}),
+        "mappings.json": sorted({i for i in load("mappings.json")["id"].values() if i not in tree}),
+        "linted_attrs.json": sorted(set(load("linted_attrs.json")) - leaves),
+    }
+    problems = [f"{name}: {', '.join(ids[:10])}" for name, ids in unknown.items() if ids]
+    if (data_dir / "category_vectors.json").exists():
+        stale = sorted(set(load("category_vectors.json")) - set(load("word_map.json")))
+        if stale:
+            problems.append(f"category_vectors.json has words not in word_map.json: {', '.join(stale[:10])}")
+    if problems:
+        raise ConfigurationError(
+            "Generated files refer to categories that aren't in labelcats.json:\n  " + "\n  ".join(problems)
+        )
+    print("All generated files match the category tree")
+
+
 def main():
     """Main execution function"""
     parser = argparse.ArgumentParser(
@@ -1002,6 +1030,7 @@ Examples:
             print("=" * 60 + "\n")
 
         # Step 5: Upload to S3
+        validate_configuration(args.data_dir)
         if not args.skip_upload:
             print("\n" + "=" * 60)
             print("STEP 5: Uploading Configuration to S3")
