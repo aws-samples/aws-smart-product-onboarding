@@ -12,7 +12,7 @@ dependencies = [
     "jinja2>=3.1.4",
     "nltk>=3.10.4",
     "numpy>=2.2.2",
-    "amzn-smart-product-onboarding-api-runtime",
+    "amzn-smart-product-onboarding-api-common",
     "amzn-smart-product-onboarding-core-utils",
 ]
 
@@ -32,7 +32,7 @@ dev = [
 publish = false
 
 [tool.uv.sources]
-amzn-smart-product-onboarding-api-runtime = { workspace = true }
+amzn-smart-product-onboarding-api-common = { workspace = true }
 amzn-smart-product-onboarding-core-utils = { workspace = true }
 
 [build-system]

@@ -1,0 +1,28 @@
+# API common package - request models generated from the OpenAPI definition, and the Lambda handler wrapper
+
+[project]
+name = "amzn-smart-product-onboarding-api-common"
+version = "0.0.0"
+description = "API models and Lambda handler wrapper for Smart Product Onboarding"
+requires-python = ">=3.12,<4"
+readme = "README.md"
+dependencies = [
+    "pydantic>=2.12.3",
+    "aws-lambda-powertools[tracer]>=3.22.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "pyyaml>=6.0.2",
+]
+
+[tool.uv]
+publish = false
+
+[tool.hatch.build.targets.wheel]
+packages = ["amzn_smart_product_onboarding_api_common"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -3,40 +3,35 @@
 
 import os
 
-from amzn_smart_product_onboarding_api_runtime.models import *
-from amzn_smart_product_onboarding_api_runtime.response import Response
-from amzn_smart_product_onboarding_api_runtime.interceptors import INTERCEPTORS
-from amzn_smart_product_onboarding_api_runtime.interceptors.powertools.logger import LoggingInterceptor
-from amzn_smart_product_onboarding_api_runtime.api.operation_config import (
-    download_file_handler,
-    DownloadFileRequest,
-    DownloadFileOperationResponses,
+from amzn_smart_product_onboarding_api_common.handler import ApiRequest, ApiResponse, Response, api_handler, logger
+from amzn_smart_product_onboarding_api_common.models import (
+    DownloadFileRequestContent,
+    PresignedUrlResponse,
 )
 
-from .utils import get_s3_client, create_presigned_url, request_log_fields
+from .utils import create_presigned_url, get_s3_client, request_log_fields
 
 OUTPUT_BUCKET_NAME = os.getenv("OUTPUT_BUCKET_NAME")
 
 
-def download_file(input: DownloadFileRequest, **kwargs) -> DownloadFileOperationResponses:
+def download_file(input: ApiRequest[DownloadFileRequestContent]) -> ApiResponse:
     """
-    Type-safe handler for the DownloadFile operation
+    Handler for the DownloadFile operation
     """
-    logger = LoggingInterceptor.get_logger(input)
     logger.info(
         "Start DownloadFile operation", extra={**request_log_fields(input), "output_key": input.body.output_key}
     )
 
     if not OUTPUT_BUCKET_NAME:
         logger.exception("OUTPUT_BUCKET_NAME is not set")
-        return Response.internal_failure(InternalFailureErrorResponseContent(message="Internal Failure"))
+        return Response.internal_failure("Internal Failure")
 
     object_key = input.body.output_key
 
     # validate input
     if not object_key:
         logger.exception("objectKey parameter is not set")
-        return Response.internal_failure(BadRequestErrorResponseContent(message="Invalid request format"))
+        return Response.internal_failure("Invalid request format")
 
     s3_client = get_s3_client()
 
@@ -53,9 +48,8 @@ def download_file(input: DownloadFileRequest, **kwargs) -> DownloadFileOperation
         return Response.success(PresignedUrlResponse(url=presigned_download_link))
     except Exception as e:
         logger.exception(f"Error generating presigned url: {e}")
-        return Response.internal_failure(InternalFailureErrorResponseContent(message="Error generating presigned URL"))
+        return Response.internal_failure("Error generating presigned URL")
 
 
 # Entry point for the AWS Lambda handler for the DownloadFile operation.
-# The download_file_handler method wraps the type-safe handler and manages marshalling inputs and outputs
-handler = download_file_handler(interceptors=INTERCEPTORS)(download_file)
+handler = api_handler("download_file", DownloadFileRequestContent)(download_file)

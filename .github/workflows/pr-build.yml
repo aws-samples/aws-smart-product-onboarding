@@ -23,6 +23,10 @@ jobs:
           python-version: '3.14'
       - name: Install dependencies
         run: pnpm install
+      - name: Check that the generated API models match the OpenAPI definition
+        run: |
+          npx nx run amzn-smart-product-onboarding-api-python-common:generate
+          git diff --exit-code -- packages/smart-product-onboarding/api/common
       - name: Check that the website's API types match the OpenAPI definition
         run: |
           git ls-files --error-unmatch packages/website/src/api/schema.d.ts

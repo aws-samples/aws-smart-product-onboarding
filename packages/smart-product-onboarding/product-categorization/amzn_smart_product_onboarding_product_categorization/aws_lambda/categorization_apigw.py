@@ -4,16 +4,11 @@
 import json
 import os
 
-from amzn_smart_product_onboarding_api_runtime import (
+from amzn_smart_product_onboarding_api_common.handler import ApiRequest, ApiResponse, Response, api_handler
+from amzn_smart_product_onboarding_api_common.models import (
+    CategorizeProductRequestContent,
     CategorizeProductResponseContent,
 )
-from amzn_smart_product_onboarding_api_runtime.api.operation_config import (
-    categorize_product_handler,
-    CategorizeProductOperationResponses,
-    CategorizeProductRequest,
-)
-from amzn_smart_product_onboarding_api_runtime.interceptors import INTERCEPTORS
-from amzn_smart_product_onboarding_api_runtime.response import Response
 
 from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import (
     LAMBDA_BEDROCK_RUNTIME_CLIENT,    ensure_cross_region_profile,
@@ -77,9 +72,7 @@ product_classifier = ProductClassifier(
 )
 
 
-def categorize_product(
-    event: CategorizeProductRequest, **kwargs
-) -> CategorizeProductOperationResponses:
+def categorize_product(event: ApiRequest[CategorizeProductRequestContent]) -> ApiResponse:
     logger.debug(f"Request body: {event.body}")
     try:
         prediction = product_classifier.classify(
@@ -115,4 +108,4 @@ def categorize_product(
         return Response.internal_failure("Internal server error")
 
 
-handler = categorize_product_handler(interceptors=INTERCEPTORS)(categorize_product)
+handler = api_handler("categorize_product", CategorizeProductRequestContent)(categorize_product)

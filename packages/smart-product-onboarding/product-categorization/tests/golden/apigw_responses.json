@@ -1,0 +1,69 @@
+{
+  "categorize: retryable error": {
+    "raises": "AttributeError"
+  },
+  "categorize: success": {
+    "body": {
+      "categoryId": "10000637",
+      "categoryName": "Sunglasses",
+      "categoryPath": "Accessories > Sunglasses",
+      "explanation": "They are sunglasses."
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 200
+  },
+  "categorize: success with demo": {
+    "body": {
+      "categoryId": "10000637",
+      "categoryName": "Sunglasses",
+      "categoryPath": "Accessories > Sunglasses",
+      "explanation": "They are sunglasses.",
+      "prompt": "the prompt"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 200
+  },
+  "categorize: unexpected error": {
+    "raises": "AttributeError"
+  },
+  "categorize: unknown category": {
+    "raises": "AttributeError"
+  },
+  "extract: retryable error": {
+    "raises": "AttributeError"
+  },
+  "extract: schema unavailable": {
+    "raises": "AttributeError"
+  },
+  "extract: success": {
+    "body": {
+      "attributes": [
+        {
+          "name": "Lens Type",
+          "value": "Polarized"
+        },
+        {
+          "name": "Frame",
+          "value": "Metal"
+        }
+      ]
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 200
+  },
+  "extract: unexpected error": {
+    "raises": "AttributeError"
+  }
+}

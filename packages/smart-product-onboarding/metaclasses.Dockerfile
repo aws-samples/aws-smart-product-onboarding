@@ -29,7 +29,7 @@ COPY README.md ./
 
 # Copy workspace packages
 COPY core-utils/ ./core-utils/
-COPY api/runtime/ ./api/runtime/
+COPY api/common/ ./api/common/
 COPY metaclasses/ ./metaclasses/
 
 # Install dependencies and build package
@@ -55,7 +55,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv build --package amzn-smart-product-onboarding-core-utils --out-dir /tmp/wheels
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv build --package amzn-smart-product-onboarding-api-runtime --out-dir /tmp/wheels
+    uv build --package amzn-smart-product-onboarding-api-common --out-dir /tmp/wheels
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv build --package amzn-smart-product-onboarding-metaclasses --out-dir /tmp/wheels

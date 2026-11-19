@@ -6,7 +6,7 @@ This is the UV workspace root for all Python packages in the Smart Product Onboa
 
 This workspace contains the following packages:
 
-- **api/runtime** - Generated API runtime code from OpenAPI specification
+- **api/common** - API models generated from the OpenAPI definition, and the Lambda handler wrapper
 - **api/handlers** - Lambda function handlers for API endpoints
 - **core-utils** - Shared utilities and base classes
 - **metaclasses** - Word vector processing and metaclass generation
@@ -52,9 +52,9 @@ uv add --package amzn-smart-product-onboarding-metaclasses amzn-smart-product-on
 ### Package Dependencies
 
 ```
-api/handlers → api/runtime
-metaclasses → core-utils, api/runtime
-product-categorization → core-utils, api/runtime
+api/handlers → api/common
+metaclasses → core-utils, api/common
+product-categorization → core-utils, api/common
 ```
 
 ## Workspace Configuration

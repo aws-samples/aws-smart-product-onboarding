@@ -1,0 +1,423 @@
+{
+  "create: empty input file": {
+    "body": {
+      "message": "Missing title or description"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*",
+      "x-amzn-errortype": "BadRequestError"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 400
+  },
+  "create: environment not set": {
+    "body": {
+      "message": "Internal Failure"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*",
+      "x-amzn-errortype": "InternalFailureError"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 500
+  },
+  "create: put_item fails": {
+    "raises": "AttributeError"
+  },
+  "create: session exists": {
+    "body": {
+      "message": "Session already exists"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*",
+      "x-amzn-errortype": "BadRequestError"
+    },
+    "multiValueHeaders": {},
+    "sessionItem": {
+      "input": {
+        "compressed_images_file": null,
+        "input_file": "uploads/p.csv"
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "status": "QUEUED",
+      "type": "Session"
+    },
+    "statusCode": 400
+  },
+  "create: start execution fails": {
+    "body": {
+      "message": "Error starting execution"
+    },
+    "executionInput": {
+      "detail": {
+        "bucket": {
+          "name": "value"
+        },
+        "object": {
+          "key": "uploads/p.csv"
+        }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*",
+      "x-amzn-errortype": "InternalFailureError"
+    },
+    "multiValueHeaders": {},
+    "sessionItem": {
+      "input": {
+        "compressed_images_file": null,
+        "input_file": "uploads/p.csv"
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "status": "QUEUED",
+      "type": "Session"
+    },
+    "statusCode": 500
+  },
+  "create: success": {
+    "body": {
+      "executionId": "00000000-0000-4000-8000-000000000001",
+      "status": "QUEUED"
+    },
+    "executionInput": {
+      "detail": {
+        "bucket": {
+          "name": "value"
+        },
+        "object": {
+          "key": "uploads/p.csv"
+        }
+      },
+      "images_key": "uploads/i.zip",
+      "session_id": "00000000-0000-4000-8000-000000000001"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*"
+    },
+    "multiValueHeaders": {},
+    "sessionItem": {
+      "input": {
+        "compressed_images_file": "uploads/i.zip",
+        "input_file": "uploads/p.csv"
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "status": "QUEUED",
+      "type": "Session"
+    },
+    "statusCode": 200
+  },
+  "download: empty key": {
+    "body": {
+      "message": "Invalid request format"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*",
+      "x-amzn-errortype": "InternalFailureError"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 500
+  },
+  "download: environment not set": {
+    "body": {
+      "message": "Internal Failure"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*",
+      "x-amzn-errortype": "InternalFailureError"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 500
+  },
+  "download: presign fails": {
+    "body": {
+      "message": "Error generating presigned URL"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*",
+      "x-amzn-errortype": "InternalFailureError"
+    },
+    "multiValueHeaders": {},
+    "presign": {
+      "ClientMethod": "get_object",
+      "ExpiresIn": null,
+      "Params": {
+        "Bucket": "bucket",
+        "Key": "out/result.csv"
+      }
+    },
+    "statusCode": 500
+  },
+  "download: success": {
+    "body": {
+      "url": "https://bucket.s3.amazonaws.com/uploads/key?X-Amz-Signature=sig"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*"
+    },
+    "multiValueHeaders": {},
+    "presign": {
+      "ClientMethod": "get_object",
+      "ExpiresIn": 60,
+      "Params": {
+        "Bucket": "bucket",
+        "Key": "out/result.csv"
+      }
+    },
+    "statusCode": 200
+  },
+  "get: environment not set": {
+    "body": {
+      "message": "Internal Failure"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*",
+      "x-amzn-errortype": "InternalFailureError"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 500
+  },
+  "get: error status": {
+    "body": {
+      "createdAt": "2026-11-01T10:00:00+00:00",
+      "error": "Failed to queue",
+      "executionId": "00000000-0000-4000-8000-000000000001",
+      "status": "ERROR",
+      "updatedAt": "2026-11-01T10:05:00+00:00"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 200
+  },
+  "get: not found": {
+    "body": "",
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 404
+  },
+  "get: running": {
+    "body": {
+      "createdAt": "2026-11-01T10:00:00+00:00",
+      "executionId": "00000000-0000-4000-8000-000000000001",
+      "status": "RUNNING",
+      "updatedAt": "2026-11-01T10:05:00+00:00"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 200
+  },
+  "get: success": {
+    "body": {
+      "createdAt": "2026-11-01T10:00:00+00:00",
+      "executionId": "00000000-0000-4000-8000-000000000001",
+      "outputKey": "out/result.csv",
+      "status": "SUCCESS",
+      "updatedAt": "2026-11-01T10:05:00+00:00"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 200
+  },
+  "list: empty": {
+    "body": {
+      "executions": []
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 200
+  },
+  "list: environment not set": {
+    "body": {
+      "message": "Internal Failure"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*",
+      "x-amzn-errortype": "InternalFailureError"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 500
+  },
+  "list: range too long": {
+    "body": {
+      "message": "Start time and end time cannot be more than 1000 days apart"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*",
+      "x-amzn-errortype": "BadRequestError"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 400
+  },
+  "list: success": {
+    "body": {
+      "executions": [
+        {
+          "createdAt": "2026-11-01T10:00:00+00:00",
+          "executionId": "00000000-0000-4000-8000-000000000001",
+          "outputKey": "out/a.csv",
+          "status": "SUCCESS",
+          "updatedAt": "2026-11-01T10:05:00+00:00"
+        },
+        {
+          "createdAt": "2026-11-01T10:00:00+00:00",
+          "executionId": "other-session",
+          "status": "QUEUED",
+          "updatedAt": "2026-11-01T10:05:00+00:00"
+        }
+      ]
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 200
+  },
+  "upload: csv": {
+    "body": {
+      "objectKey": "uploads/05b3d602-8fe4-5e8a-ad07-f774d8337554-products.csv",
+      "url": "https://bucket.s3.amazonaws.com/uploads/key?X-Amz-Signature=sig"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*"
+    },
+    "multiValueHeaders": {},
+    "presign": {
+      "ClientMethod": "put_object",
+      "ExpiresIn": 120,
+      "Params": {
+        "Bucket": "bucket",
+        "ContentType": "text/csv",
+        "Key": "uploads/05b3d602-8fe4-5e8a-ad07-f774d8337554-products.csv"
+      }
+    },
+    "statusCode": 200
+  },
+  "upload: empty name": {
+    "body": {
+      "message": "Invalid request format"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*",
+      "x-amzn-errortype": "InternalFailureError"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 500
+  },
+  "upload: environment not set": {
+    "body": {
+      "message": "Internal Failure"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*",
+      "x-amzn-errortype": "InternalFailureError"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 500
+  },
+  "upload: image": {
+    "body": {
+      "objectKey": "uploads/05b3d602-8fe4-5e8a-ad07-f774d8337554-photo.JPG",
+      "url": "https://bucket.s3.amazonaws.com/uploads/key?X-Amz-Signature=sig"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*"
+    },
+    "multiValueHeaders": {},
+    "presign": {
+      "ClientMethod": "put_object",
+      "ExpiresIn": null,
+      "Params": {
+        "Bucket": "bucket",
+        "ContentType": "image/jpeg",
+        "Key": "uploads/05b3d602-8fe4-5e8a-ad07-f774d8337554-photo.JPG"
+      }
+    },
+    "statusCode": 200
+  },
+  "upload: presign fails": {
+    "body": {
+      "message": "Error generating presigned URL"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*",
+      "x-amzn-errortype": "InternalFailureError"
+    },
+    "multiValueHeaders": {},
+    "presign": {
+      "ClientMethod": "put_object",
+      "ExpiresIn": null,
+      "Params": {
+        "Bucket": "bucket",
+        "ContentType": "image/jpeg",
+        "Key": "uploads/05b3d602-8fe4-5e8a-ad07-f774d8337554-photo.jpg"
+      }
+    },
+    "statusCode": 500
+  },
+  "upload: unsupported type": {
+    "body": {
+      "message": "Invalid request format"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*",
+      "x-amzn-errortype": "InternalFailureError"
+    },
+    "multiValueHeaders": {},
+    "statusCode": 500
+  },
+  "upload: zip": {
+    "body": {
+      "objectKey": "uploads/05b3d602-8fe4-5e8a-ad07-f774d8337554-images.zip",
+      "url": "https://bucket.s3.amazonaws.com/uploads/key?X-Amz-Signature=sig"
+    },
+    "headers": {
+      "access-control-allow-headers": "*",
+      "access-control-allow-origin": "*"
+    },
+    "multiValueHeaders": {},
+    "presign": {
+      "ClientMethod": "put_object",
+      "ExpiresIn": null,
+      "Params": {
+        "Bucket": "bucket",
+        "ContentType": "application/zip",
+        "Key": "uploads/05b3d602-8fe4-5e8a-ad07-f774d8337554-images.zip"
+      }
+    },
+    "statusCode": 200
+  }
+}
