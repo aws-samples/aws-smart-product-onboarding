@@ -4,7 +4,7 @@
  */
 
 import { useSyncExternalStore } from "react";
-import { readJson, writeJson } from "./storage";
+import { writeJson } from "./storage";
 import type {
   Classification,
   ProductAttribute,
@@ -55,6 +55,8 @@ export interface Draft {
   extractedFor?: string;
   /** The metadata and image keys, in order, that the listing was generated from. */
   generatedFrom?: GenerationInputs;
+  /** The language and length the listing was generated with. Missing in older drafts: the current options. */
+  generatedWith?: Pick<GenerationOptions, "language" | "descriptionLength">;
 }
 
 export interface GenerationInputs {
@@ -65,30 +67,75 @@ export interface GenerationInputs {
 export const draftTitle = (d: Draft) =>
   d.product?.title?.trim() || "Untitled product";
 
-/** Drafts are kept per signed-in user, so another account in the same browser doesn't see them. */
+/**
+ * Drafts are kept per signed-in account, so another account in the same browser doesn't see them.
+ * The owner is the account's unique ID, not its user name: a deleted account's name can be reused.
+ */
 let owner = "";
 let cache: Draft[] | undefined;
+/** The stored text `cache` was parsed from, to tell when another tab changed it. */
+let cachedRaw: string | null | undefined;
 const storageKey = () => `${DRAFTS_KEY}:${owner}`;
 
-export function setDraftsOwner(username: string) {
-  if (owner === username) return;
-  owner = username;
+/**
+ * Sets the account whose drafts are listed. Drafts saved before they were keyed by account ID sit
+ * under the user name: the first sign-in of that user name moves them, once, when the account has none.
+ */
+export function setDraftsOwner(accountId: string, legacyUsername?: string) {
+  if (owner === accountId) return;
+  owner = accountId;
   cache = undefined;
+  if (accountId && legacyUsername && legacyUsername !== accountId) {
+    try {
+      const old = `${DRAFTS_KEY}:${legacyUsername}`;
+      const text = localStorage.getItem(old);
+      if (text !== null && localStorage.getItem(storageKey()) === null) {
+        localStorage.setItem(storageKey(), text);
+        localStorage.removeItem(old);
+      }
+    } catch {
+      // Storage is unavailable or full: start with no drafts.
+    }
+  }
   // Called while rendering, so notify subscribers afterwards.
   queueMicrotask(() => window.dispatchEvent(new Event(CHANGED)));
 }
 
 const NONE: Draft[] = [];
 
+function load(): Draft[] {
+  let text: string | null = null;
+  let raw: unknown = [];
+  try {
+    text = localStorage.getItem(storageKey());
+    if (text !== null) raw = JSON.parse(text);
+  } catch {
+    // Unreadable storage or damaged data: no drafts.
+  }
+  cachedRaw = text;
+  cache = (Array.isArray(raw) ? (raw as Draft[]) : []).sort(
+    (a, b) => b.updatedAt - a.updatedAt,
+  );
+  return cache;
+}
+
 export function listDrafts(): Draft[] {
   if (!owner) return NONE;
-  if (!cache) {
-    const raw = readJson<unknown>(storageKey(), []);
-    cache = (Array.isArray(raw) ? (raw as Draft[]) : []).sort(
-      (a, b) => b.updatedAt - a.updatedAt,
-    );
+  return cache ?? load();
+}
+
+/**
+ * Like listDrafts, but first checks storage for changes made in another tab whose notification has not
+ * arrived yet. Used before writing, so a write never brings back what another tab just removed.
+ */
+function listFresh(): Draft[] {
+  if (!owner) return NONE;
+  try {
+    if (cache && localStorage.getItem(storageKey()) === cachedRaw) return cache;
+  } catch {
+    return cache ?? load();
   }
-  return cache;
+  return load();
 }
 
 /** Writes the list. Returns false when nothing could be stored. */
@@ -102,26 +149,39 @@ function commit(drafts: Draft[]): boolean {
   while (!ok && list.length) {
     if (list.length > 1) list = list.slice(0, -1);
     else if (list[0].images.some((i) => i.dataUrl)) {
+      // An image that was never uploaded can only be restored from its preview: drop it with the preview.
       list = [
         {
           ...list[0],
-          images: list[0].images.map((i) => ({ ...i, dataUrl: "" })),
+          images: list[0].images
+            .filter((i) => i.key)
+            .map((i) => ({ ...i, dataUrl: "" })),
         },
       ];
     } else break;
     ok = writeJson(storageKey(), list);
   }
-  cache = ok ? list : undefined;
+  if (ok) {
+    cache = list;
+    try {
+      cachedRaw = localStorage.getItem(storageKey());
+    } catch {
+      cache = undefined;
+    }
+  } else cache = undefined;
   window.dispatchEvent(new Event(CHANGED));
   return ok;
 }
 
 export const getDraft = (id: string) => listDrafts().find((d) => d.id === id);
 
+/** True when the draft is still stored. Reads storage again, so it sees a clear done in another tab. */
+export const draftExists = (id: string) => listFresh().some((d) => d.id === id);
+
 /** Saves a draft. Returns false when the browser could not store it. */
 export function saveDraft(draft: Draft): boolean {
   return (
-    commit([draft, ...listDrafts().filter((d) => d.id !== draft.id)]) &&
+    commit([draft, ...listFresh().filter((d) => d.id !== draft.id)]) &&
     !!getDraft(draft.id)
   );
 }

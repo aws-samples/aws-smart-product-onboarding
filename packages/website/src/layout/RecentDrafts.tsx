@@ -109,7 +109,11 @@ export const RecentDrafts: React.FC<{
               <li key={d.id}>
                 <Link
                   to={`/drafts/${d.id}`}
-                  onClick={onNavigate}
+                  onClick={(e) => {
+                    // Already open: following the link would reopen it from storage, without edits not yet saved.
+                    if (d.id === activeId) e.preventDefault();
+                    onNavigate?.();
+                  }}
                   title={title}
                   aria-current={d.id === activeId ? "page" : undefined}
                   className="hover:bg-raised aria-[current=page]:bg-raised rail-collapsed:justify-center rail-collapsed:px-0 flex items-center gap-2.5 rounded-md px-2 py-1.5 aria-[current=page]:shadow-[inset_0_0_0_1px_var(--line-2)]"

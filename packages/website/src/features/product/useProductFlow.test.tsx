@@ -5,6 +5,13 @@
 
 import { act, renderHook } from "@testing-library/react";
 import { useProductFlow } from "./useProductFlow";
+import {
+  DRAFTS_KEY,
+  resetDraftCache,
+  saveDraft,
+  setDraftsOwner,
+  type Draft,
+} from "../../lib/drafts";
 
 const api = vi.hoisted(() => ({
   "/generateProduct": vi.fn(),
@@ -101,5 +108,117 @@ describe("useProductFlow", () => {
     expect(flow.current.classificationStale).toBe(true);
     act(() => flow.current.updateProduct({ title: "Mug" }));
     expect(flow.current.classificationStale).toBe(false);
+  });
+
+  it("records the language and length a listing was generated with", async () => {
+    const { result } = renderHook(() => useProductFlow({ persist: false }));
+    act(() => {
+      result.current.setMetadata("Brand: Acme");
+      result.current.setOptions({
+        ...result.current.options,
+        language: "French",
+        descriptionLength: "short",
+      });
+    });
+    await act(() => result.current.generate());
+    act(() =>
+      result.current.setOptions({
+        ...result.current.options,
+        language: "German",
+        descriptionLength: "long",
+      }),
+    );
+    expect(result.current.generatedWith).toEqual({
+      language: "French",
+      descriptionLength: "short",
+    });
+  });
+
+  describe("saved drafts", () => {
+    const saved = (patch: Partial<Draft> = {}): Draft => ({
+      id: "d1",
+      updatedAt: 1000,
+      step: 3,
+      images: [],
+      metadata: "Brand: Acme",
+      options: {
+        language: "",
+        descriptionLength: "long",
+        model: "",
+        temperature: 0.1,
+      },
+      examples: [],
+      product: { title: "Mug", description: "A sturdy mug." },
+      ...patch,
+    });
+    const stored = () =>
+      JSON.parse(
+        localStorage.getItem(`${DRAFTS_KEY}:sub-1`) ?? "[]",
+      ) as Draft[];
+    const open = (draftId?: string) =>
+      renderHook(() => useProductFlow({ draftId, persist: true }));
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      localStorage.clear();
+      setDraftsOwner("sub-1");
+      resetDraftCache();
+      window.history.replaceState(null, "", "/");
+    });
+    afterEach(() => vi.useRealTimers());
+
+    it("keeps the saved time and the saved text of a draft that was only opened", async () => {
+      saveDraft(saved());
+      const { unmount } = open("d1");
+      await act(() => vi.advanceTimersByTimeAsync(1000));
+      expect(stored()[0].updatedAt).toBe(1000);
+      unmount();
+      expect(stored()[0].updatedAt).toBe(1000);
+    });
+
+    it("saves an edit to an opened draft", async () => {
+      saveDraft(saved());
+      const { result } = open("d1");
+      act(() => result.current.updateProduct({ title: "Big mug" }));
+      await act(() => vi.advanceTimersByTimeAsync(400));
+      expect(stored()[0].product?.title).toBe("Big mug");
+      expect(stored()[0].updatedAt).toBeGreaterThan(1000);
+    });
+
+    it("does not save a draft again after another tab cleared the list", async () => {
+      saveDraft(saved());
+      const { result } = open("d1");
+      localStorage.setItem(`${DRAFTS_KEY}:sub-1`, "[]");
+      act(() => result.current.updateProduct({ title: "Big mug" }));
+      await act(() => vi.advanceTimersByTimeAsync(400));
+      expect(stored()).toEqual([]);
+    });
+
+    it("opens a draft whose saved preview is empty or damaged", () => {
+      const image = { id: "i", name: "wide.png", type: "image/png" };
+      saveDraft(
+        saved({
+          images: [
+            { ...image, dataUrl: "data:," },
+            { ...image, id: "j", dataUrl: "data:image/jpeg;base64,@@@" },
+          ],
+        }),
+      );
+      const { result } = open("d1");
+      expect(result.current.images.map((i) => [i.url, i.file])).toEqual([
+        ["", undefined],
+        ["", undefined],
+      ]);
+    });
+
+    it("moves the address to the new draft when the opened one no longer exists", async () => {
+      window.history.replaceState(null, "", "/drafts/gone");
+      const { result } = open("gone");
+      act(() => result.current.setMetadata("Brand: Acme"));
+      await act(() => result.current.generate());
+      await act(() => vi.advanceTimersByTimeAsync(400));
+      expect(window.location.pathname).toBe(`/drafts/${result.current.id}`);
+      expect(stored()[0].id).toBe(result.current.id);
+    });
   });
 });

@@ -73,6 +73,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const config = useRuntimeConfig();
   const [user, setUser] = useState<string | null | undefined>(undefined);
+  /** The account's unique ID (the Cognito sub). A user name can be reused by a later account. */
+  const [accountId, setAccountId] = useState("");
+  const signedIn = useCallback((u: { username: string; userId: string }) => {
+    setAccountId(u.userId);
+    setUser(u.username);
+  }, []);
 
   /** Shows the sign-in screen and unmounts the signed-in app. Open editors save their drafts first. */
   const endSession = useCallback(() => {
@@ -91,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       },
     });
     getCurrentUser()
-      .then((u) => setUser(u.username))
+      .then(signedIn)
       .catch(() => setUser(null));
     return Hub.listen("auth", ({ payload }) => {
       if (
@@ -100,7 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       )
         endSession();
     });
-  }, [config.userPoolId, config.userPoolWebClientId, endSession]);
+  }, [config.userPoolId, config.userPoolWebClientId, endSession, signedIn]);
 
   // Another tab signed in or out: follow it here.
   useEffect(() => {
@@ -109,7 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (e.key !== null && !e.key.startsWith(TOKEN_KEY_PREFIX)) return;
       getCurrentUser()
         .then((u) => {
-          if (u.username === user) return;
+          if (u.username === user && u.userId === accountId) return;
           window.dispatchEvent(new Event(FLUSH_DRAFTS));
           window.location.reload();
         })
@@ -117,7 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, [user, endSession]);
+  }, [user, accountId, endSession]);
 
   // One stable token function per signed-in user, so the API client is not rebuilt on every render.
   const getIdToken = useMemo(
@@ -140,7 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   // Drafts belong to the signed-in user.
-  setDraftsOwner(user ?? "");
+  setDraftsOwner(user ? accountId : "", user ?? undefined);
 
   if (user === undefined) return <FullPageMessage title="Loading…" busy />;
   if (user === null || !getIdToken) {
@@ -149,7 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         appName={config.applicationName || "Smart Product Onboarding"}
         onSignedIn={() =>
           getCurrentUser()
-            .then((u) => setUser(u.username))
+            .then(signedIn)
             .catch(() => setUser(null))
         }
       />
@@ -157,8 +163,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }
   return (
     <AuthContext.Provider value={{ username: user, getIdToken, signOut }}>
-      {/* Keyed by user so nothing from a previous session is reused. */}
-      <React.Fragment key={user}>{children}</React.Fragment>
+      {/* Keyed by account so nothing from a previous session is reused. */}
+      <React.Fragment key={accountId}>{children}</React.Fragment>
     </AuthContext.Provider>
   );
 };
