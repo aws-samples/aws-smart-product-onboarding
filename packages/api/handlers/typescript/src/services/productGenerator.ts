@@ -17,7 +17,11 @@ import { XMLParser } from "fast-xml-parser";
 import { ProductData, ProductGenerationContext } from "../types";
 import { supportsPrefill, supportsTemperature } from "./modelCapabilities";
 import { TemplateService } from "./templateService";
-import { BadRequestError, ModelResponseError } from "../utils/exceptions";
+import {
+  BadRequestError,
+  ContentFilteredError,
+  ModelResponseError,
+} from "../utils/exceptions";
 import { logger } from "../utils/logger";
 
 export class ProductGeneratorService {
@@ -86,6 +90,15 @@ export class ProductGeneratorService {
     });
     const response = await this.bedrockClient.send(converse);
     logger.debug(`Response: ${JSON.stringify(response)}`);
+
+    // A blocked response may have no text at all, so check this before reading it.
+    if (
+      response.stopReason === "content_filtered" ||
+      response.stopReason === "guardrail_intervened"
+    ) {
+      logger.warn(`Content filter stopped the model: ${response.stopReason}`);
+      throw new ContentFilteredError();
+    }
 
     // Reasoning models put a reasoningContent block before the text block.
     let text = response.output?.message?.content?.find(
