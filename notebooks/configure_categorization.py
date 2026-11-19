@@ -804,27 +804,38 @@ class VectorEmbeddingsProcessor:
                 Name=f"{SSM_PREFIX}WordEmbeddingsPolicyArn"
             )["Parameter"]["Value"]
 
+            policy_document = {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Sid": "wordembeddings",
+                        "Effect": "Allow",
+                        "Action": [
+                            "dynamodb:GetItem",
+                            "dynamodb:BatchGetItem",
+                            "dynamodb:Scan",
+                            "dynamodb:Query",
+                            "dynamodb:ConditionCheckItem",
+                        ],
+                        "Resource": table_arn,
+                    }
+                ],
+            }
+
+            # A policy keeps at most five versions, so don't add one that changes nothing.
+            default_version = self.iam.get_policy(PolicyArn=word_embeddings_policy_arn)[
+                "Policy"
+            ]["DefaultVersionId"]
+            current_document = self.iam.get_policy_version(
+                PolicyArn=word_embeddings_policy_arn, VersionId=default_version
+            )["PolicyVersion"]["Document"]
+            if current_document == policy_document:
+                print("IAM policy already grants access to the embeddings table")
+                return
+
             self.iam.create_policy_version(
                 PolicyArn=word_embeddings_policy_arn,
-                PolicyDocument=json.dumps(
-                    {
-                        "Version": "2012-10-17",
-                        "Statement": [
-                            {
-                                "Sid": "wordembeddings",
-                                "Effect": "Allow",
-                                "Action": [
-                                    "dynamodb:GetItem",
-                                    "dynamodb:BatchGetItem",
-                                    "dynamodb:Scan",
-                                    "dynamodb:Query",
-                                    "dynamodb:ConditionCheckItem",
-                                ],
-                                "Resource": table_arn,
-                            }
-                        ],
-                    }
-                ),
+                PolicyDocument=json.dumps(policy_document),
                 SetAsDefault=True,
             )
             print("Updated IAM policy successfully")

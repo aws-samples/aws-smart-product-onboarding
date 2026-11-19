@@ -35,7 +35,9 @@ def _processor(table_status):
     processor.word_map = {"skate": ["10008489"], "asbestos": ["10008511"]}
     processor.data_dir = Path(".")
     processor.config_bucket = "bucket"
-    processor.ddb = boto3.client("dynamodb", region_name="us-east-1")
+    processor.ddb = boto3.client(
+        "dynamodb", region_name="us-east-1", aws_access_key_id="testing", aws_secret_access_key="testing"
+    )
     processor.ddbr = MagicMock()
     processor.ssm = MagicMock()
     processor.iam = MagicMock()
@@ -79,6 +81,41 @@ def test_table_that_is_not_active_raises():
     with pytest.raises(cc.ConfigurationError, match="CREATING"):
         processor.process_embeddings()
     processor._import_vectors.assert_not_called()
+
+
+def _policy_processor(current_resource):
+    processor = cc.VectorEmbeddingsProcessor.__new__(cc.VectorEmbeddingsProcessor)
+    processor.ssm = MagicMock()
+    processor.ssm.get_parameter.return_value = {"Parameter": {"Value": "policy-arn"}}
+    processor.iam = MagicMock()
+    processor.iam.get_policy.return_value = {"Policy": {"DefaultVersionId": "v2"}}
+    statement = {
+        "Sid": "wordembeddings",
+        "Effect": "Allow",
+        "Action": ["dynamodb:GetItem", "dynamodb:BatchGetItem", "dynamodb:Scan", "dynamodb:Query", "dynamodb:ConditionCheckItem"],
+        "Resource": current_resource,
+    }
+    processor.iam.get_policy_version.return_value = {
+        "PolicyVersion": {"Document": {"Version": "2012-10-17", "Statement": [statement]}}
+    }
+    return processor
+
+
+def test_policy_version_is_not_added_when_access_is_unchanged():
+    processor = _policy_processor("table-arn")
+
+    processor._update_iam_policy("table-arn")
+
+    processor.iam.create_policy_version.assert_not_called()
+
+
+def test_policy_version_is_added_for_a_new_table():
+    processor = _policy_processor("other-table-arn")
+
+    processor._update_iam_policy("table-arn")
+
+    document = cc.json.loads(processor.iam.create_policy_version.call_args.kwargs["PolicyDocument"])
+    assert document["Statement"][0]["Resource"] == "table-arn"
 
 
 def test_missing_always_category_raises(tmp_path):
