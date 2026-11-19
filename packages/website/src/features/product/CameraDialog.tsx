@@ -4,6 +4,7 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { openCamera } from "../../lib/camera";
 import { Button } from "../../ui/Button";
 import { ModalPanel } from "../../ui/Dialog";
 import { SelectField } from "../../ui/Field";
@@ -42,27 +43,12 @@ export const CameraDialog: React.FC<{
     stop();
     const mine = attempt.current;
     setState("starting");
-    const open = (cameraId: string) =>
-      navigator.mediaDevices.getUserMedia({
-        video: {
-          deviceId: cameraId ? { exact: cameraId } : undefined,
-          facingMode:
-            !cameraId && /Mobi|Android/i.test(navigator.userAgent)
-              ? "environment"
-              : undefined,
-          width: { ideal: 1280 },
-          height: { ideal: 1280 },
-        },
-      });
     try {
-      let s: MediaStream;
-      try {
-        s = await open(id);
-      } catch (e) {
-        // The saved camera may be unplugged: fall back to any camera.
-        if (!id) throw e;
-        s = await open("");
-      }
+      const s = await openCamera(
+        (c) => navigator.mediaDevices.getUserMedia(c),
+        id,
+        /Mobi|Android/i.test(navigator.userAgent),
+      );
       if (mine !== attempt.current) {
         s.getTracks().forEach((t) => t.stop());
         return;

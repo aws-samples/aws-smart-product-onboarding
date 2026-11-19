@@ -4,7 +4,9 @@
  */
 
 /** Splits CSV text into rows of fields, honouring quoted fields with commas, quotes and line breaks. */
-export function parseCsv(text: string): string[][] {
+export const parseCsv = (text: string): string[][] => scanCsv(text).rows;
+
+function scanCsv(text: string): { rows: string[][]; unterminated: boolean } {
   const rows: string[][] = [];
   let row: string[] = [];
   let field = "";
@@ -40,19 +42,51 @@ export function parseCsv(text: string): string[][] {
     row.push(field);
     rows.push(row);
   }
-  return rows;
+  return { rows, unterminated: inQuotes };
 }
 
 export interface CsvSummary {
   columns: string[];
   rows: number;
+  /** The first row that the batch could not process, described for the user. */
+  problem?: string;
+}
+
+/** Looks for the first malformed row. `header` holds the raw header names, in order. */
+function findProblem(
+  header: string[],
+  data: { row: string[]; line: number }[],
+  unterminated: boolean,
+): string | undefined {
+  const names = header.map((c) => c.trim().toLowerCase());
+  const at = (row: string[], name: string) =>
+    (row[names.indexOf(name)] ?? "").trim();
+  const hasImages = names.includes("images");
+  for (const { row, line } of data) {
+    if (row.slice(header.length).some((f) => f.trim()))
+      return `Row ${line} has more fields than the header. Put quotes around text that contains commas.`;
+    const images = hasImages ? at(row, "images") : "";
+    if (images && !/^\[[\s\S]*\]$/.test(images))
+      return `Row ${line}: the 'images' value should be a list such as ['front.jpg','side.jpg'].`;
+    if (!images && !(at(row, "title") && at(row, "description")))
+      return `Row ${line} needs a title and a description${hasImages ? ", or images" : ""}.`;
+  }
+  return unterminated
+    ? "A quoted value is never closed, so the rows after it are read as one."
+    : undefined;
 }
 
 export function summarizeCsv(text: string): CsvSummary {
-  const [header = [], ...rest] = parseCsv(text);
+  const scan = scanCsv(text);
+  const [header = [], ...rest] = scan.rows;
+  const data = rest
+    // Row numbers count the header as row 1, as a spreadsheet does.
+    .map((row, n) => ({ row, line: n + 2 }))
+    .filter(({ row }) => row.some((f) => f.trim()));
   return {
     columns: header.map((c) => c.trim().toLowerCase()).filter(Boolean),
-    rows: rest.filter((r) => r.some((f) => f.trim())).length,
+    rows: data.length,
+    problem: findProblem(header, data, scan.unterminated),
   };
 }
 
@@ -72,6 +106,7 @@ export function validateCatalog(
     return "The CSV needs 'title' and 'description' columns, or an 'images' column.";
   }
   if (rows === 0) return "The CSV has a header row but no products.";
+  if (summary.problem) return summary.problem;
   if (hasImages && !hasImagesZip)
     return "The CSV has an 'images' column. Add the ZIP file with those images.";
   return undefined;

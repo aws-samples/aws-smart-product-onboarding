@@ -173,7 +173,11 @@ export const NewBatchDrawer: React.FC<{
   }, [isOpen]);
 
   useEffect(() => {
-    if (!csv) return setSummary(undefined);
+    if (!csv) {
+      setSummary(undefined);
+      setCsvError(undefined);
+      return undefined;
+    }
     if (!isCsvFile(csv)) {
       setSummary(undefined);
       setCsvError("Choose a .csv file with a header row.");
