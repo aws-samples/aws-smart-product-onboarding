@@ -381,7 +381,7 @@ export const ClassificationDetails: React.FC<{
               size="sm"
               className="ml-auto px-1.5"
               onPress={() => void flow.classify()}
-              isDisabled={flow.classifying}
+              isDisabled={flow.classifying || !flow.canClassify}
               aria-label="Regenerate category and attributes"
             >
               <Icon name="refresh" className="size-3.5" />
@@ -451,7 +451,9 @@ export const ClassificationDetails: React.FC<{
               size="sm"
               className="ml-auto px-1.5"
               onPress={() => void flow.extract()}
-              isDisabled={flow.classifying}
+              isDisabled={
+                flow.classifying || !flow.canClassify || flow.categoryStale
+              }
               aria-label="Regenerate attributes"
             >
               <Icon name="refresh" className="size-3.5" />

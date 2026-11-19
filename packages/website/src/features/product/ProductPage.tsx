@@ -16,7 +16,11 @@ import {
   StageList,
 } from "./ReviewParts";
 import { STEPS, useProductFlow, type ProductFlow } from "./useProductFlow";
-import { MobileActions, newProductLink, PageBar } from "../../layout/AppShell";
+import {
+  freshProductState,
+  MobileActions,
+  PageBar,
+} from "../../layout/AppShell";
 import { downloadBlob } from "../../lib/images";
 import { useStoredState } from "../../lib/storage";
 import { ErrorAlert } from "../../ui/Alert";
@@ -85,10 +89,44 @@ const goToStep = (flow: ProductFlow, n: number) => {
   if (
     n === 2 &&
     (!flow.classification || flow.classificationStale) &&
+    flow.canClassify &&
     !flow.classifying
   )
     void flow.classify();
 };
+
+const NEEDS_TEXT = "Add a title and a description to categorize the listing.";
+
+/** Says why categorizing is unavailable. */
+const NeedsText: React.FC<{ flow: ProductFlow }> = ({ flow }) =>
+  flow.product && !flow.canClassify ? (
+    <span className="text-muted mr-auto text-[13px]" role="status">
+      {NEEDS_TEXT}
+    </span>
+  ) : null;
+
+/** Shown when the images or metadata changed after the listing was generated. */
+const GenerationStaleNotice: React.FC<{ flow: ProductFlow }> = ({ flow }) =>
+  flow.generationStale ? (
+    <div
+      role="status"
+      className="border-run bg-run-soft mb-4 flex flex-wrap items-center gap-3 rounded-md border p-3 text-[13px]"
+    >
+      <Icon name="alert" className="text-run" />
+      <span className="flex-1">
+        The images or metadata changed after the listing was generated.
+        Regenerate the listing text before you export it.
+      </span>
+      <Button
+        size="sm"
+        onPress={() => void flow.generate()}
+        isDisabled={flow.generating || flow.classifying || !flow.canGenerate}
+      >
+        <Icon name="refresh" className="size-3.5" />
+        Regenerate text
+      </Button>
+    </div>
+  ) : null;
 
 /** Shown when the listing was edited after the category and attributes were computed. */
 const StaleNotice: React.FC<{ flow: ProductFlow }> = ({ flow }) =>
@@ -101,11 +139,12 @@ const StaleNotice: React.FC<{ flow: ProductFlow }> = ({ flow }) =>
       <span className="flex-1">
         The listing changed after it was categorized. Categorize it again before
         you export it.
+        {!flow.canClassify && ` ${NEEDS_TEXT}`}
       </span>
       <Button
         size="sm"
         onPress={() => void flow.classify()}
-        isDisabled={flow.classifying}
+        isDisabled={flow.classifying || !flow.canClassify}
       >
         <Icon name="refresh" className="size-3.5" />
         Categorize again
@@ -222,15 +261,12 @@ const GenerateStep: React.FC<{ flow: ProductFlow }> = ({ flow }) => (
       <ListingPanel flow={flow} onRegenerate={() => void flow.generate()} />
     </div>
     <StepFooter>
+      <NeedsText flow={flow} />
       <Button onPress={() => flow.setStep(0)}>Back</Button>
       <Button
         variant="primary"
-        isDisabled={!flow.product || flow.generating}
-        onPress={() => {
-          flow.setStep(2);
-          if (!flow.classification || flow.classificationStale)
-            void flow.classify();
-        }}
+        isDisabled={!flow.product || flow.generating || !flow.canClassify}
+        onPress={() => goToStep(flow, 2)}
       >
         Categorize
         <Icon name="chevronRight" />
@@ -272,11 +308,12 @@ const ClassifyStep: React.FC<{ flow: ProductFlow }> = ({ flow }) => (
       </section>
     </div>
     <StepFooter>
+      <NeedsText flow={flow} />
       <Button onPress={() => flow.setStep(1)}>Back</Button>
       <Button
         variant="secondary"
         onPress={() => void flow.classify()}
-        isDisabled={flow.classifying || !flow.product}
+        isDisabled={flow.classifying || !flow.canClassify}
       >
         <Icon name="refresh" />
         Run again
@@ -360,6 +397,12 @@ const RegenerateMenu: React.FC<{ flow: ProductFlow }> = ({ flow }) => (
     <Popover placement="bottom end" className="panel min-w-56 p-1">
       <Menu
         className="outline-none"
+        disabledKeys={[
+          ...(flow.canClassify ? [] : ["classify"]),
+          ...(flow.canClassify && flow.classification && !flow.categoryStale
+            ? []
+            : ["attributes"]),
+        ]}
         onAction={(key) => {
           if (key === "text") void flow.generate();
           if (key === "classify") void flow.classify();
@@ -374,7 +417,7 @@ const RegenerateMenu: React.FC<{ flow: ProductFlow }> = ({ flow }) => (
           <MenuItem
             key={id}
             id={id}
-            className="data-[focused]:bg-accent-soft cursor-default rounded px-2.5 py-2 text-[13px] font-medium outline-none"
+            className="data-[focused]:bg-accent-soft data-[disabled]:text-faint cursor-default rounded px-2.5 py-2 text-[13px] font-medium outline-none"
           >
             {label}
           </MenuItem>
@@ -437,6 +480,7 @@ export const ProductPage: React.FC<{ draftId?: string }> = ({ draftId }) => {
     flow.generating ||
     flow.classifying ||
     flow.classificationStale ||
+    flow.generationStale ||
     !flow.classified;
   const { copy, download } = useListingActions(flow);
   const heading = useRef<HTMLHeadingElement>(null);
@@ -458,8 +502,7 @@ export const ProductPage: React.FC<{ draftId?: string }> = ({ draftId }) => {
     "Review listing",
   ];
   const onReview = flow.step === 3;
-  const startOver = () =>
-    void navigate(newProductLink().pathname, { state: newProductLink().state });
+  const startOver = () => void navigate("/new", { state: freshProductState() });
 
   return (
     <>
@@ -521,6 +564,7 @@ export const ProductPage: React.FC<{ draftId?: string }> = ({ draftId }) => {
           </div>
           <Steps flow={flow} />
         </div>
+        {flow.step >= 1 && <GenerationStaleNotice flow={flow} />}
         {(flow.step === 2 || flow.step === 3) && <StaleNotice flow={flow} />}
         {flow.step === 0 && <ImagesStep flow={flow} />}
         {flow.step === 1 && <GenerateStep flow={flow} />}

@@ -59,20 +59,27 @@ const DraftProduct: React.FC = () => {
   return <ProductPage key={id} draftId={id} />;
 };
 
-/** API clients and a query cache for the signed-in session. Signing out unmounts both. */
-const ApiRoot: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+/**
+ * Toasts, API clients and a query cache for the signed-in session. It renders
+ * inside AuthProvider's per-user subtree, so signing out unmounts all of them.
+ */
+export const SessionRoot: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const config = useRuntimeConfig();
   const { getIdToken } = useAuth();
   const [queryClient] = useState(() => new QueryClient());
   return (
-    <QueryClientProvider client={queryClient}>
-      <ApiProvider
-        baseUrl={config.typeSafeApis[API_KEY]}
-        getIdToken={getIdToken}
-      >
-        {children}
-      </ApiProvider>
-    </QueryClientProvider>
+    <ToastProvider>
+      <QueryClientProvider client={queryClient}>
+        <ApiProvider
+          baseUrl={config.typeSafeApis[API_KEY]}
+          getIdToken={getIdToken}
+        >
+          {children}
+        </ApiProvider>
+      </QueryClientProvider>
+    </ToastProvider>
   );
 };
 
@@ -124,15 +131,13 @@ export const App: React.FC = () => {
   return (
     <I18nProvider locale="en-US">
       <AriaRouterProvider navigate={navigate} useHref={useHref}>
-        <ToastProvider>
-          <RuntimeConfigProvider>
-            <AuthProvider>
-              <ApiRoot>
-                <AppRoutes />
-              </ApiRoot>
-            </AuthProvider>
-          </RuntimeConfigProvider>
-        </ToastProvider>
+        <RuntimeConfigProvider>
+          <AuthProvider>
+            <SessionRoot>
+              <AppRoutes />
+            </SessionRoot>
+          </AuthProvider>
+        </RuntimeConfigProvider>
       </AriaRouterProvider>
     </I18nProvider>
   );

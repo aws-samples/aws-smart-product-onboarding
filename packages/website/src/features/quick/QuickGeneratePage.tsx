@@ -18,6 +18,8 @@ import { useProductFlow } from "../product/useProductFlow";
 const QuickGenerate: React.FC<{ onReset: () => void }> = ({ onReset }) => {
   const flow = useProductFlow({ persist: false });
   const { copy } = useListingActions(flow, { canDownload: false });
+  // Copy only what the current images and metadata produced.
+  const copyBlocked = flow.generating || flow.generationStale;
   const hasResult =
     !!flow.product || flow.generating || flow.genStatus === "error";
 
@@ -31,7 +33,9 @@ const QuickGenerate: React.FC<{ onReset: () => void }> = ({ onReset }) => {
             <Button variant="quiet" onPress={onReset}>
               Start over
             </Button>
-            <Button onPress={() => void copy()}>Copy JSON</Button>
+            <Button onPress={() => void copy()} isDisabled={copyBlocked}>
+              Copy JSON
+            </Button>
           </>
         )}
       </PageBar>
@@ -62,6 +66,12 @@ const QuickGenerate: React.FC<{ onReset: () => void }> = ({ onReset }) => {
               onChange={flow.setMetadata}
             />
             <AdvancedOptions flow={flow} />
+            {flow.generationStale && (
+              <p className="text-muted text-[13px]" role="status">
+                The images or metadata changed. Generate again before you copy
+                the listing.
+              </p>
+            )}
             <Button
               variant="primary"
               className="justify-self-end"
@@ -90,7 +100,9 @@ const QuickGenerate: React.FC<{ onReset: () => void }> = ({ onReset }) => {
           <Button variant="quiet" onPress={onReset}>
             Start over
           </Button>
-          <Button onPress={() => void copy()}>Copy JSON</Button>
+          <Button onPress={() => void copy()} isDisabled={copyBlocked}>
+            Copy JSON
+          </Button>
         </MobileActions>
       )}
     </>

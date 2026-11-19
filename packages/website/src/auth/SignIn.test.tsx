@@ -72,6 +72,44 @@ describe("SignIn", () => {
     expect(screen.getByLabelText("Verification code")).toBeInTheDocument();
   });
 
+  it("keeps the form busy until the reset code request finishes", async () => {
+    auth.signIn.mockResolvedValue({
+      nextStep: { signInStep: "RESET_PASSWORD" },
+    });
+    let sent!: (v: unknown) => void;
+    auth.resetPassword.mockReturnValue(new Promise((r) => (sent = r)));
+    render(<SignIn appName="Test" onSignedIn={vi.fn()} />);
+    await userEvent.type(screen.getByLabelText("Username"), "maria");
+    await userEvent.type(screen.getByLabelText("Password"), "Old-pass1");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    expect(auth.resetPassword).toHaveBeenCalledWith({ username: "maria" });
+    // The username cannot change while the code is sent for it.
+    expect(screen.getByLabelText("Username")).toBeDisabled();
+    sent({
+      nextStep: {
+        resetPasswordStep: "CONFIRM_RESET_PASSWORD_WITH_CODE",
+        codeDeliveryDetails: {},
+      },
+    });
+    expect(
+      await screen.findByLabelText("Verification code"),
+    ).toBeInTheDocument();
+  });
+
+  it("shows an error when the reset code cannot be sent", async () => {
+    auth.signIn.mockResolvedValue({
+      nextStep: { signInStep: "RESET_PASSWORD" },
+    });
+    auth.resetPassword.mockRejectedValue({ name: "LimitExceededException" });
+    render(<SignIn appName="Test" onSignedIn={vi.fn()} />);
+    await userEvent.type(screen.getByLabelText("Username"), "maria");
+    await userEvent.type(screen.getByLabelText("Password"), "Old-pass1");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /Too many attempts/,
+    );
+  });
+
   it("requires the new password to be confirmed", async () => {
     auth.signIn.mockResolvedValue({
       nextStep: { signInStep: "CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED" },

@@ -22,6 +22,7 @@ import {
   saveDraft,
   setActiveDraftId,
   type Draft,
+  type GenerationInputs,
   type GenerationOptions,
 } from "../../lib/drafts";
 import {
@@ -97,6 +98,17 @@ const fromDraft = (d?: Draft): FlowImage[] =>
 const classificationInputs = (p: ProductData | undefined, metadata: string) =>
   p ? JSON.stringify([p.title, p.description, metadata.trim()]) : "";
 
+/** The metadata and ordered image keys a generation uses. A new, not yet uploaded image has no key. */
+const generationInputs = (
+  images: FlowImage[],
+  metadata: string,
+): GenerationInputs => ({
+  metadata: metadata.trim(),
+  imageKeys: images.map((i) => i.key ?? `new:${i.id}`),
+});
+const sameInputs = (a: GenerationInputs, b: GenerationInputs) =>
+  JSON.stringify(a) === JSON.stringify(b);
+
 /**
  * State and actions for onboarding one product: images and details, listing
  * generation, categorization and attribute extraction. With `persist`, the
@@ -139,6 +151,19 @@ export function useProductFlow({
     initial?.attributes,
   );
   const [classifiedFor, setClassifiedFor] = useState(initial?.classifiedFor);
+  const [extractedFor, setExtractedFor] = useState(
+    initial?.extractedFor ?? initial?.classifiedFor,
+  );
+  // Drafts saved before this was recorded: take the inputs they were opened with.
+  const [generatedFrom, setGeneratedFrom] = useState<
+    GenerationInputs | undefined
+  >(
+    () =>
+      initial?.generatedFrom ??
+      (initial?.product
+        ? generationInputs(fromDraft(initial), initial.metadata)
+        : undefined),
+  );
 
   const [genStatus, setGenStatus] = useState<GenStatus>(
     initial?.product ? "done" : "idle",
@@ -243,6 +268,8 @@ export function useProductFlow({
       classification,
       attributes,
       classifiedFor,
+      extractedFor,
+      generatedFrom,
     };
     const t = setTimeout(() => flush(), 300);
     return () => clearTimeout(t);
@@ -261,6 +288,8 @@ export function useProductFlow({
     classification,
     attributes,
     classifiedFor,
+    extractedFor,
+    generatedFrom,
     flush,
   ]);
 
@@ -354,6 +383,7 @@ export function useProductFlow({
     setClassification(undefined);
     setAttributes(undefined);
     setClassifiedFor(undefined);
+    setExtractedFor(undefined);
     setStages(IDLE);
     setClassifyError(undefined);
   };
@@ -413,6 +443,7 @@ export function useProductFlow({
       });
       if (!current()) return;
       setProduct(result.product);
+      setGeneratedFrom(generationInputs(keyed, metadata));
       setUsage(result.usage);
       setModelId(options.model || undefined);
       // New listing text: the old category and attributes no longer describe it.
@@ -462,26 +493,56 @@ export function useProductFlow({
     [metadata, extractM],
   );
 
-  /** Re-extracts attributes for the current category. */
+  /** Categorizing needs a title and a description. */
+  const canClassify =
+    !!product?.title?.trim() && !!product?.description?.trim();
+  const currentInputs = classificationInputs(product, metadata);
+  /** The listing was edited after it was categorized. */
+  const categoryStale =
+    !!classification &&
+    classifiedFor !== undefined &&
+    classifiedFor !== currentInputs;
+
+  /** Re-extracts attributes for the current category. Not while the category is out of date. */
   const extract = useCallback(async () => {
-    if (!product || !classification || classifying || generating) return;
+    if (
+      !product ||
+      !classification ||
+      !canClassify ||
+      categoryStale ||
+      classifying ||
+      generating
+    )
+      return;
     const token = ++run.current;
     setClassifyError(undefined);
     setAttributes(undefined);
+    setExtractedFor(classificationInputs(product, metadata));
     await extractFor(token, product, classification.categoryId);
-  }, [product, classification, classifying, generating, extractFor]);
+  }, [
+    product,
+    classification,
+    canClassify,
+    categoryStale,
+    classifying,
+    generating,
+    metadata,
+    extractFor,
+  ]);
 
   /** Metaclass, then categorization, then attribute extraction, for the listing as it is now. */
   const classify = useCallback(async () => {
-    if (!product || classifying || generating) return;
+    if (!product || !canClassify || classifying || generating) return;
     const token = ++run.current;
     const current = () => live.current && token === run.current;
     const input = product;
+    const inputs = classificationInputs(input, metadata);
     setClassifyError(undefined);
     setPossibleCategories(undefined);
     setClassification(undefined);
     setAttributes(undefined);
-    setClassifiedFor(classificationInputs(input, metadata));
+    setClassifiedFor(inputs);
+    setExtractedFor(inputs);
     setStages({ metaclass: "running", categorize: "idle", attributes: "idle" });
     let categories: string[];
     try {
@@ -513,20 +574,37 @@ export function useProductFlow({
       );
       setStages((s) => ({ ...s, categorize: "error" }));
     }
-  }, [product, classifying, generating, metaclassM, categorizeM, extractFor]);
+  }, [
+    product,
+    canClassify,
+    classifying,
+    generating,
+    metadata,
+    metaclassM,
+    categorizeM,
+    extractFor,
+  ]);
 
   /** Re-runs whichever stage failed last. */
   const retryClassification = () =>
-    stages.attributes === "error" && classification ? extract() : classify();
+    stages.attributes === "error" && classification && !categoryStale
+      ? extract()
+      : classify();
 
   const updateProduct = (patch: Partial<ProductData>) =>
     setProduct((p) => (p ? { ...p, ...patch } : p));
 
-  /** True when the listing was edited after the category and attributes were computed. */
+  /** True when the listing was edited after the category or the attributes were computed. */
   const classificationStale =
-    !!classification &&
-    classifiedFor !== undefined &&
-    classifiedFor !== classificationInputs(product, metadata);
+    categoryStale ||
+    (!!attributes &&
+      extractedFor !== undefined &&
+      extractedFor !== currentInputs);
+  /** True when the images or metadata changed after the listing was generated. */
+  const generationStale =
+    !!product &&
+    !!generatedFrom &&
+    !sameInputs(generatedFrom, generationInputs(images, metadata));
   const classified =
     stages.attributes === "done" && !!classification && !!attributes;
 
@@ -553,6 +631,9 @@ export function useProductFlow({
     classification,
     attributes,
     classificationStale,
+    categoryStale,
+    generationStale,
+    canClassify,
     classified,
     genStatus,
     genError,

@@ -26,12 +26,15 @@ export type FetchClient = Client<paths>;
 /**
  * Sends the Cognito ID token, unchanged and without a "Bearer" prefix, in the
  * Authorization header. The API's Cognito user pool authorizer expects that format.
+ * Without a token the session has ended, so the request is not sent at all.
  */
 export const authMiddleware = (
   getIdToken: () => Promise<string | undefined>,
 ): Middleware => ({
   async onRequest({ request }) {
-    request.headers.set("Authorization", (await getIdToken()) ?? "");
+    const token = await getIdToken();
+    if (!token) throw new Error("Your session has ended. Sign in again.");
+    request.headers.set("Authorization", token);
     return request;
   },
 });

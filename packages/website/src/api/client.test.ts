@@ -38,6 +38,19 @@ describe("API client", () => {
     );
   });
 
+  it("does not send a request without an ID token", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const { fetchClient } = createApiClients(
+      "https://api.example.com/prod",
+      async () => undefined,
+    );
+    await expect(
+      fetchClient.POST("/uploadFile", { body: { fileName: "a" } }),
+    ).rejects.toThrow(/session has ended/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("uploads through a presigned URL with the file's content type", async () => {
     const fetchMock = vi.fn(
       async (input: Request | string, init?: RequestInit) => {

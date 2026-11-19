@@ -20,10 +20,8 @@ import { useTheme } from "../lib/theme";
 import { Button } from "../ui/Button";
 import { Icon, type IconName } from "../ui/Icon";
 
-export const newProductLink = () => ({
-  pathname: "/new",
-  state: { fresh: Date.now() },
-});
+/** Router state that makes /new open an empty product, even when it is already open. */
+export const freshProductState = () => ({ fresh: Date.now() });
 
 const isTyping = (target: EventTarget | null) =>
   target instanceof HTMLElement &&
@@ -31,16 +29,19 @@ const isTyping = (target: EventTarget | null) =>
     ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
 
 const NavItem: React.FC<{
-  to: string | ReturnType<typeof newProductLink>;
+  to: string;
+  /** Router state for the link. Navigation state goes here; `to` does not carry it. */
+  state?: unknown;
   icon: IconName;
   label: string;
   shortcut?: string;
   matchPrefixes?: string[];
-}> = ({ to, icon, label, shortcut, matchPrefixes }) => {
+}> = ({ to, state, icon, label, shortcut, matchPrefixes }) => {
   const location = useLocation();
   return (
     <NavLink
       to={to}
+      state={state}
       title={label}
       className={({ isActive }) => {
         const active =
@@ -148,9 +149,7 @@ export const AppShell: React.FC = () => {
       )
         return;
       if (e.key === "n" || e.key === "N")
-        void navigate(newProductLink().pathname, {
-          state: newProductLink().state,
-        });
+        void navigate("/new", { state: freshProductState() });
       if (e.key === "b" || e.key === "B") void navigate("/batches");
     };
     window.addEventListener("keydown", onKey);
@@ -201,7 +200,8 @@ export const AppShell: React.FC = () => {
         </div>
         <div className="flex min-w-0 gap-1 max-md:flex-1 max-md:overflow-x-auto md:flex-col">
           <NavItem
-            to={newProductLink()}
+            to="/new"
+            state={freshProductState()}
             icon="plus"
             label="New product"
             shortcut="N"

@@ -51,6 +51,15 @@ export interface Draft {
   attributes?: ProductAttribute[];
   /** The listing text the category and attributes were computed for. */
   classifiedFor?: string;
+  /** The listing text the attributes were extracted for. Missing in older drafts: same as classifiedFor. */
+  extractedFor?: string;
+  /** The metadata and image keys, in order, that the listing was generated from. */
+  generatedFrom?: GenerationInputs;
+}
+
+export interface GenerationInputs {
+  metadata: string;
+  imageKeys: string[];
 }
 
 export const draftTitle = (d: Draft) =>

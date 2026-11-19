@@ -146,7 +146,8 @@ export const SignIn: React.FC<{ appName: string; onSignedIn: () => void }> = ({
     }
   };
 
-  const handleSignInStep = (output: SignInOutput) => {
+  /** Handles the next sign-in step. Runs inside the action that produced it, so the form stays busy until it finishes. */
+  const handleSignInStep = async (output: SignInOutput) => {
     switch (output.nextStep.signInStep) {
       case "DONE":
         onSignedIn();
@@ -163,7 +164,7 @@ export const SignIn: React.FC<{ appName: string; onSignedIn: () => void }> = ({
         return;
       case "RESET_PASSWORD":
         // An administrator requires a new password: send a reset code for this user.
-        void run(() => sendResetCode("Your password must be reset."));
+        await sendResetCode("Your password must be reset.");
         return;
       default:
         setError(
