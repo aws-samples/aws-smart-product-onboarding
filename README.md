@@ -265,45 +265,32 @@ aws ecr-public get-login-password --region us-east-1 | docker login --username A
 
 ## Demo
 
-This accelerator includes a web app in [packages/website/](packages/website/README.md#smart-product-onboarding---demo-website) with two demos to showcase the Smart Product Onboarding functionality:
+This accelerator includes a web app in [packages/website/](packages/website/README.md#smart-product-onboarding---demo-website) with three pages to showcase the Smart Product Onboarding functionality. It has a dark and a light theme, and works on phones.
 
-### 1. Smart Product Onboarding
+### 1. New product
 
-This demo allows you to onboard individual products using a step-by-step wizard interface.
+Onboard one product in four steps:
 
-To use the Smart Product Onboarding demo:
+1. **Images & details:** add product images (drop them, choose files, or take photos with the camera) and optional metadata. Under the advanced settings you can set the language, description length, model and temperature, and add example listings to guide the tone and style.
+2. **Generate:** review and edit the generated title and description, or regenerate them.
+3. **Category & attributes:** the app finds candidate categories, chooses one, and extracts the category's attributes.
+4. **Review:** check the images, listing, category and attributes together, regenerate any part, and copy or download the listing as JSON.
 
-1. Navigate to the "Smart Product Onboarding" page in the application.
-2. Follow the wizard steps:
-   a. Upload product images and enter optional metadata.
-   b. Configure generation options (language, description length, AI model, etc.).
-   c. Optionally provide example products to guide the AI's style and tone.
-   d. Review and edit the AI-generated product title and description.
-   e. Review the automatically determined product classification and attributes.
-   f. Final review of all product information.
-3. Submit the product to complete the onboarding process.
+Products you have generated are kept as **Recent drafts** in the navigation rail, in this browser only, so you can come back to them.
 
-This demo showcases the full capabilities of the Smart Product Onboarding accelerator, including AI-powered content generation, automatic categorization, and attribute extraction.
+### 2. Batches
 
-### 2. Batch Product Onboarding
+Onboard many products at once from a CSV file:
 
-This demo allows you to onboard multiple products at once using CSV files and image uploads.
+1. Open **Batches** and choose **New batch**.
+2. Add your product catalog CSV. It needs a header row with either `title` and `description` columns, or an `images` column. `short_description` and `metadata` are optional. The app checks the columns before uploading, and you can download a sample CSV.
+3. If the CSV has an `images` column, add a ZIP file with those images.
+4. Start the batch. The list refreshes while batches run, and shows any error message for failed batches.
+5. When a batch completes, download the results CSV with the generated content, categories and attributes.
 
-To use the Batch Product Onboarding demo:
+### 3. Quick generate
 
-1. Navigate to the "Batch Product Onboarding" page in the application.
-2. Click the "New Onboarding" button.
-3. Upload your product catalog CSV file. The CSV should contain columns for:
-   - `title` and `description` (required if no images)
-   - `images` (required if no title/description)
-   - `short_description` (optional)
-   - `metadata` (optional)
-4. Optionally upload a zip file containing product images (if referenced in the CSV).
-5. Start the onboarding process.
-6. Monitor the batch job status on the Batch Product Onboarding page.
-7. Once completed, download the results CSV containing the generated content, categorizations, and extracted attributes.
-
-For detailed information on CSV format and image requirements, click the info icons next to each upload field in the demo interface.
+Generate a title and description from images and metadata without categorizing the product or saving a draft.
 
 ### Notes
 

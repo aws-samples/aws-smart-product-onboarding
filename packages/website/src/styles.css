@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+/* Styles for the collapsed navigation rail. The rail is a top bar on small screens, so this applies from md up. */
+@custom-variant rail-collapsed {
+  @media (width >= 48rem) {
+    .rail-collapsed & {
+      @slot;
+    }
+  }
+}
+
+/*
+ * Design tokens. Each theme is a set of CSS variables, so restyling the app
+ * means overriding these values (for example --accent for a brand color).
+ */
+:root,
+[data-theme="dark"] {
+  --bg: #0b0f14;
+  --surface: #121821;
+  --raised: #18202b;
+  --line: #243042;
+  --line-2: #33415a;
+  --text: #e6edf5;
+  --muted: #a0adbf;
+  --faint: #8b9ab0;
+  --accent: #2dd4bf;
+  --accent-ink: #042f2e;
+  --accent-soft: rgb(45 212 191 / 0.12);
+  --ok: #4ade80;
+  --ok-soft: rgb(74 222 128 / 0.12);
+  --err: #fca5a5;
+  --err-soft: rgb(248 113 113 / 0.14);
+  --run: #93c5fd;
+  --run-soft: rgb(96 165 250 / 0.14);
+  --img-bg: #f4f6f8;
+  --shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 20px 40px -24px rgb(0 0 0 / 0.8);
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --bg: #eef1f5;
+  --surface: #ffffff;
+  --raised: #f6f8fb;
+  --line: #dbe1ea;
+  --line-2: #c4cdda;
+  --text: #0f1720;
+  --muted: #46556a;
+  --faint: #56657a;
+  --accent: #0f766e;
+  --accent-ink: #ffffff;
+  --accent-soft: rgb(15 118 110 / 0.1);
+  --ok: #15803d;
+  --ok-soft: #dcfce7;
+  --err: #b91c1c;
+  --err-soft: #fee2e2;
+  --run: #1d4ed8;
+  --run-soft: #dbeafe;
+  --img-bg: #ffffff;
+  --shadow: 0 1px 2px rgb(15 23 32 / 0.06), 0 12px 28px -18px rgb(15 23 32 / 0.25);
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-err: var(--err);
+  --color-err-soft: var(--err-soft);
+  --color-run: var(--run);
+  --color-run-soft: var(--run-soft);
+  --color-img: var(--img-bg);
+  --shadow-panel: var(--shadow);
+  --font-sans: "Instrument Sans Variable", "Instrument Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+  body {
+    @apply bg-bg text-text font-sans text-sm leading-normal antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+}
+
+@layer components {
+  .panel {
+    @apply bg-surface border-line shadow-panel rounded-lg border;
+  }
+  .eyebrow {
+    @apply text-muted font-mono text-[11.5px] font-medium tracking-[0.09em] uppercase;
+  }
+  .kbd {
+    @apply text-faint border-line-2 rounded border border-b-2 px-1 font-mono text-[11px] font-medium;
+  }
+  .field-input {
+    @apply bg-bg border-line-2 text-text placeholder:text-faint w-full rounded-md border px-3 py-2 text-sm outline-none;
+  }
+  .field-input[data-focused],
+  .field-input:focus {
+    @apply border-accent;
+  }
+  .field-input[data-invalid] {
+    @apply border-err;
+  }
+  .clamp-fade {
+    mask-image: linear-gradient(#000 55%, transparent);
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.animate-blink {
+  animation: blink 1.1s infinite;
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--raised) 25%, var(--line) 37%, var(--raised) 63%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: 4px;
+}

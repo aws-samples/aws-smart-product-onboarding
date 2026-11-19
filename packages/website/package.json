@@ -1,9 +1,12 @@
 {
   "name": "@aws-samples/smart-product-onboarding-demo-website",
   "scripts": {
-    "dev": "nx run @aws-samples/smart-product-onboarding-demo-website:serve --output-style=stream"
+    "dev": "nx run @aws-samples/smart-product-onboarding-demo-website:serve --output-style=stream",
+    "generate:api": "nx run @aws-samples/smart-product-onboarding-demo-website:generate-api"
   },
   "devDependencies": {
+    "@react-aria/optimize-locales-plugin": "^2.1.0",
+    "@tailwindcss/vite": "^4.3.5",
     "@testing-library/jest-dom": "^6.5.0",
     "@testing-library/react": "^16.0.1",
     "@testing-library/user-event": "^14.5.2",
@@ -18,28 +21,24 @@
     "eslint-import-resolver-typescript": "^3.6.3",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-prettier": "^5.2.1",
+    "openapi-typescript": "7.13.0",
     "prettier": "^3.3.3",
+    "tailwindcss": "^4.3.5",
     "typescript": "^5.9.3",
     "vite-tsconfig-paths": "^5.1.4"
   },
   "dependencies": {
-    "@aws-crypto/sha256-js": "^5.2.0",
-    "@aws-northstar/ui": "^1.1.13",
-    "@aws-samples/smart-product-onboarding-api-typescript-react-query-hooks": "0.0.0",
-    "@aws-sdk/client-s3": "^3.668.0",
-    "@aws-sdk/core": "^3.666.0",
-    "@aws-sdk/protocol-http": "^3.374.0",
-    "@aws-sdk/signature-v4": "^3.374.0",
-    "@aws-sdk/types": "^3.664.0",
-    "@cloudscape-design/board-components": "^3.0.77",
-    "@cloudscape-design/collection-hooks": "^1.0.55",
-    "@cloudscape-design/components": "^3.0.779",
-    "aws4fetch": "^1.0.20",
+    "@fontsource-variable/instrument-sans": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@tanstack/react-query": "^5.108.0",
+    "aws-amplify": "^6.22.2",
     "browser-image-resizer": "^2.4.1",
+    "openapi-fetch": "^0.17.0",
+    "openapi-react-query": "^0.5.4",
     "react": "^18.2.0",
+    "react-aria-components": "^1.22.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^7.18.5",
-    "web-vitals": "^4.2.3"
+    "react-router-dom": "^7.18.5"
   },
   "license": "Apache-2.0",
   "version": "0.0.0",

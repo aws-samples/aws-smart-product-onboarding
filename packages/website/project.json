@@ -6,29 +6,18 @@
   "tags": [],
   "targets": {
     "build": {
-      "dependsOn": ["lint", "compile", "bundle", "test"]
-    },
-    "pre-compile": {
-      "executor": "nx:run-commands",
-      "dependsOn": ["@aws-samples/smart-product-onboarding-api-model:generate"],
-      "options": {
-        "commands": [
-          "rm -rf public/smart-product-onboarding-api",
-          "mkdir -p public/smart-product-onboarding-api && cp ../api/model/.api.json public/smart-product-onboarding-api/api.json"
-        ],
-        "cwd": "{projectRoot}",
-        "parallel": false
-      },
-      "inputs": ["{projectRoot}/../api/model/.api.json"],
-      "outputs": ["{projectRoot}/public/smart-product-onboarding-api"]
+      "dependsOn": [
+        "lint",
+        "compile",
+        "bundle",
+        "test"
+      ]
     },
     "compile": {
       "executor": "nx:run-commands",
-      "dependsOn": [
-        "pre-compile",
-        "@aws-samples/smart-product-onboarding-api-typescript-react-query-hooks:build"
+      "outputs": [
+        "{projectRoot}/dist"
       ],
-      "outputs": ["{projectRoot}/dist"],
       "options": {
         "command": "tsc --build tsconfig.json",
         "cwd": "{projectRoot}"
@@ -36,11 +25,9 @@
     },
     "bundle": {
       "executor": "nx:run-commands",
-      "dependsOn": [
-        "pre-compile",
-        "@aws-samples/smart-product-onboarding-api-typescript-react-query-hooks:build"
+      "outputs": [
+        "{workspaceRoot}/dist/packages/website/bundle"
       ],
-      "outputs": ["{workspaceRoot}/dist/packages/website/bundle"],
       "defaultConfiguration": "production",
       "options": {
         "command": "vite build --mode production",
@@ -70,7 +57,9 @@
       }
     },
     "preview": {
-      "dependsOn": ["bundle"],
+      "dependsOn": [
+        "bundle"
+      ],
       "executor": "nx:run-commands",
       "options": {
         "command": "vite preview",
@@ -79,10 +68,6 @@
     },
     "serve": {
       "executor": "nx:run-commands",
-      "dependsOn": [
-        "pre-compile",
-        "@aws-samples/smart-product-onboarding-api-typescript-react-query-hooks:build"
-      ],
       "defaultConfiguration": "development",
       "options": {
         "command": "vite --mode development",
@@ -99,7 +84,9 @@
     },
     "serve-static": {
       "executor": "nx:run-commands",
-      "dependsOn": ["bundle"],
+      "dependsOn": [
+        "bundle"
+      ],
       "options": {
         "command": "vite preview --outDir ../../dist/packages/website/bundle",
         "cwd": "{projectRoot}"
@@ -107,11 +94,27 @@
     },
     "test": {
       "executor": "nx:run-commands",
-      "outputs": ["{workspaceRoot}/coverage/packages/website"],
+      "outputs": [
+        "{workspaceRoot}/coverage/packages/website"
+      ],
       "options": {
         "command": "vitest run",
         "cwd": "{projectRoot}"
       }
+    },
+    "generate-api": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "openapi-typescript ../api/model/src/main/openapi/main.yaml --output src/api/schema.d.ts --default-non-nullable=false",
+        "cwd": "{projectRoot}"
+      },
+      "inputs": [
+        "{workspaceRoot}/packages/api/model/src/**/*",
+        "{projectRoot}/package.json"
+      ],
+      "outputs": [
+        "{projectRoot}/src/api/schema.d.ts"
+      ]
     }
   }
 }
