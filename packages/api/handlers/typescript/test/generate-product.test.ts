@@ -194,4 +194,54 @@ describe("generate-product handler", () => {
       ProductGeneratorService.prototype.generateProduct,
     ).not.toHaveBeenCalled();
   });
+
+  it("should not log request headers or authorizer claims", async () => {
+    process.env.POWERTOOLS_LOG_LEVEL = "DEBUG";
+    const {
+      ProductGeneratorService,
+    } = require("../src/services/productGenerator");
+    (
+      ProductGeneratorService.prototype.generateProduct as jest.Mock
+    ).mockResolvedValueOnce({
+      productData: { title: "T", description: "D" },
+      usage: { inputTokens: 10, outputTokens: 20 },
+    });
+
+    const token = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.c2ln";
+    const baseEvent = apiGatewayEvent(
+      JSON.stringify({ productImages: ["image1.jpg"] }),
+    );
+    const event = {
+      ...baseEvent,
+      headers: { ...baseEvent.headers, Authorization: token },
+      multiValueHeaders: {
+        ...baseEvent.multiValueHeaders,
+        Authorization: [token],
+      },
+      requestContext: {
+        ...baseEvent.requestContext,
+        authorizer: { claims: { email: "someone@example.com" } },
+      },
+    };
+    const written: string[] = [];
+    const stdout = jest
+      .spyOn(process.stdout, "write")
+      .mockImplementation((chunk: any) => {
+        written.push(String(chunk));
+        return true;
+      });
+    try {
+      const { handler } = require("../src/generate-product");
+      const result = await handler(event, lambdaContext);
+      expect(result.statusCode).toBe(200);
+    } finally {
+      stdout.mockRestore();
+    }
+
+    const logged = written.join("");
+    expect(logged).toContain("Start GenerateProduct Operation");
+    expect(logged).not.toContain(token);
+    expect(logged).not.toContain("Authorization");
+    expect(logged).not.toContain("someone@example.com");
+  });
 });

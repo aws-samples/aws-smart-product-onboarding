@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT-0
 import json
 import os
+import re
 from typing import TYPE_CHECKING
 
 import jinja2
@@ -32,11 +33,16 @@ if TYPE_CHECKING:
 
 WORD_LIMIT = 20
 
+# Nearest category words to look up for each product word. One neighbour is often the wrong sense
+# ("bike" -> "motorcycle", "guitar" -> "piano"); a few more let the categorization step see the right one.
+EMBEDDING_NEIGHBORS = 3
+
 
 def split_words(text: str) -> list[str]:
-    """Split on whitespace and hyphens so "t-shirt" can match the vocabulary word "shirt"; drop 1-letter parts."""
+    """Split on whitespace, punctuation and hyphens so "t-shirt" can match "shirt" and "drill/driver" gives
+    both words; drop possessive "'s" (straight or curly apostrophe) and 1-letter parts of hyphenated words."""
     words = []
-    for token in text.split():
+    for token in re.sub(r"['\u2019]s\b|[^\w\s-]", " ", text).split():
         parts = token.split("-") if "-" in token else [token]
         words.extend(p for p in parts if len(p) > 1 or p == token)
     return words
@@ -131,7 +137,12 @@ class MetaclassClassifier:
         clean_text = rephrased.lower()
         clean_text = self.text_cleaner.singularize_sentence(clean_text)
         logger.info(f"Clean text: {clean_text}")
-        words = split_words(clean_text)
+        # Look each word up once, but report findings at the word's first position in the split title.
+        first_positions: dict[str, int] = {}
+        for i, word in enumerate(split_words(clean_text)):
+            first_positions.setdefault(word, i)
+        words = list(first_positions)
+        positions = list(first_positions.values())
         if len(words) > WORD_LIMIT:
             logger.warn(f"Truncating text at {WORD_LIMIT} words")
             words = words[:WORD_LIMIT]
@@ -139,12 +150,13 @@ class MetaclassClassifier:
         word_findings: list[WordFinding] = []
         logger.debug("Step1. Evaluate exact match from category list")
         word_findings.extend(self.evaluate_text_category_list(words))
+        exact_words = {f.word for f in word_findings}
 
-        for f in word_findings:
-            words.remove(f.word)
-
+        # Exact matches also get neighbours: "shoe" alone misses "footwear", "balance" alone only means windows.
         logger.debug("Step2. Evaluate embeddings matches from category list word by word")
-        word_findings.extend(self.get_closest_category_words(words))
+        word_findings.extend(f for f in self.get_closest_category_words(words) if f.word not in exact_words)
+        for finding in word_findings:
+            finding.position = positions[finding.position]
 
         if not len(word_findings):
             word_findings.append(
@@ -192,7 +204,7 @@ class MetaclassClassifier:
         for i, vector in enumerate(word_vectors):
             if vector is None:
                 continue
-            results = self.category_vector_index.search(vector, 1, 0.4)
+            results = self.category_vector_index.search(vector, EMBEDDING_NEIGHBORS, LOW_THRESHOLD_SIMILARITY)
             for word, distance in results:
                 word_findings.append(
                     WordFinding(

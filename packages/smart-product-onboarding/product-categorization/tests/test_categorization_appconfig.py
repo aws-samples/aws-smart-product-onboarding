@@ -36,6 +36,7 @@ _BOTO3_HELPER_MODULES = [
 ]
 
 _HANDLER_MODULE = "amzn_smart_product_onboarding_product_categorization.aws_lambda.categorization"
+_APIGW_HANDLER_MODULE = "amzn_smart_product_onboarding_product_categorization.aws_lambda.categorization_apigw"
 
 
 def _build_s3_body(data) -> dict:
@@ -73,7 +74,17 @@ def _make_mock_ssm():
 @pytest.fixture()
 def handler_module():
     """Import the categorization handler module with all heavy dependencies mocked."""
-    for mod_name in [_HANDLER_MODULE, *_BOTO3_HELPER_MODULES]:
+    yield from _import_handler(_HANDLER_MODULE)
+
+
+@pytest.fixture()
+def apigw_handler_module():
+    """Import the API Gateway categorization handler module with all heavy dependencies mocked."""
+    yield from _import_handler(_APIGW_HANDLER_MODULE)
+
+
+def _import_handler(module_name):
+    for mod_name in [module_name, *_BOTO3_HELPER_MODULES]:
         sys.modules.pop(mod_name, None)
 
     mock_ssm = _make_mock_ssm()
@@ -101,14 +112,14 @@ def handler_module():
         for mod_name in _BOTO3_HELPER_MODULES:
             importlib.import_module(mod_name)
 
-        mod = importlib.import_module(_HANDLER_MODULE)
+        mod = importlib.import_module(module_name)
         mod.appconfig_client = mock_appconfig_client
 
     mod._mock_appconfig_client = mock_appconfig_client
 
     yield mod
 
-    sys.modules.pop(_HANDLER_MODULE, None)
+    sys.modules.pop(module_name, None)
 
 
 class TestCategorizationHandlerAppConfigIntegration:
@@ -174,3 +185,30 @@ class TestCategorizationHandlerAppConfigFallback:
         handler_module._mock_appconfig_client.get_configuration.assert_called_with("productCategorization")
         assert handler_module.product_classifier.model_id == "env-var-model-id"
         assert handler_module.product_classifier.temperature == 0
+
+
+class TestCategorizationApiHandlerLogging:
+    """The API Gateway handler must not log request headers or authorizer claims."""
+
+    def test_debug_log_excludes_headers_and_claims(self, apigw_handler_module, caplog):
+        from amzn_smart_product_onboarding_api_runtime.api.operation_config import ApiRequest
+
+        token = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.c2ln"
+        apigw_handler_module.product_classifier.classify = MagicMock(side_effect=Exception("stop"))
+        request = ApiRequest(
+            request_parameters=None,
+            body=MagicMock(),
+            event={
+                "headers": {"Authorization": token},
+                "requestContext": {"authorizer": {"claims": {"email": "someone@example.com"}}},
+            },
+            context=None,
+            interceptor_context={},
+        )
+
+        with caplog.at_level("DEBUG"):
+            apigw_handler_module.categorize_product(request)
+
+        assert token not in caplog.text
+        assert "someone@example.com" not in caplog.text
+        assert "Request body" in caplog.text
