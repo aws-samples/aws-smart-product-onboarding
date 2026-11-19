@@ -430,3 +430,25 @@ describe("OpenApiRestApi", () => {
     );
   });
 });
+
+describe("Batch workflow", () => {
+  test("the workflow writes the same batch execution status strings", () => {
+    const definitions = Object.values<any>(
+      template.findResources("AWS::StepFunctions::StateMachine"),
+    ).map((machine) => JSON.stringify(machine.Properties.DefinitionString));
+    const statuses = new Set<string>();
+    for (const definition of definitions) {
+      for (const match of definition.matchAll(
+        /\\":st\\":\{\\"S\\":\\"([A-Z]+)\\"/g,
+      )) {
+        statuses.add(match[1]);
+      }
+    }
+    expect([...statuses].sort()).toEqual([
+      "ERROR",
+      "RUNNING",
+      "SUCCESS",
+      "WAITING",
+    ]);
+  });
+});

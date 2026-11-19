@@ -1,0 +1,14 @@
+{
+  "name": "@aws-samples/smart-product-onboarding-api-types",
+  "description": "TypeScript types generated from the API's OpenAPI definition.",
+  "scripts": {
+    "generate": "nx run @aws-samples/smart-product-onboarding-api-types:generate"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0"
+  },
+  "types": "src/api.d.ts",
+  "license": "MIT-0",
+  "private": true,
+  "version": "0.0.0"
+}

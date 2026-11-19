@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: MIT-0
  */
 
-import { Logger } from "@aws-lambda-powertools/logger";
+import { apiGatewayEvent, lambdaContext } from "./api-gateway-event";
 
 // Mock dependencies
 jest.mock("../src/services/productGenerator");
@@ -17,31 +17,16 @@ jest.mock("../src/services/appConfigClient", () => ({
 
 const originalEnv = process.env;
 
-const mockLogger = {
-  info: jest.fn(),
-  debug: jest.fn(),
-  error: jest.fn(),
-  warn: jest.fn(),
-} as unknown as Logger;
-
-function makeRequest(bodyOverrides: Record<string, unknown> = {}) {
+function makeBody(bodyOverrides: Record<string, unknown> = {}) {
   return {
-    input: {
-      body: {
-        productImages: ["image1.jpg"],
-        language: "English",
-        descriptionLength: "medium",
-        metadata: "test metadata",
-        examples: [],
-        model: undefined as string | undefined,
-        temperature: undefined as number | undefined,
-        ...bodyOverrides,
-      },
-    },
-    interceptorContext: {
-      logger: mockLogger,
-    },
-    chain: { next: jest.fn() },
+    productImages: ["image1.jpg"],
+    language: "English",
+    descriptionLength: "medium",
+    metadata: "test metadata",
+    examples: [],
+    model: undefined as string | undefined,
+    temperature: undefined as number | undefined,
+    ...bodyOverrides,
   } as any;
 }
 
@@ -77,8 +62,8 @@ describe("generate-product handler", () => {
     });
 
     const { generateProduct } = require("../src/generate-product");
-    const request = makeRequest();
-    const result = await generateProduct(request);
+    const body = makeBody();
+    const result = await generateProduct(body);
 
     expect(
       ProductGeneratorService.prototype.generateProduct,
@@ -106,8 +91,8 @@ describe("generate-product handler", () => {
     });
 
     const { generateProduct } = require("../src/generate-product");
-    const request = makeRequest();
-    const result = await generateProduct(request);
+    const body = makeBody();
+    const result = await generateProduct(body);
 
     expect(
       ProductGeneratorService.prototype.generateProduct,
@@ -137,11 +122,11 @@ describe("generate-product handler", () => {
     });
 
     const { generateProduct } = require("../src/generate-product");
-    const request = makeRequest({
+    const body = makeBody({
       model: "request-body-model",
       temperature: 0.3,
     });
-    const result = await generateProduct(request);
+    const result = await generateProduct(body);
 
     expect(
       ProductGeneratorService.prototype.generateProduct,
@@ -173,15 +158,8 @@ describe("generate-product handler", () => {
 
     const { handler } = require("../src/generate-product");
     const result = await handler(
-      {
-        body: JSON.stringify({ productImages: ["image1.jpg"] }),
-        headers: {},
-        multiValueHeaders: {},
-        pathParameters: null,
-        queryStringParameters: null,
-        multiValueQueryStringParameters: null,
-      },
-      {},
+      apiGatewayEvent(JSON.stringify({ productImages: ["image1.jpg"] })),
+      lambdaContext,
     );
 
     expect(result.statusCode).toBe(200);
@@ -191,7 +169,34 @@ describe("generate-product handler", () => {
     });
   });
 
+  it.each([
+    ["a body that is not JSON", "not json"],
+    ["a missing body", null],
+    ["missing productImages", JSON.stringify({ language: "English" })],
+    ["productImages of the wrong type", JSON.stringify({ productImages: "a" })],
+    [
+      "an unknown model",
+      JSON.stringify({ productImages: ["a"], model: "unknown-model" }),
+    ],
+  ])("should answer %s with 400, not 422", async (_name, body) => {
+    const {
+      ProductGeneratorService,
+    } = require("../src/services/productGenerator");
+    const { handler } = require("../src/generate-product");
+    const result = await handler(apiGatewayEvent(body), lambdaContext);
+
+    expect(result.statusCode).toBe(400);
+    expect(result.headers["x-amzn-errortype"]).toBe("BadRequestError");
+    expect(JSON.parse(result.body)).toEqual({
+      message: "Invalid request body",
+    });
+    expect(
+      ProductGeneratorService.prototype.generateProduct,
+    ).not.toHaveBeenCalled();
+  });
+
   it("should not log request headers or authorizer claims", async () => {
+    process.env.POWERTOOLS_LOG_LEVEL = "DEBUG";
     const {
       ProductGeneratorService,
     } = require("../src/services/productGenerator");
@@ -203,22 +208,37 @@ describe("generate-product handler", () => {
     });
 
     const token = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.c2ln";
-    const request = {
-      ...makeRequest(),
-      event: {
-        headers: { Authorization: token },
-        multiValueHeaders: { Authorization: [token] },
-        requestContext: {
-          authorizer: { claims: { email: "someone@example.com" } },
-        },
+    const baseEvent = apiGatewayEvent(
+      JSON.stringify({ productImages: ["image1.jpg"] }),
+    );
+    const event = {
+      ...baseEvent,
+      headers: { ...baseEvent.headers, Authorization: token },
+      multiValueHeaders: {
+        ...baseEvent.multiValueHeaders,
+        Authorization: [token],
+      },
+      requestContext: {
+        ...baseEvent.requestContext,
+        authorizer: { claims: { email: "someone@example.com" } },
       },
     };
-    const { generateProduct } = require("../src/generate-product");
-    await generateProduct(request);
+    const written: string[] = [];
+    const stdout = jest
+      .spyOn(process.stdout, "write")
+      .mockImplementation((chunk: any) => {
+        written.push(String(chunk));
+        return true;
+      });
+    try {
+      const { handler } = require("../src/generate-product");
+      const result = await handler(event, lambdaContext);
+      expect(result.statusCode).toBe(200);
+    } finally {
+      stdout.mockRestore();
+    }
 
-    const logged = JSON.stringify(
-      Object.values(mockLogger).flatMap((fn) => (fn as jest.Mock).mock.calls),
-    );
+    const logged = written.join("");
     expect(logged).toContain("Start GenerateProduct Operation");
     expect(logged).not.toContain(token);
     expect(logged).not.toContain("Authorization");

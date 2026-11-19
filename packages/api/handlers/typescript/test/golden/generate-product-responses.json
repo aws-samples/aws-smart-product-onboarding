@@ -1,0 +1,133 @@
+{
+  "success": {
+    "statusCode": 200,
+    "headers": {
+      "access-control-allow-origin": "*",
+      "access-control-allow-headers": "*"
+    },
+    "body": {
+      "product": {
+        "title": "T",
+        "description": "D"
+      },
+      "usage": {
+        "inputTokens": 10,
+        "outputTokens": 20
+      }
+    },
+    "bodyIsString": true
+  },
+  "success without usage": {
+    "statusCode": 200,
+    "headers": {
+      "access-control-allow-origin": "*",
+      "access-control-allow-headers": "*"
+    },
+    "body": {
+      "product": {
+        "title": "T",
+        "description": "D"
+      },
+      "usage": {
+        "inputTokens": null,
+        "outputTokens": null
+      }
+    },
+    "bodyIsString": true
+  },
+  "temperature out of range": {
+    "statusCode": 400,
+    "headers": {
+      "x-amzn-errortype": "BadRequestError",
+      "access-control-allow-origin": "*",
+      "access-control-allow-headers": "*"
+    },
+    "body": {
+      "message": "Temperature must be between 0 and 1"
+    },
+    "bodyIsString": true
+  },
+  "image bucket not configured": {
+    "statusCode": 500,
+    "headers": {
+      "x-amzn-errortype": "InternalFailureError",
+      "access-control-allow-origin": "*",
+      "access-control-allow-headers": "*"
+    },
+    "body": {
+      "message": "Internal server error"
+    },
+    "bodyIsString": true
+  },
+  "bedrock validation error": {
+    "statusCode": 400,
+    "headers": {
+      "x-amzn-errortype": "BadRequestError",
+      "access-control-allow-origin": "*",
+      "access-control-allow-headers": "*"
+    },
+    "body": {
+      "message": "Bad request"
+    },
+    "bodyIsString": true
+  },
+  "bedrock resource not found": {
+    "statusCode": 404,
+    "headers": {
+      "access-control-allow-origin": "*",
+      "access-control-allow-headers": "*"
+    },
+    "body": {
+      "message": "Not Found"
+    },
+    "bodyIsString": false
+  },
+  "bedrock throttling": {
+    "statusCode": 500,
+    "headers": {
+      "x-amzn-errortype": "InternalFailureError",
+      "access-control-allow-origin": "*",
+      "access-control-allow-headers": "*"
+    },
+    "body": {
+      "message": "Bedrock rate limit exceeded"
+    },
+    "bodyIsString": true
+  },
+  "invalid input": {
+    "statusCode": 400,
+    "headers": {
+      "x-amzn-errortype": "BadRequestError",
+      "access-control-allow-origin": "*",
+      "access-control-allow-headers": "*"
+    },
+    "body": {
+      "message": "Image image1.jpg is not a supported format"
+    },
+    "bodyIsString": true
+  },
+  "unexpected error": {
+    "statusCode": 500,
+    "headers": {
+      "x-amzn-errortype": "InternalFailureError",
+      "access-control-allow-origin": "*",
+      "access-control-allow-headers": "*"
+    },
+    "body": {
+      "message": "Internal server error"
+    },
+    "bodyIsString": true
+  },
+  "configuration error": {
+    "statusCode": 500,
+    "headers": {
+      "x-amzn-errortype": "InternalFailureError",
+      "access-control-allow-origin": "*",
+      "access-control-allow-headers": "*"
+    },
+    "body": {
+      "message": "Internal Error"
+    },
+    "bodyIsString": true
+  }
+}

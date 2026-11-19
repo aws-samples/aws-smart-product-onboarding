@@ -23,6 +23,15 @@ jobs:
           python-version: '3.14'
       - name: Install dependencies
         run: pnpm install
+      - name: Check that the generated API types match the OpenAPI definition
+        run: |
+          npx nx run @aws-samples/smart-product-onboarding-api-types:generate
+          # status, not diff, so a regenerated file that isn't checked in also fails
+          if [ -n "$(git status --porcelain -- packages/api/generated/types)" ]; then
+            git status --short -- packages/api/generated/types
+            git diff -- packages/api/generated/types
+            exit 1
+          fi
       - name: Check that the generated API models match the OpenAPI definition
         run: |
           npx nx run amzn-smart-product-onboarding-api-python-common:generate

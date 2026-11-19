@@ -1,0 +1,18 @@
+{
+  "name": "@aws-samples/smart-product-onboarding-api-types",
+  "root": "packages/api/generated/types/typescript",
+  "targets": {
+    "generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "openapi-typescript ../../../model/src/main/openapi/main.yaml --output src/api.d.ts --default-non-nullable=false",
+        "cwd": "packages/api/generated/types/typescript"
+      },
+      "inputs": [
+        "{workspaceRoot}/packages/api/model/src/**/*",
+        "{projectRoot}/package.json"
+      ],
+      "outputs": ["{projectRoot}/src"]
+    }
+  }
+}

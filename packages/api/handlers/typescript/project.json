@@ -2,17 +2,6 @@
   "name": "@aws-samples/smart-product-onboarding-api-typescript-handlers",
   "root": "packages/api/handlers/typescript",
   "targets": {
-    "generate": {
-      "dependsOn": ["@aws-samples/smart-product-onboarding-api-model:generate"],
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "npx --yes -p @aws/pdk@$AWS_PDK_VERSION type-safe-api generate --specPath ../../model/.api.json --outputPath . --templateDirs \"typescript-lambda-handlers\" --metadata '{\"srcDir\":\"src\",\"tstDir\":\"test\",\"runtimePackageName\":\"@aws-samples/smart-product-onboarding-api-typescript-runtime\"}'",
-        "cwd": "packages/api/handlers/typescript"
-      },
-      "env": {
-        "AWS_PDK_VERSION": "0.26.7"
-      }
-    },
     "compile": {
       "executor": "nx:run-commands",
       "options": {
@@ -20,11 +9,7 @@
         "cwd": "packages/api/handlers/typescript"
       },
       "inputs": ["{projectRoot}/src/**/*.ts", "{projectRoot}/tsconfig.json"],
-      "outputs": ["{projectRoot}/lib"],
-      "dependsOn": [
-        "generate",
-        "@aws-samples/smart-product-onboarding-api-typescript-runtime:compile"
-      ]
+      "outputs": ["{projectRoot}/lib"]
     },
     "test": {
       "executor": "nx:run-commands",
@@ -38,9 +23,13 @@
       },
       "inputs": [
         "{projectRoot}/src/**/*.ts",
+        "{projectRoot}/src/templates/**/*",
         "{projectRoot}/test/**/*.ts",
+        "{projectRoot}/test/**/*.json",
         "{projectRoot}/tsconfig.dev.json",
-        "{projectRoot}/.eslintrc.json"
+        "{projectRoot}/.eslintrc.json",
+        "{workspaceRoot}/packages/api/model/src/main/openapi/**/*",
+        "^default"
       ],
       "outputs": ["{projectRoot}/coverage", "{projectRoot}/test-reports"],
       "dependsOn": ["compile"]
@@ -82,7 +71,7 @@
         "command": "echo 'Build completed successfully'",
         "cwd": "packages/api/handlers/typescript"
       },
-      "dependsOn": ["generate", "compile", "test", "package"]
+      "dependsOn": ["compile", "test", "package"]
     },
     "test:watch": {
       "executor": "nx:run-commands",
@@ -105,8 +94,5 @@
         "cwd": "packages/api/handlers/typescript"
       }
     }
-  },
-  "implicitDependencies": [
-    "@aws-samples/smart-product-onboarding-api-typescript-runtime"
-  ]
+  }
 }
