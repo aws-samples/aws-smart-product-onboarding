@@ -2,11 +2,10 @@
 
 This project defines the API operations and their inputs and outputs, using [OpenAPI v3](https://swagger.io/specification/v3/).
 
-The entrypoint for the API is `src/main/openapi/main.yaml`. You can add more yaml files (and subfolders) in the `src/main/openapi` directory and these will be included in your API definition so long as they are referencable from `main.yaml`.
+The entrypoint for the API is `src/main/openapi/main.yaml`. You can add more yaml files (and subfolders) in the `src/main/openapi` directory and these will be included in your API definition so long as they are referencable from `main.yaml`. The `generate` target (`node bundle-spec.mjs`) bundles them into `.api.json` for the infrastructure.
 
 Resources:
  - [OpenAPI v3 Documentation](https://swagger.io/specification/v3/)
- - [Type Safe API Documentation](https://github.com/aws/aws-pdk/tree/mainline/packages/type-safe-api)
 
 ## Adding Operations
 

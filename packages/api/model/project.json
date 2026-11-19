@@ -5,28 +5,16 @@
     "generate": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm exec type-safe-api parse-openapi-spec --specPath packages/api/model/src/main/openapi/main.yaml --outputPath packages/api/model/.api.json"
+        "command": "node packages/api/model/bundle-spec.mjs"
       },
-      "inputs": ["{projectRoot}/src/**/*"],
+      "inputs": ["{projectRoot}/src/**/*", "{projectRoot}/bundle-spec.mjs"],
       "outputs": ["{projectRoot}/.api.json"]
     },
     "compile": {
       "dependsOn": ["generate"]
     },
-    "test": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "echo 'No tests defined for model package'"
-      }
-    },
-    "package": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "echo 'No package step needed for model package'"
-      }
-    },
     "build": {
-      "dependsOn": ["generate", "compile", "test", "package"]
+      "dependsOn": ["generate"]
     }
   }
 }

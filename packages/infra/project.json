@@ -122,9 +122,7 @@
       "options": {
         "commands": [
           "nx run @aws-samples/smart-product-onboarding-infra:compile",
-          "nx run @aws-samples/smart-product-onboarding-infra:post-compile",
-          "nx run @aws-samples/smart-product-onboarding-infra:test",
-          "nx run @aws-samples/smart-product-onboarding-infra:package"
+          "nx run @aws-samples/smart-product-onboarding-infra:test"
         ],
         "cwd": "packages/infra",
         "parallel": false

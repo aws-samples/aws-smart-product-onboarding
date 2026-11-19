@@ -34,10 +34,7 @@
         "{projectRoot}/LICENSE_THIRD_PARTY",
         "{projectRoot}/.jsii"
       ],
-      "dependsOn": ["^build"],
-      "env": {
-        "AWS_PDK_VERSION": "0.26.7"
-      }
+      "dependsOn": ["^build"]
     },
     "test": {
       "inputs": ["default", "^default"],
@@ -46,16 +43,10 @@
         "{projectRoot}/test-reports",
         "{projectRoot}/.nyc_output"
       ],
-      "dependsOn": ["compile"],
-      "env": {
-        "AWS_PDK_VERSION": "0.26.7"
-      }
+      "dependsOn": ["compile"]
     },
     "lint": {
-      "inputs": ["default"],
-      "env": {
-        "AWS_PDK_VERSION": "0.26.7"
-      }
+      "inputs": ["default"]
     },
     "package": {
       "inputs": ["default", "^default"],
@@ -67,10 +58,7 @@
         "{projectRoot}/*.whl",
         "{projectRoot}/*.tar.gz"
       ],
-      "dependsOn": ["build"],
-      "env": {
-        "AWS_PDK_VERSION": "0.26.7"
-      }
+      "dependsOn": ["build"]
     },
     "compile": {
       "inputs": ["default", "^default"],
@@ -79,10 +67,7 @@
         "{projectRoot}/lib",
         "{projectRoot}/build"
       ],
-      "dependsOn": ["^compile"],
-      "env": {
-        "AWS_PDK_VERSION": "0.26.7"
-      }
+      "dependsOn": ["^compile"]
     },
     "install": {
       "inputs": [
@@ -93,24 +78,17 @@
       ],
       "dependsOn": ["^install"],
       "env": {
-        "PATH": "{env.PATH}:/usr/local/bin",
-        "AWS_PDK_VERSION": "0.26.7"
+        "PATH": "{env.PATH}:/usr/local/bin"
       }
     },
     "synth": {
       "inputs": ["default", "^default"],
       "outputs": ["{projectRoot}/cdk.out"],
-      "dependsOn": ["^build"],
-      "env": {
-        "AWS_PDK_VERSION": "0.26.7"
-      }
+      "dependsOn": ["^build"]
     },
     "deploy": {
       "inputs": ["default", "^default"],
-      "dependsOn": ["synth"],
-      "env": {
-        "AWS_PDK_VERSION": "0.26.7"
-      }
+      "dependsOn": ["synth"]
     },
     "@nx/vite:test": {
       "cache": true,
