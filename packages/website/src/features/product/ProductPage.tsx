@@ -112,7 +112,7 @@ const GenerationStaleNotice: React.FC<{ flow: ProductFlow }> = ({ flow }) =>
       role="status"
       className="border-run bg-run-soft mb-4 flex flex-wrap items-center gap-3 rounded-md border p-3 text-[13px]"
     >
-      <Icon name="alert" className="text-run" />
+      <Icon name="alert" className="text-run size-4" />
       <span className="flex-1">
         The images or metadata changed after the listing was generated.
         Regenerate the listing text before you export it.
@@ -135,7 +135,7 @@ const StaleNotice: React.FC<{ flow: ProductFlow }> = ({ flow }) =>
       role="status"
       className="border-run bg-run-soft mb-4 flex flex-wrap items-center gap-3 rounded-md border p-3 text-[13px]"
     >
-      <Icon name="alert" className="text-run" />
+      <Icon name="alert" className="text-run size-4" />
       <span className="flex-1">
         The listing changed after it was categorized. Categorize it again before
         you export it.
