@@ -1,7 +1,0 @@
-
-/.gitattributes linguist-generated
-/.gitignore linguist-generated
-/.projen/** linguist-generated
-/.projen/tasks.json linguist-generated
-/project.json linguist-generated
-/pyproject.toml linguist-generated

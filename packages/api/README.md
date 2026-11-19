@@ -1,49 +1,26 @@
-# Type Safe API
+# API
 
-This project contains an API built with [Type Safe API](https://github.com/aws/aws-pdk/tree/mainline/packages/type-safe-api).
+The REST API is defined by the OpenAPI definition in `model/src/main/openapi/main.yaml`. That file is the contract for the infrastructure, the Lambda handlers and the website.
 
 ## Project Structure
 
-This project consists of the following components:
+- `model/`: the OpenAPI definition. Its `generate` target bundles it into `model/.api.json`, which the infrastructure reads. See the [model README](./model/README.md).
+- `generated/types/typescript/`: TypeScript types generated from the definition with [openapi-typescript](https://openapi-ts.dev/) and checked in.
+- `handlers/typescript/`: the TypeScript Lambda handler for `generateProduct`.
+- `generated/documentation/`: Markdown documentation that `scripts/generate-pdf-doc.sh` generates. It is not checked in.
 
-### Model
-
-The `model` folder contains the API model, which defines the API operations and their inputs and outputs. For more details, please refer to the [model project README](./model/README.md).
-
-### Runtime
-
-The `runtime` folder contains subprojects for each of the selected runtime languages. These projects include types as well as client and server code, generated from the model.
-
-### Infrastructure
-
-The `infrastructure` folder contains a subproject for the selected infrastructure language. This includes a CDK construct which defines the API Gateway resources to deploy the API defined by the model.
-
-### Documentation
-
-The `documentation` folder contains documentation generated from the model, for each of the selected documentation formats.
+The Python handlers live in `packages/smart-product-onboarding/api/handlers/`, and their pydantic models in `packages/smart-product-onboarding/api/common/`.
 
 ## Adding Operations
 
-This section describes the steps required to add a new operation to your API.
+1. Add the operation to `model/src/main/openapi/main.yaml`.
+2. Regenerate the checked-in types and models, and commit the result. The pull request build fails if they differ from the definition.
 
-### Define the Operation
+   ```shell
+   pnpm exec nx run @aws-samples/smart-product-onboarding-api-types:generate
+   pnpm exec nx run amzn-smart-product-onboarding-api-python-common:generate
+   pnpm exec nx run @aws-samples/smart-product-onboarding-demo-website:generate-api
+   ```
 
-The API operations are defined by the API model. Please see the [model project README](./model/README.md) for instructions for the specific model language used.
-
-### Build the Project
-
-Next, build the project using the project's build command. This will vary depending on the overall project setup, and is likely documented in the top level README.
-
-The build will trigger regeneration of the `runtime`, `infrastructure` and `documentation` projects, which will include your new operation.
-
-### Add an Integration
-
-If you are using the CDK construct defined in the `infrastructure` folder, you likely encountered a type error in your CDK project, since the construct requires an integration for every operation defined in the model.
-
-Please refer to the [Type Safe API documentation](https://github.com/aws/aws-pdk/tree/mainline/packages/type-safe-api) for details about how to add integrations in your chosen infrastructure language.
-
-### Implement the Operation
-
-Finally, you'll need to implement the operation. If using AWS Lambda for your API integrations, you can make use of the generated lambda handler wrappers from one of the `runtime` projects. These wrappers provide typed interfaces for operations, providing auto-complete in your IDE for inputs, and ensuring you return the output (or one of the errors) defined in the model.
-
-For more details about using the handler wrappers in the various supported languages, please refer to the [Type Safe API documentation](https://github.com/aws/aws-pdk/tree/mainline/packages/type-safe-api).
+3. Implement a Lambda handler for it.
+4. Add the function to the `integrations` of the API in `packages/infra/src/constructs/apis/smartproductonboardingapi.ts`. Synth fails if an operation in the definition has no integration.

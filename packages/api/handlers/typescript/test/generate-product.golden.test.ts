@@ -8,9 +8,9 @@ import * as path from "path";
 import { apiGatewayEvent, lambdaContext } from "./api-gateway-event";
 import { RESPONSE_CASES } from "./generate-product.cases";
 
-// The status codes, headers and bodies the handler returned through the PDK-generated runtime, recorded
-// from that runtime for every case in generate-product.cases.ts. Do not regenerate this file from the
-// current handler: it is the baseline the handler must keep matching.
+// The status codes, headers and bodies the handler returned through the generated API runtime used
+// before, recorded from that runtime for every case in generate-product.cases.ts. Do not regenerate this
+// file from the current handler: it is the baseline the handler must keep matching.
 const GOLDEN_PATH = path.join(
   __dirname,
   "golden",

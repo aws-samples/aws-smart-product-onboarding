@@ -1,7 +1,8 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-"""The metaclass handler must keep returning the responses it returned through the PDK-generated runtime.
+"""The metaclass handler must keep returning the responses it returned through the generated API runtime
+used before.
 
 golden/apigw_responses.json was recorded from that runtime for every case below (RECORD_GOLDEN=1). Do
 not re-record it from the current handler. Where the previous runtime crashed instead of answering, the
