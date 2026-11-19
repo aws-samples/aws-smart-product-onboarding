@@ -48,7 +48,6 @@ dist/
 !/nx.json
 !/.nxignore
 !/packages/api/generated/documentation/README.md
-!/packages/api/generated/libraries/README.md
 !/packages/api/handlers/README.md
 !/pnpm-workspace.yaml
 !/.syncpackrc.json

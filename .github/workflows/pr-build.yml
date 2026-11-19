@@ -36,6 +36,13 @@ jobs:
         run: |
           npx nx run amzn-smart-product-onboarding-api-python-common:generate
           git diff --exit-code -- packages/smart-product-onboarding/api/common
+      - name: Check that the website's API types match the OpenAPI definition
+        run: |
+          git ls-files --error-unmatch packages/website/src/api/schema.d.ts
+          npx nx run @aws-samples/smart-product-onboarding-demo-website:generate-api
+          git diff --exit-code -- packages/website/src/api/schema.d.ts
+      - name: Build and test the website
+        run: npx nx run @aws-samples/smart-product-onboarding-demo-website:build
       - name: CDK Synth
         run: npx nx run @aws-samples/smart-product-onboarding-infra:synth
 
