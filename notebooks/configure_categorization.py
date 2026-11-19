@@ -823,12 +823,16 @@ class VectorEmbeddingsProcessor:
             }
 
             # A policy keeps at most five versions, so don't add one that changes nothing.
-            default_version = self.iam.get_policy(PolicyArn=word_embeddings_policy_arn)[
-                "Policy"
-            ]["DefaultVersionId"]
-            current_document = self.iam.get_policy_version(
-                PolicyArn=word_embeddings_policy_arn, VersionId=default_version
-            )["PolicyVersion"]["Document"]
+            try:
+                default_version = self.iam.get_policy(PolicyArn=word_embeddings_policy_arn)[
+                    "Policy"
+                ]["DefaultVersionId"]
+                current_document = self.iam.get_policy_version(
+                    PolicyArn=word_embeddings_policy_arn, VersionId=default_version
+                )["PolicyVersion"]["Document"]
+            except Exception as e:  # without read access, write the version as before
+                print(f"Could not read the current IAM policy ({e}); updating it")
+                current_document = None
             if current_document == policy_document:
                 print("IAM policy already grants access to the embeddings table")
                 return
@@ -944,6 +948,26 @@ def validate_configuration(data_dir: Path) -> None:
     print("All generated files match the category tree")
 
 
+def check_deployed_category_words(data_dir: Path, config_bucket: str) -> None:
+    """With --skip-embeddings the deployed category vectors are kept, so the category words must not change."""
+    s3 = boto3.client("s3")
+    try:
+        deployed = json.loads(s3.get_object(Bucket=config_bucket, Key="data/word_map.json")["Body"].read())
+        s3.head_object(Bucket=config_bucket, Key="data/category_vectors.json")
+    except s3.exceptions.ClientError as e:
+        raise ConfigurationError(
+            f"No deployed category vectors to keep ({e}). Run without --skip-embeddings."
+        )
+    local = json.loads((data_dir / "word_map.json").read_text())
+    if set(deployed) != set(local):
+        added, removed = sorted(set(local) - set(deployed)), sorted(set(deployed) - set(local))
+        raise ConfigurationError(
+            "The category words differ from the deployed configuration "
+            f"(added: {', '.join(added[:10]) or 'none'}; removed: {', '.join(removed[:10]) or 'none'}), "
+            "so the deployed category vectors don't match. Run without --skip-embeddings."
+        )
+
+
 def main():
     """Main execution function"""
     parser = argparse.ArgumentParser(
@@ -954,7 +978,7 @@ Examples:
   # Basic usage with GPC file
   python configure_categorization.py --gpc-file "data/GPC as of May 2026 v20260520 GB.json"
   
-  # Skip word embeddings and category vectors
+  # Keep the deployed category vectors (only when the category words are unchanged)
   python configure_categorization.py --gpc-file "data/GPC as of May 2026 v20260520 GB.json" --skip-embeddings
         """,
     )
@@ -976,7 +1000,7 @@ Examples:
     parser.add_argument(
         "--skip-embeddings",
         action="store_true",
-        help="Skip word embeddings and category vectors. Don't use it after changing the category tree: an existing word vectors table is reused, and the category vectors are rebuilt for the new category words",
+        help="Skip word embeddings and category vectors and keep the deployed category vectors. The upload stops if the category words differ from the deployed configuration; after changing the category tree, run without it (an existing word vectors table is reused)",
     )
 
     parser.add_argument(
@@ -1051,6 +1075,9 @@ Examples:
             config_bucket = ssm.get_parameter(Name=f"{SSM_PREFIX}ConfigurationBucket")[
                 "Parameter"
             ]["Value"]
+
+            if args.skip_embeddings:
+                check_deployed_category_words(args.data_dir, config_bucket)
 
             files_to_upload = [
                 "labelcats.json",

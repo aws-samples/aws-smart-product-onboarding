@@ -118,6 +118,50 @@ def test_policy_version_is_added_for_a_new_table():
     assert document["Statement"][0]["Resource"] == "table-arn"
 
 
+def test_policy_version_is_added_when_the_current_policy_cannot_be_read():
+    processor = _policy_processor("table-arn")
+    processor.iam.get_policy.side_effect = Exception("AccessDenied")
+
+    processor._update_iam_policy("table-arn")
+
+    processor.iam.create_policy_version.assert_called_once()
+
+
+def _deployed(monkeypatch, word_map):
+    s3 = boto3.client("s3", region_name="us-east-1", aws_access_key_id="testing", aws_secret_access_key="testing")
+    stubber = Stubber(s3)
+    if word_map is None:
+        stubber.add_client_error("get_object", "NoSuchKey")
+    else:
+        stubber.add_response("get_object", {"Body": cc.io.BytesIO(cc.json.dumps(word_map).encode())})
+        stubber.add_response("head_object", {})
+    stubber.activate()
+    monkeypatch.setattr(cc.boto3, "client", lambda *a, **k: s3)
+
+
+def test_skip_embeddings_keeps_vectors_when_category_words_match(tmp_path, monkeypatch):
+    _write_config(tmp_path, always=["10"])
+    _deployed(monkeypatch, {"lamp": ["10"]})
+
+    cc.check_deployed_category_words(tmp_path, "bucket")
+
+
+def test_skip_embeddings_fails_when_category_words_changed(tmp_path, monkeypatch):
+    _write_config(tmp_path, always=["10"])
+    _deployed(monkeypatch, {"lamp": ["10"], "bassinet": ["10"]})
+
+    with pytest.raises(cc.ConfigurationError, match="removed: bassinet"):
+        cc.check_deployed_category_words(tmp_path, "bucket")
+
+
+def test_skip_embeddings_fails_without_deployed_vectors(tmp_path, monkeypatch):
+    _write_config(tmp_path, always=["10"])
+    _deployed(monkeypatch, None)
+
+    with pytest.raises(cc.ConfigurationError, match="No deployed category vectors"):
+        cc.check_deployed_category_words(tmp_path, "bucket")
+
+
 def test_missing_always_category_raises(tmp_path):
     tree = {cat_id: {"childs": []} for cat_id in cc.ALWAYS_CATEGORY_IDS[1:]}
 
