@@ -44,6 +44,8 @@ def _processor(table_status):
     stubber = Stubber(processor.ddb)
     if table_status is None:
         stubber.add_client_error("describe_table", "ResourceNotFoundException", expected_params={"TableName": TABLE})
+    elif table_status == "denied":
+        stubber.add_client_error("describe_table", "AccessDeniedException", expected_params={"TableName": TABLE})
     else:
         stubber.add_response("describe_table", {"Table": {"TableStatus": table_status}}, {"TableName": TABLE})
     stubber.activate()
@@ -72,6 +74,15 @@ def test_missing_table_is_imported():
     processor.process_embeddings()
 
     processor._import_vectors.assert_called_once_with(TABLE)
+
+
+def test_denied_table_check_names_the_missing_permission():
+    processor = _processor("denied")
+    processor._import_vectors = MagicMock()
+
+    with pytest.raises(cc.ConfigurationError, match="dynamodb:DescribeTable"):
+        processor.process_embeddings()
+    processor._import_vectors.assert_not_called()
 
 
 def test_table_that_is_not_active_raises():
@@ -127,23 +138,85 @@ def test_policy_version_is_added_when_the_current_policy_cannot_be_read():
     processor.iam.create_policy_version.assert_called_once()
 
 
+DEPLOYED_PATHS = {"wordMap": "data/old/word_map.json", "categoryVectors": "data/old/category_vectors.json"}
+
+
+def _client(name):
+    return boto3.client(name, region_name="us-east-1", aws_access_key_id="testing", aws_secret_access_key="testing")
+
+
 def _deployed(monkeypatch, word_map):
-    s3 = boto3.client("s3", region_name="us-east-1", aws_access_key_id="testing", aws_secret_access_key="testing")
-    stubber = Stubber(s3)
+    """Stub the deployed configuration: the SSM pointer, then the files it points at."""
+    s3, ssm = _client("s3"), _client("ssm")
+    s3_stub, ssm_stub = Stubber(s3), Stubber(ssm)
+    ssm_stub.add_response("get_parameter", {"Parameter": {"Value": cc.json.dumps(DEPLOYED_PATHS)}})
     if word_map is None:
-        stubber.add_client_error("get_object", "NoSuchKey")
+        s3_stub.add_client_error("get_object", "NoSuchKey")
     else:
-        stubber.add_response("get_object", {"Body": cc.io.BytesIO(cc.json.dumps(word_map).encode())})
-        stubber.add_response("head_object", {})
-    stubber.activate()
-    monkeypatch.setattr(cc.boto3, "client", lambda *a, **k: s3)
+        s3_stub.add_response(
+            "get_object",
+            {"Body": cc.io.BytesIO(cc.json.dumps(word_map).encode())},
+            {"Bucket": "bucket", "Key": DEPLOYED_PATHS["wordMap"]},
+        )
+        s3_stub.add_response("head_object", {}, {"Bucket": "bucket", "Key": DEPLOYED_PATHS["categoryVectors"]})
+    s3_stub.activate()
+    ssm_stub.activate()
+    monkeypatch.setattr(cc.boto3, "client", lambda name, *a, **k: {"s3": s3, "ssm": ssm}[name])
 
 
 def test_skip_embeddings_keeps_vectors_when_category_words_match(tmp_path, monkeypatch):
     _write_config(tmp_path, always=["10"])
     _deployed(monkeypatch, {"lamp": ["10"]})
 
-    cc.check_deployed_category_words(tmp_path, "bucket")
+    keep = cc.check_deployed_category_words(tmp_path, "bucket")
+
+    assert keep == {"categoryVectors": DEPLOYED_PATHS["categoryVectors"]}
+
+
+def _full_config(path):
+    _write_config(path, always=["10"], vectors={"lamp": [1.0]})
+    for name in ("metaclasses.json", "marcas.json", "singularize.json", "synonyms.json", "descriptors.json"):
+        (path / name).write_text("{}")
+
+
+def test_upload_puts_each_release_under_its_own_prefix(tmp_path, monkeypatch):
+    _full_config(tmp_path)
+    s3 = MagicMock()
+    monkeypatch.setattr(cc.boto3, "client", lambda *a, **k: s3)
+
+    paths = cc.upload_to_s3(tmp_path, "bucket")
+
+    prefix = paths["categoryTree"].rsplit("/", 1)[0]
+    assert prefix.startswith("data/") and prefix != "data"
+    assert set(paths) == set(cc.CONFIG_FILES)
+    assert all(p == f"{prefix}/{cc.CONFIG_FILES[k]}" for k, p in paths.items())
+    assert {c.args[2] for c in s3.upload_file.call_args_list} == set(paths.values())
+
+    (tmp_path / "always.json").write_text('["10", "10"]')
+    assert cc.upload_to_s3(tmp_path, "bucket")["categoryTree"] != paths["categoryTree"]
+
+
+def test_upload_reuses_kept_files(tmp_path, monkeypatch):
+    _full_config(tmp_path)
+    (tmp_path / "category_vectors.json").unlink()
+    s3 = MagicMock()
+    monkeypatch.setattr(cc.boto3, "client", lambda *a, **k: s3)
+
+    paths = cc.upload_to_s3(tmp_path, "bucket", keep={"categoryVectors": DEPLOYED_PATHS["categoryVectors"]})
+
+    assert paths["categoryVectors"] == DEPLOYED_PATHS["categoryVectors"]
+    assert not any(c.args[0].endswith("category_vectors.json") for c in s3.upload_file.call_args_list)
+
+
+def test_ssm_configuration_points_at_the_uploaded_files(monkeypatch):
+    ssm = MagicMock()
+    monkeypatch.setattr(cc.boto3, "client", lambda *a, **k: ssm)
+    paths = {key: f"data/abc/{name}" for key, name in cc.CONFIG_FILES.items()}
+
+    cc.save_ssm_configuration(TABLE, paths)
+
+    config = cc.json.loads(ssm.put_parameter.call_args.kwargs["Value"])
+    assert config == {"language": "english", "wordEmbeddingsTable": TABLE, **paths}
 
 
 def test_skip_embeddings_fails_when_category_words_changed(tmp_path, monkeypatch):

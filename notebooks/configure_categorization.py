@@ -638,6 +638,14 @@ class VectorEmbeddingsProcessor:
             ]
         except self.ddb.exceptions.ResourceNotFoundException:
             return False
+        except self.ddb.exceptions.ClientError as e:
+            if e.response["Error"]["Code"] in ("AccessDeniedException", "UnauthorizedOperation"):
+                raise ConfigurationError(
+                    f"Not allowed to check whether the word vectors table {table_name} exists. "
+                    "Grant dynamodb:DescribeTable on that table (see the permissions in notebooks/README.md) "
+                    "and run the script again."
+                ) from e
+            raise
         if status != "ACTIVE":
             raise ConfigurationError(
                 f"DynamoDB table {table_name} exists but is {status}. "
@@ -854,41 +862,61 @@ class VectorEmbeddingsProcessor:
         print(f"Saved category vectors to {output_file}")
 
 
-def upload_to_s3(data_dir: Path, config_bucket: str, files: List[str]):
-    """Upload configuration files to S3"""
-    print(f"Uploading configuration files to S3 bucket: {config_bucket}")
-    s3 = boto3.client("s3")
+# Files the functions find through the CategorizationConfig parameter, by configuration key
+CONFIG_FILES = {
+    "categoryTree": "labelcats.json",
+    "metaclasses": "metaclasses.json",
+    "mappings": "mappings.json",
+    "categoryVectors": "category_vectors.json",
+    "wordMap": "word_map.json",
+    "brands": "marcas.json",
+    "singularize": "singularize.json",
+    "synonyms": "synonyms.json",
+    "descriptors": "descriptors.json",
+    "alwaysCategories": "always.json",
+}
 
-    for filename in files:
-        file_path = data_dir / filename
-        if file_path.exists():
-            key = f"data/{filename}"
-            print(f"Uploading {filename}...")
-            s3.upload_file(str(file_path), config_bucket, key)
-        else:
-            print(f"Warning: {filename} not found, skipping")
+
+def upload_to_s3(data_dir: Path, config_bucket: str, keep: Dict[str, str] = None) -> Dict[str, str]:
+    """Upload the configuration files under a prefix of their own and return their keys.
+
+    The functions only see the new files once save_ssm_configuration points the
+    CategorizationConfig parameter at them, so an interrupted upload never mixes files
+    from two releases. `keep` maps configuration keys to deployed files to reuse.
+    """
+    keep = keep or {}
+    names = [name for key, name in CONFIG_FILES.items() if key not in keep]
+    missing = [name for name in names if not (data_dir / name).exists()]
+    if missing:
+        raise ConfigurationError(f"Missing configuration files in {data_dir}: {', '.join(missing)}")
+    digest = hashlib.sha256()
+    for name in names:
+        digest.update(name.encode() + (data_dir / name).read_bytes())
+    prefix = f"data/{digest.hexdigest()[:16]}"
+
+    print(f"Uploading configuration files to s3://{config_bucket}/{prefix}/")
+    s3 = boto3.client("s3")
+    paths = dict(keep)
+    for key, name in CONFIG_FILES.items():
+        if key in keep:
+            continue
+        print(f"Uploading {name}...")
+        s3.upload_file(str(data_dir / name), config_bucket, f"{prefix}/{name}")
+        paths[key] = f"{prefix}/{name}"
 
     print("Upload complete")
+    return paths
 
 
-def save_ssm_configuration(vector_table_name: str):
-    """Save configuration to SSM Parameter Store"""
+def save_ssm_configuration(vector_table_name: str, paths: Dict[str, str]):
+    """Point the CategorizationConfig parameter at the uploaded files"""
     print("Saving configuration to SSM Parameter Store...")
     ssm = boto3.client("ssm")
 
     config = {
         "language": "english",
         "wordEmbeddingsTable": vector_table_name,
-        "categoryTree": "data/labelcats.json",
-        "metaclasses": "data/metaclasses.json",
-        "mappings": "data/mappings.json",
-        "categoryVectors": "data/category_vectors.json",
-        "wordMap": "data/word_map.json",
-        "brands": "data/marcas.json",
-        "singularize": "data/singularize.json",
-        "synonyms": "data/synonyms.json",
-        "descriptors": "data/descriptors.json",
-        "alwaysCategories": "data/always.json",
+        **paths,
     }
 
     ssm.put_parameter(
@@ -948,13 +976,23 @@ def validate_configuration(data_dir: Path, check_vectors: bool = True) -> None:
     print("All generated files match the category tree")
 
 
-def check_deployed_category_words(data_dir: Path, config_bucket: str) -> None:
-    """With --skip-embeddings the deployed category vectors are kept, so the category words must not change."""
+def check_deployed_category_words(data_dir: Path, config_bucket: str) -> Dict[str, str]:
+    """With --skip-embeddings the deployed category vectors are kept, so the category words must not change.
+
+    Reads the deployed files through the CategorizationConfig parameter, which only ever points at a
+    complete upload, and returns the deployed category vectors key to reuse.
+    """
     s3 = boto3.client("s3")
+    ssm = boto3.client("ssm")
     try:
-        deployed = json.loads(s3.get_object(Bucket=config_bucket, Key="data/word_map.json")["Body"].read())
-        s3.head_object(Bucket=config_bucket, Key="data/category_vectors.json")
-    except s3.exceptions.ClientError as e:
+        deployed_paths = json.loads(
+            ssm.get_parameter(Name=f"{SSM_PREFIX}CategorizationConfig")["Parameter"]["Value"]
+        )
+        deployed = json.loads(
+            s3.get_object(Bucket=config_bucket, Key=deployed_paths["wordMap"])["Body"].read()
+        )
+        s3.head_object(Bucket=config_bucket, Key=deployed_paths["categoryVectors"])
+    except (KeyError, ssm.exceptions.ParameterNotFound, s3.exceptions.ClientError) as e:
         raise ConfigurationError(
             f"No deployed category vectors to keep ({e}). Run without --skip-embeddings."
         )
@@ -966,6 +1004,7 @@ def check_deployed_category_words(data_dir: Path, config_bucket: str) -> None:
             f"(added: {', '.join(added[:10]) or 'none'}; removed: {', '.join(removed[:10]) or 'none'}), "
             "so the deployed category vectors don't match. Run without --skip-embeddings."
         )
+    return {"categoryVectors": deployed_paths["categoryVectors"]}
 
 
 def main():
@@ -1076,35 +1115,8 @@ Examples:
                 "Parameter"
             ]["Value"]
 
-            if args.skip_embeddings:
-                check_deployed_category_words(args.data_dir, config_bucket)
-
-            # Category vectors go before the word map, so an interrupted upload never leaves a new
-            # word map next to the previous release's vectors. --skip-embeddings keeps the deployed vectors.
-            files_to_upload = [] if args.skip_embeddings else ["category_vectors.json"]
-            files_to_upload += [
-                "labelcats.json",
-                "linted_attrs.json",
-                "metaclasses.json",
-                "mappings.json",
-                "word_map.json",
-                "marcas.json",
-                "singularize.json",
-                "synonyms.json",
-                "descriptors.json",
-                "always.json",
-            ]
-
-            upload_to_s3(args.data_dir, config_bucket, files_to_upload)
-
-            # Upload attributes schema with specific name
-            s3 = boto3.client("s3")
-            s3.upload_file(
-                str(args.data_dir / "linted_attrs.json"),
-                config_bucket,
-                "data/attributes_schema.json",
-            )
-            print("Uploaded attributes_schema.json")
+            keep = check_deployed_category_words(args.data_dir, config_bucket) if args.skip_embeddings else None
+            paths = upload_to_s3(args.data_dir, config_bucket, keep)
         else:
             print("\n" + "=" * 60)
             print("STEP 5: Skipping S3 Upload (--skip-upload)")
@@ -1116,7 +1128,17 @@ Examples:
             print("STEP 6: Saving SSM Configuration")
             print("=" * 60 + "\n")
 
-            save_ssm_configuration(vector_table_name)
+            save_ssm_configuration(vector_table_name, paths)
+
+            # The attribute extraction functions read the schema from a fixed key. A brick missing
+            # from it only gets no attributes, so it is replaced after the switch to the new files.
+            s3 = boto3.client("s3")
+            s3.upload_file(
+                str(args.data_dir / "linted_attrs.json"),
+                config_bucket,
+                "data/attributes_schema.json",
+            )
+            print("Uploaded attributes_schema.json")
 
         # Success message
         print("\n" + "=" * 60)
