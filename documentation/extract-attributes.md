@@ -51,7 +51,7 @@ The prompt is structured in several key sections:
 Several strategies are employed in our prompt design to enhance extraction accuracy:
 
 - **Explicit Instructions**: We provide clear, step-by-step instructions for the model to follow, reducing ambiguity in the task.
-- **Scratchpad Technique**: We instruct the model to use a "scratchpad" to think through its extraction process before providing the final answer. This encourages more thorough analysis.
+- **Answer Only**: We ask the model for the XML answer directly, without a separate "scratchpad" or reasoning section. Some newer models stop with a content filter as soon as they start writing such a section, even for harmless products, and the extraction quality is the same without it.
 - **Handling Uncertainty**: We give explicit instructions on how to handle cases where an attribute is not mentioned or its value cannot be determined.
 - **Emphasis on Accuracy**: We stress the importance of being as specific and accurate as possible, and not making assumptions.
 

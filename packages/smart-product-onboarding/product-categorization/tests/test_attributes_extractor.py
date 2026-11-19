@@ -66,9 +66,8 @@ def text_response_with_random_attributes(random_attributes):
     for attr in random_attributes:
         attrs += f"<attribute><name>{attr['name']}</name><value>{attr['value']}</value></attribute>"
 
-    # we return this "invalid" xml because the opening tags are forced on converse model call
-    #  the code should put these tags back
-    return "stuff here should be ignored</scratchpad>" "<attributes>" f"{attrs}" "</attributes>"
+    # the opening <response> tag is forced on the converse model call; the code should put it back
+    return "<attributes>" f"{attrs}" "</attributes>"
 
 
 def _a_response_from_bedrock(with_text):
@@ -97,7 +96,7 @@ def an_invalid_xml_response_from_bedrock(mock_bedrock):
 def an_invalid_pydantic_response_from_bedrock(mock_bedrock):
     mock_bedrock.converse.return_value = _a_response_from_bedrock(
         """
-    this is ignored</scratchpad><valid>this is valid xml, but does not match the pydantic model</valid>
+    <valid>this is valid xml, but does not match the pydantic model</valid>
     """
     )
 
@@ -155,16 +154,6 @@ def test_attributes_extractor_with_single_attribute(mock_bedrock, schema_retriev
     # given
     mock_bedrock.converse.return_value = _a_response_from_bedrock(
         """
-    Analyzing the attributes schema and product information:
-    1. Fixed Installation/Portable:
-    - The title and description don't explicitly mention if the mouse is fixed or portable.
-    - However, being a gaming mouse, it's typically portable.
-    - The description mentions "wired PC gaming mouse", which suggests it can be connected and
-    disconnected.
-    - Value: PORTABLE
-    Conclusion:
-    - Fixed Installation/Portable: PORTABLE
-</scratchpad>
   <attributes>
     <attribute>
       <name>Fixed Installation/Portable</name>
@@ -372,6 +361,22 @@ Your task is to extract the actual attributes and their values from the title an
     )
 
 
+def test_prompt_and_prefill_do_not_ask_for_a_scratchpad(
+    mock_bedrock, schema_retriever, a_valid_response_from_bedrock, product, category_schema, predicted_category
+):
+    # Some models stop with content_filtered as soon as they start a scratchpad section, so ask for the answer only.
+    extractor = AttributesExtractor(
+        bedrock_runtime_client=mock_bedrock, schema_retriever=schema_retriever, model_id=PREFILL_MODEL_ID
+    )
+
+    rendered_prompt = extractor.create_prompt(product=product, category_schema=category_schema)
+    extractor.extract_attributes(product=product, category_id=predicted_category.predicted_category_id)
+
+    assert "scratchpad" not in rendered_prompt.lower()
+    prefill = mock_bedrock.converse.call_args.kwargs["messages"][-1]
+    assert prefill == {"role": "assistant", "content": [{"text": "<response>"}]}
+
+
 def test_attributes_extractor_without_prefill(
     mock_bedrock, schema_retriever, random_attributes, product, predicted_category
 ):
@@ -380,7 +385,7 @@ def test_attributes_extractor_without_prefill(
         f"<attribute><name>{a['name']}</name><value>{a['value']}</value></attribute>" for a in random_attributes
     )
     mock_bedrock.converse.return_value = _a_response_from_bedrock(
-        f"Sure.\n<response><scratchpad>notes</scratchpad><attributes>{attrs}</attributes>"
+        f"Sure.\n<response><attributes>{attrs}</attributes>"
     )
     extractor = AttributesExtractor(
         bedrock_runtime_client=mock_bedrock,

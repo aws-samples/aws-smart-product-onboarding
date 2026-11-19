@@ -87,7 +87,7 @@ class GPCSchemaRetriever(SchemaRetriever):
 
 
 class AttributesExtractor:
-    response_open: str = "<response><scratchpad>"
+    response_open: str = "<response>"
     response_close: str = "</response>"
 
     def __init__(
