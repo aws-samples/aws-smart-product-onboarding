@@ -206,7 +206,7 @@ class DownloadFileRequestContent(BaseModel):
     output_key: str = Field(..., alias="outputKey")
     expiration: int | None = Field(
         None,
-        description="The expiration, in seconds for the generated URL",
+        description="How long the generated URL stays valid, in seconds. When omitted, the URL is valid for 3600 seconds.",
         ge=15,
         le=300,
     )
@@ -218,8 +218,8 @@ class UploadFileRequestContent(BaseModel):
     )
     file_name: str = Field(..., alias="fileName")
     expiration: int | None = Field(
-        300,
-        description="The expiration, in seconds for the generated URL",
+        None,
+        description="How long the generated URL stays valid, in seconds. When omitted, the URL is valid for 3600 seconds.",
         ge=15,
         le=300,
     )

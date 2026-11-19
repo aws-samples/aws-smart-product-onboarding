@@ -273,15 +273,12 @@ export interface components {
         };
         DownloadFileRequestContent: {
             outputKey: string;
-            /** @description The expiration, in seconds for the generated URL */
+            /** @description How long the generated URL stays valid, in seconds. When omitted, the URL is valid for 3600 seconds. */
             expiration?: number;
         };
         UploadFileRequestContent: {
             fileName: string;
-            /**
-             * @description The expiration, in seconds for the generated URL
-             * @default 300
-             */
+            /** @description How long the generated URL stays valid, in seconds. When omitted, the URL is valid for 3600 seconds. */
             expiration?: number;
         };
         PresignedUrlResponse: {

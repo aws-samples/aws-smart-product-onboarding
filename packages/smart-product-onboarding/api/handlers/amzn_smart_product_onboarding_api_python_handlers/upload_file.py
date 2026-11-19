@@ -73,9 +73,7 @@ def upload_file(input: ApiRequest[UploadFileRequestContent]) -> ApiResponse:
             logger,
             INPUT_BUCKET_NAME,
             object_key=object_key,
-            # shortcut: the definition defaults expiration to 300, but an omitted value has always meant
-            # the SDK default (3600). Keep that until the definition and the clients agree.
-            expiration=input.body.expiration if "expiration" in input.body.model_fields_set else None,
+            expiration=input.body.expiration,
             client_method="put_object",
             content_type=content_type,
         )
