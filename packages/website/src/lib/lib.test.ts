@@ -76,7 +76,17 @@ describe("CSV catalog checks", () => {
     expect(problem("title,description\nA,Warm, soft\n", false)).toMatch(
       /Row 2 has more fields/,
     );
-    expect(problem('title,description\nA,"B\n', false)).toMatch(/never closed/);
+    expect(problem('title,description\n"Mug,Sturdy\n', false)).toMatch(
+      /Row 2 has a quoted value that is never closed/,
+    );
+    // A list the batch can't read, an empty list without text, and an empty extra field.
+    expect(problem(`${header},,[front.jpg]\n`)).toMatch(/Row 2.*list/);
+    expect(problem(`${header},,[]\n`)).toMatch(/Row 2 needs a title/);
+    expect(problem(`${header}A,B,[]\n`)).toBeUndefined();
+    expect(problem(`${header},,"['a.jpg', ""b.png""]"\n`)).toBeUndefined();
+    expect(problem("title,description\nA,B,\n", false)).toMatch(
+      /Row 2 has more fields/,
+    );
   });
 });
 
@@ -399,6 +409,18 @@ describe("camera", () => {
     expect(get.mock.calls[1][0]).toEqual({
       video: { deviceId: { exact: "cam-2" } },
     });
+  });
+
+  it("makes no further attempt once the camera is no longer wanted", async () => {
+    let wanted = true;
+    const get = vi.fn().mockImplementation(async () => {
+      wanted = false;
+      throw overconstrained();
+    });
+    await expect(
+      openCamera(get, "cam-2", false, () => wanted),
+    ).rejects.toThrow();
+    expect(get).toHaveBeenCalledTimes(1);
   });
 
   it("stops at once when access is refused", async () => {

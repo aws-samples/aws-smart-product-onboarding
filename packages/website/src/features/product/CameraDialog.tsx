@@ -48,6 +48,7 @@ export const CameraDialog: React.FC<{
         (c) => navigator.mediaDevices.getUserMedia(c),
         id,
         /Mobi|Android/i.test(navigator.userAgent),
+        () => mine === attempt.current,
       );
       if (mine !== attempt.current) {
         s.getTracks().forEach((t) => t.stop());

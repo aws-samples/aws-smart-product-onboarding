@@ -62,19 +62,25 @@ function findProblem(
   const at = (row: string[], name: string) =>
     (row[names.indexOf(name)] ?? "").trim();
   const hasImages = names.includes("images");
+  // The record that holds the unclosed quote is the last one read.
+  if (unterminated && data.length)
+    return `Row ${data[data.length - 1].line} has a quoted value that is never closed.`;
   for (const { row, line } of data) {
-    if (row.slice(header.length).some((f) => f.trim()))
+    if (row.length > header.length)
       return `Row ${line} has more fields than the header. Put quotes around text that contains commas.`;
     const images = hasImages ? at(row, "images") : "";
-    if (images && !/^\[[\s\S]*\]$/.test(images))
+    // The batch reads the column as a Python list of quoted file names.
+    if (images && !IMAGE_LIST.test(images))
       return `Row ${line}: the 'images' value should be a list such as ['front.jpg','side.jpg'].`;
-    if (!images && !(at(row, "title") && at(row, "description")))
+    const hasImage = /['"]/.test(images);
+    if (!hasImage && !(at(row, "title") && at(row, "description")))
       return `Row ${line} needs a title and a description${hasImages ? ", or images" : ""}.`;
   }
-  return unterminated
-    ? "A quoted value is never closed, so the rows after it are read as one."
-    : undefined;
+  return undefined;
 }
+
+const NAME = String.raw`\s*(?:'[^']+'|"[^"]+")\s*`;
+const IMAGE_LIST = new RegExp(String.raw`^\[(?:${NAME}(?:,${NAME})*,?\s*)?\]$`);
 
 export function summarizeCsv(text: string): CsvSummary {
   const scan = scanCsv(text);
