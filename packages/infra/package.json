@@ -38,7 +38,6 @@
   },
   "dependencies": {
     "@aws-cdk/aws-lambda-python-alpha": "^2.277.0-alpha.0",
-    "@aws-samples/smart-product-onboarding-api-typescript-infra": "0.0.0",
     "@aws-samples/smart-product-onboarding-api-typescript-runtime": "0.0.0",
     "@aws/pdk": "^0.25.17",
     "@dontirun/state-machine-semaphore": "^0.1.583",

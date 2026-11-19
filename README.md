@@ -80,6 +80,7 @@ The following table provides a sample cost breakdown for deploying this solution
 - Download and install AWS CLI. Refer to [Installing the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
 - Install and configure AWS CDK. Refer to Installing the [AWS CDK](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html).
 - Download and install Docker. Refer to [Docker](https://www.docker.com/products/docker-desktop/).
+  - The Lambda functions run on ARM64 (Graviton), so CDK builds their assets in `linux/arm64` containers. Docker Desktop on macOS and Windows runs these under emulation out of the box. On an x86_64 Linux host without emulation, `cdk synth` fails with `exec format error`. Register QEMU for arm64 once per boot with `docker run --privileged --rm tonistiigi/binfmt --install arm64`, then check it with `docker run --rm --platform linux/arm64 alpine uname -m` (prints `aarch64`). Refer to [Multi-platform builds: QEMU](https://docs.docker.com/build/building/multi-platform/#qemu) and [tonistiigi/binfmt](https://github.com/tonistiigi/binfmt).
 - NodeJS 22 or 24 (24 recommended, matching the Lambda runtime)
 - Python >= 3.12 (3.14 recommended, matching the Lambda runtime) preferably with [pyenv](https://github.com/pyenv/pyenv)
 - [uv](https://docs.astral.sh/uv/) >= 0.5.0

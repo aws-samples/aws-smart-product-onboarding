@@ -1,7 +1,6 @@
 
 packages:
   - packages/api/handlers/typescript
-  - packages/api/generated/infrastructure/typescript
   - packages/api/generated/runtime/typescript
   - packages/website
   - packages/infra

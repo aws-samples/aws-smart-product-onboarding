@@ -1,6 +1,5 @@
 /**
- * Custom Lambda function constructs for API handlers that point to the new workspace location.
- * These override the generated functions to use the correct path after migration to uv workspace.
+ * Lambda function constructs for the API handlers.
  */
 
 import * as path from "path";
@@ -185,6 +184,42 @@ export class UploadFileFunction extends Function {
         ),
       ),
       architecture: Architecture.ARM_64,
+      tracing: Tracing.ACTIVE,
+      timeout: Duration.seconds(30),
+      ...props,
+    });
+  }
+}
+
+/**
+ * Options for the GenerateProductFunction construct
+ */
+export interface GenerateProductFunctionProps
+  extends Omit<FunctionProps, "code" | "handler" | "runtime"> {}
+
+/**
+ * Lambda function construct which points to the typescript implementation of GenerateProduct
+ */
+export class GenerateProductFunction extends Function {
+  constructor(
+    scope: Construct,
+    id: string,
+    props?: GenerateProductFunctionProps,
+  ) {
+    super(scope, id, {
+      runtime: Runtime.NODEJS_24_X,
+      handler: "index.handler",
+      code: Code.fromAsset(
+        path.resolve(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "..",
+          "api/handlers/typescript/dist/lambda",
+          "generate-product",
+        ),
+      ),
       tracing: Tracing.ACTIVE,
       timeout: Duration.seconds(30),
       ...props,

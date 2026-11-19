@@ -1,0 +1,39 @@
+# AI review of one pull request at one pinned head SHA, started by ai-review-command.yml after it
+# has checked the commenter's permission. Only users with write access can start it, and it reviews
+# only when run from the default branch, so the reviewer it runs is the default branch's.
+name: AI review (dispatched)
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr-number:
+        description: Pull request number
+        type: number
+        required: true
+      head-sha:
+        description: The full head SHA to review
+        type: string
+        required: true
+
+permissions: {}
+
+run-name: AI review of PR ${{ inputs.pr-number }} at ${{ inputs.head-sha }}
+
+jobs:
+  lanes:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: [opus, gpt]
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+      id-token: write
+    uses: ./.github/workflows/ai-review-lane.yml
+    with:
+      lane: ${{ matrix.lane }}
+      pr-number: ${{ inputs.pr-number }}
+      head-sha: ${{ inputs.head-sha }}
+      trusted-ref: ${{ github.sha }}
