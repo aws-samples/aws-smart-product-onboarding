@@ -191,19 +191,19 @@ class TestCategorizationApiHandlerLogging:
     """The API Gateway handler must not log request headers or authorizer claims."""
 
     def test_debug_log_excludes_headers_and_claims(self, apigw_handler_module, caplog):
-        from amzn_smart_product_onboarding_api_runtime.api.operation_config import ApiRequest
+        from amzn_smart_product_onboarding_api_common.handler import ApiRequest
 
         token = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.c2ln"
         apigw_handler_module.product_classifier.classify = MagicMock(side_effect=Exception("stop"))
         request = ApiRequest(
-            request_parameters=None,
             body=MagicMock(),
+            path_parameters={},
+            query_parameters={},
             event={
                 "headers": {"Authorization": token},
                 "requestContext": {"authorizer": {"claims": {"email": "someone@example.com"}}},
             },
             context=None,
-            interceptor_context={},
         )
 
         with caplog.at_level("DEBUG"):

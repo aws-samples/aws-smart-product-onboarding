@@ -20,3 +20,4 @@
 /pnpm-workspace.yaml linguist-generated
 /tsconfig.dev.json linguist-generated
 /tsconfig.json linguist-generated
+/packages/smart-product-onboarding/api/common/amzn_smart_product_onboarding_api_common/models.py linguist-generated

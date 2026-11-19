@@ -19,10 +19,7 @@
       }
     },
     "test": {
-      "dependsOn": [
-        "install",
-        "amzn-smart-product-onboarding-api-python-runtime:generate"
-      ],
+      "dependsOn": ["install"],
       "executor": "nx:run-commands",
       "options": {
         "command": "uv run --package amzn-smart-product-onboarding-metaclasses pytest metaclasses/tests/",
@@ -37,10 +34,7 @@
       "outputs": ["{projectRoot}/.pytest_cache"]
     },
     "package": {
-      "dependsOn": [
-        "install",
-        "amzn-smart-product-onboarding-api-python-runtime:generate"
-      ],
+      "dependsOn": ["install"],
       "executor": "nx:run-commands",
       "options": {
         "command": "uv build --package amzn-smart-product-onboarding-metaclasses",

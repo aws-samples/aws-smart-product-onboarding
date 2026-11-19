@@ -4,7 +4,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from amzn_smart_product_onboarding_api_runtime.api.operation_config import BatchExecution
+from amzn_smart_product_onboarding_api_common.models import BatchExecution
 
 
 class ResourceNotFound(Exception): ...

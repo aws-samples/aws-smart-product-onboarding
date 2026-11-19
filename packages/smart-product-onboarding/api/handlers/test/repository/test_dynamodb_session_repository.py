@@ -11,7 +11,7 @@ from amzn_smart_product_onboarding_api_python_handlers.repository import (
     ResourceNotFound,
     DynamoDBSessionRepository,
 )
-from amzn_smart_product_onboarding_api_runtime.api.operation_config import (
+from amzn_smart_product_onboarding_api_common.models import (
     BatchExecution,
     BatchExecutionStatus,
 )

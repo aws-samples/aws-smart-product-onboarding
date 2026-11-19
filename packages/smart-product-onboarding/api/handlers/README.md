@@ -16,7 +16,7 @@ The handlers will be moved here from `packages/api/handlers/python/` as part of 
 
 ## Dependencies
 
-- `amzn-smart-product-onboarding-api-runtime` - Generated API runtime (workspace dependency)
+- `amzn-smart-product-onboarding-api-common` - API models and Lambda handler wrapper (workspace dependency)
 - AWS SDK and related tools for Lambda development
 
 ## Usage

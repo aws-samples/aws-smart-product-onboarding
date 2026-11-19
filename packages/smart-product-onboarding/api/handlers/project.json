@@ -4,20 +4,14 @@
   "tags": ["python"],
   "targets": {
     "install": {
-      "dependsOn": [
-        "^install"
-      ],
+      "dependsOn": ["^install"],
       "executor": "nx:run-commands",
       "options": {
         "command": "uv sync --all-packages",
         "cwd": "packages/smart-product-onboarding"
       }
     },
-
     "test": {
-      "dependsOn": [
-        "amzn-smart-product-onboarding-api-python-runtime:generate"
-      ],
       "executor": "nx:run-commands",
       "options": {
         "command": "uv run --package amzn-smart-product-onboarding-api-handlers pytest api/handlers/test/ || ([ $? = 5 ] && exit 0 || exit $?)",
@@ -25,9 +19,6 @@
       }
     },
     "package": {
-      "dependsOn": [
-        "amzn-smart-product-onboarding-api-python-runtime:generate"
-      ],
       "executor": "nx:run-commands",
       "options": {
         "command": "../../scripts/package-lambda.sh",
@@ -47,14 +38,11 @@
           }
         }
       },
-      "defaultConfiguration": "python314-arm64"
+      "defaultConfiguration": "python314-arm64",
+      "dependsOn": ["install"]
     },
     "build": {
-      "dependsOn": [
-        "amzn-smart-product-onboarding-api-python-runtime:generate",
-        "test",
-        "package"
-      ],
+      "dependsOn": ["test", "package"],
       "executor": "nx:run-commands",
       "options": {
         "command": "echo 'Build completed'",

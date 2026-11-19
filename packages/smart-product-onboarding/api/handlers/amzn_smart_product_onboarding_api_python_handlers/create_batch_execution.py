@@ -4,50 +4,44 @@
 import json
 import os
 import uuid
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
 import botocore.exceptions
-
-from amzn_smart_product_onboarding_api_runtime.models import *
-from amzn_smart_product_onboarding_api_runtime.response import Response
-from amzn_smart_product_onboarding_api_runtime.interceptors import INTERCEPTORS
-from amzn_smart_product_onboarding_api_runtime.interceptors.powertools.logger import LoggingInterceptor
-from amzn_smart_product_onboarding_api_runtime.api.operation_config import (
-    create_batch_execution_handler,
-    CreateBatchExecutionRequest,
-    CreateBatchExecutionOperationResponses,
+from amzn_smart_product_onboarding_api_common.handler import ApiRequest, ApiResponse, Response, api_handler, logger
+from amzn_smart_product_onboarding_api_common.models import (
+    CreateBatchExecutionRequestContent,
+    StartBatchExecutionResponseContent,
 )
 
-from .utils import get_sfn_client, get_dynamodb_resource, request_log_fields
+from .utils import get_dynamodb_resource, get_sfn_client, request_log_fields
 
 INPUT_BUCKET_NAME = os.getenv("INPUT_BUCKET_NAME")
 CATEGORIZATION_MACHINE = os.getenv("CATEGORIZATION_MACHINE")
 SESSION_TABLE = os.getenv("SESSION_TABLE")
 
 
-def create_batch_execution(input: CreateBatchExecutionRequest, **kwargs) -> CreateBatchExecutionOperationResponses:
+def create_batch_execution(input: ApiRequest[CreateBatchExecutionRequestContent]) -> ApiResponse:
     """
-    Type-safe handler for the CreateBatchExecution operation
+    Handler for the CreateBatchExecution operation
     """
-    logger = LoggingInterceptor.get_logger(input)
     logger.info("Start CreateBatchExecution operation", extra=request_log_fields(input))
     logger.debug(f"Request body: {input.body}")
 
     if not CATEGORIZATION_MACHINE:
         logger.exception("CATEGORIZATION_MACHINE is not set")
-        return Response.internal_failure(InternalFailureErrorResponseContent(message="Internal Failure"))
+        return Response.internal_failure("Internal Failure")
 
     if not INPUT_BUCKET_NAME:
         logger.exception("INPUT_BUCKET_NAME is not set")
-        return Response.internal_failure(InternalFailureErrorResponseContent(message="Internal Failure"))
+        return Response.internal_failure("Internal Failure")
 
     if not SESSION_TABLE:
         logger.exception("SESSION_TABLE is not set")
-        return Response.internal_failure(InternalFailureErrorResponseContent(message="Internal Failure"))
+        return Response.internal_failure("Internal Failure")
 
     # validate that input body has input_file. compressed images is optional for now
     if not input.body.input_file:
-        return Response.bad_request(BadRequestErrorResponseContent(message="Missing title or description"))
+        return Response.bad_request("Missing title or description")
 
     sfn = get_sfn_client()
     dynamodb = get_dynamodb_resource()
@@ -73,7 +67,7 @@ def create_batch_execution(input: CreateBatchExecutionRequest, **kwargs) -> Crea
     except botocore.exceptions.ClientError as e:
         if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
             logger.info("Session already exists")
-            return Response.bad_request(BadRequestErrorResponseContent(message=f"Session already exists"))
+            return Response.bad_request("Session already exists")
         else:
             raise
 
@@ -116,7 +110,7 @@ def create_batch_execution(input: CreateBatchExecutionRequest, **kwargs) -> Crea
                 ":er": "Failed to queue the execution",
             },
         )
-        return Response.internal_failure(InternalFailureErrorResponseContent(message="Error starting execution"))
+        return Response.internal_failure("Error starting execution")
 
     current_time = datetime.now().isoformat()
     current_date = current_time[0:10]
@@ -150,5 +144,4 @@ def create_batch_execution(input: CreateBatchExecutionRequest, **kwargs) -> Crea
 
 
 # Entry point for the AWS Lambda handler for the CreateBatchExecution operation.
-# The create_batch_execution_handler method wraps the type-safe handler and manages marshalling inputs and outputs
-handler = create_batch_execution_handler(interceptors=INTERCEPTORS)(create_batch_execution)
+handler = api_handler("create_batch_execution", CreateBatchExecutionRequestContent)(create_batch_execution)

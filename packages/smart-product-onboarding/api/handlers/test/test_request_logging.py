@@ -14,7 +14,7 @@ os.environ.setdefault("POWERTOOLS_TRACE_DISABLED", "1")
 os.environ.setdefault("POWERTOOLS_METRICS_NAMESPACE", "test")
 os.environ.setdefault("AWS_DEFAULT_REGION", "us-east-1")
 
-from amzn_smart_product_onboarding_api_runtime.interceptors.powertools.logger import logger  # noqa: E402
+from amzn_smart_product_onboarding_api_common.handler import logger  # noqa: E402
 
 from amzn_smart_product_onboarding_api_python_handlers import (  # noqa: E402
     create_batch_execution,

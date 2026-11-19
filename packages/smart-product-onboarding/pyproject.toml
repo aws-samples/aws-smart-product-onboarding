@@ -14,7 +14,7 @@ constraint-dependencies = [
 
 [tool.uv.workspace]
 members = [
-    "api/runtime",
+    "api/common",
     "api/handlers", 
     "core-utils",
     "metaclasses",
@@ -27,12 +27,14 @@ amzn-smart-product-onboarding-core-utils = { workspace = true }
 amzn-smart-product-onboarding-metaclasses = { workspace = true }
 amzn-smart-product-onboarding-product-categorization = { workspace = true }
 amzn-smart-product-onboarding-api-handlers = { workspace = true }
-amzn-smart-product-onboarding-api-runtime = { workspace = true }
+amzn-smart-product-onboarding-api-common = { workspace = true }
 
 [dependency-groups]
 dev = [
     # Code formatting and linting
     "ruff>=0.8.2",
+    # Generates the API models from the OpenAPI definition
+    "datamodel-code-generator==0.97.0",
     # Testing framework
     "pytest>=9.0.3",
     "pytest-sugar>=1.0.0",
@@ -52,8 +54,6 @@ exclude = [
     ".tox",
     ".venv",
     "dist",
-    # Generated API runtime files
-    "api/runtime/**/*.py",
 ]
 
 line-length = 120
@@ -79,6 +79,10 @@ ignore = []
 fixable = ["ALL"]
 unfixable = []
 
+[tool.ruff.lint.per-file-ignores]
+# Generated from the OpenAPI definition: long descriptions come from the definition.
+"api/common/amzn_smart_product_onboarding_api_common/models.py" = ["E501"]
+
 [tool.pytest.ini_options]
 markers = [
     "integration: marks tests as integration tests",
@@ -100,8 +104,3 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
-
-# Ignore generated API runtime
-[[tool.mypy.overrides]]
-module = "amzn_smart_product_onboarding_api_runtime.*"
-ignore_errors = true
