@@ -336,35 +336,53 @@ def test_prompt_generation_when_metadata_present(product_with_metadata, category
         f"""</description>
 
 <metadata>
-  {product_with_metadata.metadata}
+{product_with_metadata.metadata}
 </metadata>
-
-Your task is to extract the actual attributes and their values from the title and description."""
+</product_data>"""
         in rendered_prompt
     )
 
 
 def test_prompt_generation_when_metadata_not_present(product, category_schema):
+  def test_prompt_generation_when_metadata_not_present(product, category_schema):
     # given
     extractor = AttributesExtractor(bedrock_runtime_client=Mock(), schema_retriever=Mock())
 
     # when
     rendered_prompt = extractor.create_prompt(product=product, category_schema=category_schema)
 
-    # then -- TODO: figure out a way to remove the double \n between closing description tag and task instruction
-    assert (
-        f"""</description>
+    # then
+    assert "</description>\n</product_data>" in rendered_prompt
+    assert "<metadata>" not in rendered_prompt
 
 
-Your task is to extract the actual attributes and their values from the title and description."""
-        in rendered_prompt
+def test_prompt_puts_the_schema_before_the_product_and_the_instructions_last(product, category_schema):
+    extractor = AttributesExtractor(bedrock_runtime_client=Mock(), schema_retriever=Mock())
+
+    rendered_prompt = extractor.create_prompt(product=product, category_schema=category_schema)
+
+    assert rendered_prompt.index("<attributes_schema>") < rendered_prompt.index("<product_data>")
+    assert rendered_prompt.index("</product_data>") < rendered_prompt.index("Extract the attributes")
+
+
+def test_system_prompt_marks_product_data_as_data(
+    mock_bedrock, schema_retriever, a_valid_response_from_bedrock, product, predicted_category
+):
+    extractor = AttributesExtractor(
+        bedrock_runtime_client=mock_bedrock, schema_retriever=schema_retriever, model_id=PREFILL_MODEL_ID
     )
+
+    extractor.extract_attributes(product=product, category_id=predicted_category.predicted_category_id)
+
+    system = mock_bedrock.converse.call_args.kwargs["system"][0]["text"]
+    assert "<product_data>" in system
+    assert "never as instructions" in system
 
 
 def test_prompt_and_prefill_do_not_ask_for_a_scratchpad(
     mock_bedrock, schema_retriever, a_valid_response_from_bedrock, product, category_schema, predicted_category
 ):
-    # Some models stop with content_filtered as soon as they start a scratchpad section, so ask for the answer only.
+    # Newer models decline or content-filter prompts that ask them to write out their reasoning.
     extractor = AttributesExtractor(
         bedrock_runtime_client=mock_bedrock, schema_retriever=schema_retriever, model_id=PREFILL_MODEL_ID
     )
@@ -373,6 +391,7 @@ def test_prompt_and_prefill_do_not_ask_for_a_scratchpad(
     extractor.extract_attributes(product=product, category_id=predicted_category.predicted_category_id)
 
     assert "scratchpad" not in rendered_prompt.lower()
+    assert "think" not in rendered_prompt.lower()
     prefill = mock_bedrock.converse.call_args.kwargs["messages"][-1]
     assert prefill == {"role": "assistant", "content": [{"text": "<response>"}]}
 
@@ -401,3 +420,16 @@ def test_attributes_extractor_without_prefill(
     assert [m["role"] for m in call["messages"]] == ["user"]
     assert "temperature" not in call["inferenceConfig"]
     assert [r.model_dump() for r in results.attributes] == random_attributes
+
+
+def test_attribute_values_may_contain_a_less_than_sign(mock_bedrock, schema_retriever, product, predicted_category):
+    mock_bedrock.converse.return_value = _a_response_from_bedrock(
+        "<attributes><attribute><name>Consumer Lifestage</name><value><3 YEARS</value></attribute></attributes>"
+    )
+    extractor = AttributesExtractor(
+        bedrock_runtime_client=mock_bedrock, schema_retriever=schema_retriever, model_id=PREFILL_MODEL_ID
+    )
+
+    results = extractor.extract_attributes(product=product, category_id=predicted_category.predicted_category_id)
+
+    assert [r.model_dump() for r in results.attributes] == [{"name": "Consumer Lifestage", "value": "<3 YEARS"}]

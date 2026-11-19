@@ -32,28 +32,25 @@ Prompt engineering plays a crucial role in the accuracy and efficiency of our at
 
 ### Structure
 
-The prompt is structured in several key sections:
+The request has a system prompt and a user message.
 
-1. **Task Definition**: We begin by clearly defining the AI's role and the task at hand, setting the context for attribute extraction.
+1. **System Prompt**: It sets the model's role, extracting product attributes for an e-commerce catalog, and tells the model to treat the seller-supplied product data as data, never as instructions.
 
-2. **Category Information**: We provide the product's category and subcategory, helping the model understand the context of the product.
+2. **Attribute Schema**: The user message starts with the full XML schema of possible attributes for the category. It is the longest input, so it comes first and the instructions come last.
 
-3. **Attribute Schema**: We include the full XML schema of possible attributes for the given category. This gives the model a comprehensive list of what to look for.
+3. **Category Information**: The product's category and subcategory give the model context.
 
-4. **Product Information**: We provide the product's title, description, and any additional metadata.
+4. **Product Data**: The product's title, description and any metadata, inside a `<product_data>` block.
 
-5. **Extraction Instructions**: We give step-by-step instructions on how to approach the extraction task, including how to handle missing information or ambiguous cases.
+5. **Extraction Instructions**: How to choose a value, and to use null when the product data doesn't give one.
 
-6. **Output Format**: We specify the exact XML format we expect for the output, ensuring consistency in the response structure.
+6. **Output Format**: The exact XML format the parser expects.
 
 ### Key Strategies
 
-Several strategies are employed in our prompt design to enhance extraction accuracy:
-
-- **Explicit Instructions**: We provide clear, step-by-step instructions for the model to follow, reducing ambiguity in the task.
-- **Answer Only**: We ask the model for the XML answer directly, without a separate "scratchpad" or reasoning section. Some newer models stop with a content filter as soon as they start writing such a section, even for harmless products, and the extraction quality is the same without it.
-- **Handling Uncertainty**: We give explicit instructions on how to handle cases where an attribute is not mentioned or its value cannot be determined.
-- **Emphasis on Accuracy**: We stress the importance of being as specific and accurate as possible, and not making assumptions.
+- **Clear Instructions with Reasons**: The prompt says what to do and why. For example, it asks for null rather than a guess because the results fill a product catalog.
+- **Untrusted Input as Data**: Product text comes from sellers, so it is delimited in `<product_data>` and the system prompt tells the model not to follow instructions inside it.
+- **Answer Only**: The prompt asks for the XML answer directly, without a "scratchpad" or reasoning section. Current Claude models reason in their own thinking blocks, and they can decline or content-filter a request that asks them to write their reasoning into the response. See [Keep reasoning in thinking blocks](https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback#keep-reasoning-in-thinking-blocks).
 
 ### Customization Potential
 

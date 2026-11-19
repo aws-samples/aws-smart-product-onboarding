@@ -102,12 +102,14 @@ class AttributesExtractor:
         self.temperature = temperature
 
         # nosemgrep: direct-use-of-jinja2,missing-autoescape-disabled - jinja2 output is not rendered by a browser
-        self.template = jinja2.Environment(  # nosec B701 - template output is not used on a website
+        environment = jinja2.Environment(  # nosec B701 - template output is not used on a website
             loader=jinja2.FileSystemLoader(os.path.join(os.path.dirname(__file__), "prompt_templates")),
             trim_blocks=True,
             lstrip_blocks=True,
             undefined=jinja2.StrictUndefined,
-        ).get_template("extract_attributes.jinja2")
+        )
+        self.template = environment.get_template("extract_attributes.jinja2")
+        self.system_prompt = environment.get_template("extract_attributes_system.jinja2").render()
 
         self.model_id = "global.anthropic.claude-sonnet-5-5" if model_id is None else model_id
 
@@ -136,6 +138,7 @@ class AttributesExtractor:
         try:
             response = self.bedrock_runtime_client.converse(
                 modelId=self.model_id,
+                system=[{"text": self.system_prompt}],
                 inferenceConfig=inference_config,
                 messages=messages,
             )
@@ -180,7 +183,8 @@ class AttributesExtractor:
             logger.error(f"Stop reason: {response['stopReason']}")
             raise ModelResponseError(f"Invalid stop reason: {response['stopReason']}")
         try:
-            parsed_response = parse_response(xml_response)
+            # Schema values can contain "<", such as "<3 YEARS", so don't parse values as XML.
+            parsed_response = parse_response(xml_response, cdata_tags=["value"])
             attributes = parsed_response["response"]["attributes"]["attribute"]
             attributes = [attributes] if not isinstance(attributes, list) else attributes
             return Attributes.model_validate({"attributes": attributes})

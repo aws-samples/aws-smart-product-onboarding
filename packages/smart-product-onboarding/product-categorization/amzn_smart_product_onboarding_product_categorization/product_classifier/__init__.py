@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT-0
 
 import os
+import re
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
@@ -49,7 +50,7 @@ DEFAULT_MODEL_ID = "global.anthropic.claude-haiku-5-5"
 
 
 class ProductClassifier:
-    response_open = "<response>\n<thinking>"
+    response_open = "<response>"
     response_close = "</response>"
 
     def __init__(
@@ -74,6 +75,7 @@ class ProductClassifier:
         self.model_id = model_id
         self.include_prompt = include_prompt
         self.temperature = temperature
+        self.system_prompt = self._template_environment().get_template("product_category_system.jinja2").render()
 
     def classify(
         self,
@@ -99,12 +101,7 @@ class ProductClassifier:
 
     def create_prompt(self, product: Product, candidate_categories: Iterable[ProductCategory]) -> str:
         """Use Jinja2 to fill in a prompt from the `product_category` template."""
-        # nosemgrep: direct-use-of-jinja2,missing-autoescape-disabled - jinja2 output is not rendered by a browser
-        template = jinja2.Environment(  # nosec B701 - template output is not used on a website
-            loader=jinja2.FileSystemLoader(os.path.join(os.path.dirname(__file__), "prompt_templates")),
-            trim_blocks=True,
-            lstrip_blocks=True,
-        ).get_template("product_category.jinja2")
+        template = self._template_environment().get_template("product_category.jinja2")
 
         # nosemgrep: direct-use-of-jinja2 - jinja2 output is not rendered by a browser
         prompt = template.render(
@@ -113,6 +110,15 @@ class ProductClassifier:
         )
         logger.debug({"prompt": prompt})
         return prompt
+
+    @staticmethod
+    def _template_environment() -> jinja2.Environment:
+        # nosemgrep: direct-use-of-jinja2,missing-autoescape-disabled - jinja2 output is not rendered by a browser
+        return jinja2.Environment(  # nosec B701 - template output is not used on a website
+            loader=jinja2.FileSystemLoader(os.path.join(os.path.dirname(__file__), "prompt_templates")),
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
 
     def get_product_category(self, prompt: str, dryrun: bool = False) -> CategorizationPrediction:
         messages = [
@@ -129,8 +135,7 @@ class ProductClassifier:
                     "message": {
                         "content": [
                             {
-                                "text": """chain of thought</thinking>
-                                        <prediction>
+                                "text": """<prediction>
                                         <predicted_category_id>1234</predicted_category_id>
                                         <predicted_category_name>Test</predicted_category_name>
                                         <explanation>Test</explanation>
@@ -175,6 +180,7 @@ class ProductClassifier:
             )
             response = self.bedrock.converse(
                 modelId=self.model_id,
+                system=[{"text": self.system_prompt}],
                 messages=request_messages,
                 inferenceConfig=inference_config,
             )
@@ -208,6 +214,8 @@ class ProductClassifier:
         return xml_response
 
     def _handle_prediction(self, xml_response: str, prompt: str) -> CategorizationPrediction:
+        # The candidates list names in <name> tags, and the model sometimes closes its answer with </name>.
+        xml_response = re.sub(r"(<predicted_category_name>[^<]*)</name>", r"\1</predicted_category_name>", xml_response)
         try:
             parsed_response = parse_response(
                 xml_response,
@@ -217,12 +225,12 @@ class ProductClassifier:
                     "explanation",
                 ],
             )
-            prediction = CategorizationPrediction.model_validate(parsed_response["response"]["prediction"])
-
-            if parsed_response.get("response", {}).get("thinking"):
-                logger.debug({"Chain of Thought": parsed_response["response"]["thinking"]})
-
-            return prediction
+            response = parsed_response["response"]
+            prediction = response["prediction"]
+            # The model sometimes closes <prediction> before writing <explanation>.
+            if "explanation" not in prediction and "explanation" in response:
+                prediction = {**prediction, "explanation": response["explanation"]}
+            return CategorizationPrediction.model_validate(prediction)
 
         except (ValidationError, KeyError) as e:
             logger.exception(e)
