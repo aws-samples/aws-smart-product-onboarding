@@ -14,7 +14,7 @@ from amzn_smart_product_onboarding_api_runtime.api.operation_config import (
     GetBatchExecutionOperationResponses,
 )
 
-from .utils import get_dynamodb_resource, get_sfn_client
+from .utils import get_dynamodb_resource, get_sfn_client, request_log_fields
 from .repository import DynamoDBSessionRepository, ResourceNotFound
 
 SESSION_TABLE = os.getenv("SESSION_TABLE")
@@ -25,8 +25,8 @@ def get_batch_execution(input: GetBatchExecutionRequest, **kwargs) -> GetBatchEx
     Type-safe handler for the GetBatchExecution operation
     """
     logger = LoggingInterceptor.get_logger(input)
-    logger.info("Start CategorizeProductResult Operation")
-    logger.debug(f"Input: {input}")
+    logger.info("Start GetBatchExecution operation", extra=request_log_fields(input))
+    logger.debug(f"Request parameters: {input.request_parameters}")
 
     execution_id = input.request_parameters.execution_id
 
