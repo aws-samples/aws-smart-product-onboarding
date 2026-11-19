@@ -107,6 +107,22 @@ export class CategorizationWorkflow extends Construct {
           "$.classification.explanation",
         ),
         attributes: sfn.JsonPath.listAt("$.attributes"),
+        error: "",
+      },
+    });
+
+    // A product the model's content filter blocks fails only its own row: no retries, since the same
+    // input is blocked again, and the row gets the same columns as the others with the reason in "error".
+    const contentFiltered = new sfn.Pass(this, "ContentFiltered", {
+      parameters: {
+        title_new: "",
+        description_new: "",
+        category_new: "",
+        category_new_path: "",
+        category_new_explanation: "",
+        attributes: [],
+        error:
+          "Blocked by the model's content filter. Edit the product details or images and try again.",
       },
     });
 
@@ -152,6 +168,12 @@ export class CategorizationWorkflow extends Construct {
       .otherwise(categorization);
 
     inputState.next(doGenerateProduct);
+
+    sfn.State.findReachableStates(inputState.startState).forEach((s) => {
+      if (s instanceof sfn.TaskStateBase) {
+        s.addCatch(contentFiltered, { errors: ["ContentFilteredError"] });
+      }
+    });
 
     const mapOutput = "mapOutput";
 
