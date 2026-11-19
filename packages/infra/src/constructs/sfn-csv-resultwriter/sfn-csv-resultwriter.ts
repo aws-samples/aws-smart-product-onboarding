@@ -47,7 +47,7 @@ export class SfnCsvResultwriter extends sfn.StateMachineFragment {
         {
           id: "AwsSolutions-L1",
           reason:
-            "Uses the latest generally available Lambda runtime (Python 3.14 or Node.js 24). cdk-nag compares against the newest runtime defined in aws-cdk-lib, which is a public preview runtime (Python 3.15, Node.js 26) not supported for production workloads.",
+            "Uses Python 3.14, the latest generally available Lambda runtime. cdk-nag 2.37.52 flags any runtime older than the newest one in aws-cdk-lib's Runtime.ALL, and aws-cdk-lib 2.277.0 includes the public preview Python 3.15 runtime. Remove this suppression when Python 3.15 is generally available and the function moves to it.",
         },
         {
           id: "AwsSolutions-IAM5",
