@@ -35,7 +35,7 @@ def _processor(table_status):
     processor.word_map = {"skate": ["10008489"], "asbestos": ["10008511"]}
     processor.data_dir = Path(".")
     processor.config_bucket = "bucket"
-    processor.ddb = boto3.client("dynamodb", region_name="us-west-2")
+    processor.ddb = boto3.client("dynamodb", region_name="us-east-1")
     processor.ddbr = MagicMock()
     processor.ssm = MagicMock()
     processor.iam = MagicMock()
