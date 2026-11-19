@@ -118,6 +118,7 @@ DEFAULT_SINGULARIZE_EXCEPTIONS = {
     "lutescens": "lutescens",
     "perennis": "perennis",
     "index": "index",
+    "asbestos": "asbestos",
 }
 
 DEFAULT_DESCRIPTORS = [
@@ -155,7 +156,6 @@ ALWAYS_CATEGORY_IDS = [
     "10001194",  # GPS Software - Mobile Communications
     "10006237",  # GPS Software - Mobile Communications - Digital
     "10001197",  # Mobile Phone Software
-    "10006238",  # Mobile Phone Software - Digital
     "10000624",  # Cross Segment Variety Packs
     "10002103",  # Textual/Printed/Reference Materials Variety Packs
 ]
@@ -235,6 +235,25 @@ def get_embeddings_models(
             files.append(str(dest_path))
 
     return files
+
+
+GPC_NODE_KEYS = {"Level", "Code", "Title", "Definition", "Active", "Childs"}
+
+
+def validate_gpc(gpc: Any) -> None:
+    """Check that the file has the GS1 GPC JSON layout this script reads"""
+    schema = gpc.get("Schema") if isinstance(gpc, dict) else None
+    if not isinstance(schema, list) or not schema:
+        raise ConfigurationError(
+            "Unexpected GPC file format: expected a JSON object with a non-empty 'Schema' list. "
+            "Download the GPC JSON file named in notebooks/README.md."
+        )
+    missing = GPC_NODE_KEYS - set(schema[0])
+    if missing:
+        raise ConfigurationError(
+            f"Unexpected GPC file format: segments are missing {', '.join(sorted(missing))}. "
+            "Download the GPC JSON file named in notebooks/README.md."
+        )
 
 
 def iterate_category_tree(tree: Dict, path: List = None) -> Dict:
@@ -358,6 +377,7 @@ class CategoryTreeProcessor:
         print(f"Loading GPC data from {gpc_file}...")
         with open(gpc_file, "r") as fp:
             self.gpc = json.load(fp)
+        validate_gpc(self.gpc)
         print(f"Loaded {len(self.gpc['Schema'])} schemas")
 
     def process_category_tree(self) -> Dict:
@@ -582,9 +602,51 @@ class VectorEmbeddingsProcessor:
         print(f"Using configuration bucket: {self.config_bucket}")
 
     def process_embeddings(self) -> Tuple[Dict, faiss.Index, List[str]]:
-        """Download, process, and upload word embeddings"""
+        """Load word embeddings into DynamoDB (if needed) and build category vectors"""
         print("Processing word embeddings...")
+        vector_table_name = f"{VECTOR_TABLE_PREFIX}english_vectors"
 
+        # The table holds generic word vectors, independent of the category tree,
+        # so an existing table is reused when the category tree is updated.
+        if self._vector_table_is_active(vector_table_name):
+            print(
+                f"Reusing existing word vectors table {vector_table_name}; skipping download and import"
+            )
+        else:
+            self._import_vectors(vector_table_name)
+
+        # Build category vectors
+        print("Building category vectors...")
+        vector_table = self.ddbr.Table(vector_table_name)
+        category_vectors = self._build_category_vectors(vector_table)
+
+        # Build FAISS index
+        print("Building FAISS index...")
+        word_index, faiss_index = self._build_faiss_index(category_vectors)
+
+        # Update IAM policy
+        print("Updating IAM policy for word embeddings access...")
+        self._update_iam_policy(vector_table.table_arn)
+
+        return category_vectors, faiss_index, word_index
+
+    def _vector_table_is_active(self, table_name: str) -> bool:
+        """Return True if the word vectors table exists and is ACTIVE, False if it doesn't exist"""
+        try:
+            status = self.ddb.describe_table(TableName=table_name)["Table"][
+                "TableStatus"
+            ]
+        except self.ddb.exceptions.ResourceNotFoundException:
+            return False
+        if status != "ACTIVE":
+            raise ConfigurationError(
+                f"DynamoDB table {table_name} exists but is {status}. "
+                "Wait until it is ACTIVE and run the script again."
+            )
+        return True
+
+    def _import_vectors(self, vector_table_name: str):
+        """Download the word embeddings and import them into a new DynamoDB table"""
         # Download embeddings
         embeddings_files = get_embeddings_models(
             [DEFAULT_EMBEDDINGS_MODEL_URL], self.data_dir
@@ -635,7 +697,6 @@ class VectorEmbeddingsProcessor:
         print("Upload complete")
 
         # Import to DynamoDB
-        vector_table_name = f"{VECTOR_TABLE_PREFIX}english_vectors"
         print(f"Importing vectors to DynamoDB table: {vector_table_name}")
 
         job = self.ddb.import_table(
@@ -673,26 +734,11 @@ class VectorEmbeddingsProcessor:
         if status != "COMPLETED":
             raise ConfigurationError(f"DynamoDB import failed with status: {status}")
 
-        # Build category vectors
-        print("Building category vectors...")
-        vector_table = self.ddbr.Table(vector_table_name)
-        category_vectors = self._build_category_vectors(vector_table)
-
-        # Build FAISS index
-        print("Building FAISS index...")
-        word_index, faiss_index = self._build_faiss_index(category_vectors)
-
-        # Update IAM policy
-        print("Updating IAM policy for word embeddings access...")
-        self._update_iam_policy(vector_table.table_arn)
-
         # Clean up S3 import files
         print("Cleaning up S3 import files...")
         for file in import_dir.glob("*.ion.gz"):
             key = f"english_vectors_import/{file.name}"
             s3.delete_object(Bucket=self.config_bucket, Key=key)
-
-        return category_vectors, faiss_index, word_index
 
     def _build_category_vectors(self, vector_table) -> Dict:
         """Build category vectors from word embeddings"""
@@ -843,6 +889,12 @@ def save_ssm_configuration(vector_table_name: str):
 def generate_always_categories(category_tree: Dict, data_dir: Path):
     """Generate list of categories to always include (media categories)"""
     print("Generating always-include categories...")
+    missing = [cat_id for cat_id in ALWAYS_CATEGORY_IDS if cat_id not in category_tree]
+    if missing:
+        raise ConfigurationError(
+            f"Always-include categories not found in the GPC file: {', '.join(missing)}. "
+            "Use the GPC release named in notebooks/README.md."
+        )
     always_categories = get_child_category_ids(ALWAYS_CATEGORY_IDS, category_tree)
 
     output_file = data_dir / "always.json"
@@ -861,10 +913,10 @@ def main():
         epilog="""
 Examples:
   # Basic usage with GPC file
-  python configure_categorization.py --gpc-file data/GPC.json
+  python configure_categorization.py --gpc-file "data/GPC as of May 2026 v20260520 GB.json"
   
-  # Skip embeddings processing (if already done)
-  python configure_categorization.py --gpc-file data/GPC.json --skip-embeddings
+  # Skip word embeddings and category vectors
+  python configure_categorization.py --gpc-file "data/GPC as of May 2026 v20260520 GB.json" --skip-embeddings
         """,
     )
 
@@ -872,7 +924,7 @@ Examples:
         "--gpc-file",
         type=Path,
         required=True,
-        help="Path to GPC JSON file (download from https://gpc-browser.gs1.org/)",
+        help="Path to the GS1 GPC as of May 2026 (v20260520) JSON file (download from https://gpc-browser.gs1.org/)",
     )
 
     parser.add_argument(
@@ -885,7 +937,7 @@ Examples:
     parser.add_argument(
         "--skip-embeddings",
         action="store_true",
-        help="Skip word embeddings processing (use if already configured)",
+        help="Skip word embeddings and category vectors. Don't use it after changing the category tree: an existing word vectors table is reused, and the category vectors are rebuilt for the new category words",
     )
 
     parser.add_argument(

@@ -63,28 +63,31 @@ You have two options for configuring the system:
 Run the automated configuration script:
 
 ```bash
-# 1. Download the English GS1 GPC as of November 2024 v20241202 in JSON format from https://gpc-browser.gs1.org/
+# 1. Download the English GS1 GPC as of May 2026 v20260520 in JSON format from https://gpc-browser.gs1.org/
 #    - Select "English (GB)" as the language
-#    - Select "GPC as of November 2024 (GSDN)" as the version
+#    - Select "GPC as of May 2026" as the version
 #    - Download as JSON format at the bottom of the page
-#    - Filename: "GPC as of November 2024 v20241202 GB.json"
+#    - Filename: "GPC as of May 2026 v20260520 GB.json"
 #
 # 2. Save it in the notebooks/data/ directory
 
 # 3. Run the configuration script
-uv run python configure_categorization.py --gpc-file "data/GPC as of November 2024 v20241202 GB.json"
+uv run python configure_categorization.py --gpc-file "data/GPC as of May 2026 v20260520 GB.json"
 
-# To skip embeddings processing (if already done):
-uv run python configure_categorization.py --gpc-file "data/GPC as of November 2024 v20241202 GB.json" --skip-embeddings
+# To skip the word embeddings and category vectors (only if the category tree hasn't changed):
+uv run python configure_categorization.py --gpc-file "data/GPC as of May 2026 v20260520 GB.json" --skip-embeddings
 ```
 
 The script will:
 
 - Process the category tree and attribute schemas
 - Generate metaclasses from category names
-- Download and process English word embeddings (~1GB, takes 30-60 minutes)
+- Download and import English word embeddings into DynamoDB (~1GB, takes 30-60 minutes). If the word embeddings table already exists, the script reuses it and skips this step.
+- Build the category word vectors
 - Upload configuration to S3
 - Update SSM parameters
+
+To update to a newer GPC release, run the script again without `--skip-embeddings`. It reuses the word embeddings table and rebuilds the category vectors for the new category names.
 
 ### Option 2: Interactive Notebooks
 

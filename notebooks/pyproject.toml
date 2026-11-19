@@ -28,12 +28,11 @@ dev = [
     "notebook>=7.5.6",
     "jupyterlab>=4.5.7",
     "ipython>=8.29.0",
-    
     # AWS type stubs
     "boto3-stubs-lite[bedrock-runtime,dynamodb,firehose,s3,sagemaker-a2i-runtime,ssm,stepfunctions]>=1.35.37",
-    
     # Code formatting and linting
     "ruff>=0.8.2",
+    "pytest>=9.0.3",
 ]
 
 [build-system]
