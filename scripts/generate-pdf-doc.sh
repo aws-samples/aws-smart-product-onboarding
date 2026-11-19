@@ -22,9 +22,15 @@ if [[ $1 != *.pdf ]]; then
     exit 1
 fi
 
-pushd packages/api/generated/documentation/markdown
-pnpm dlx projen compile
-popd
+docs=packages/api/generated/documentation/markdown
+generator_config=$(mktemp -d)
+trap 'rm -rf "$generator_config"' EXIT
+# Pins the OpenAPI Generator version without writing openapitools.json into the repository. Needs Java.
+printf '{"generator-cli":{"version":"7.27.0"}}\n' > "$generator_config/openapitools.json"
+find "$docs" -mindepth 1 ! -name .gitignore -delete
+pnpm dlx @openapitools/openapi-generator-cli@2.42.2 generate \
+  --openapitools "$generator_config/openapitools.json" \
+  -g markdown -i packages/api/model/src/main/openapi/main.yaml -o "$docs"
 
 python ./scripts/fix_api_markdown_links.py packages/api/generated/documentation/markdown/README.md \
   packages/api/generated/documentation/markdown/**/*.md

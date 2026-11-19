@@ -1,4 +1,0 @@
-node_modules/
-!/.gitattributes
-!/.projen/tasks.json
-!/project.json
