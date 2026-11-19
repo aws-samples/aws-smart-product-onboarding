@@ -87,7 +87,7 @@ The script will:
 - Upload configuration to S3
 - Update SSM parameters
 
-To update to a newer GPC release, run the script again without `--skip-embeddings`. It reuses the word embeddings table and rebuilds the category vectors for the new category names.
+To update to a newer GPC release, first deploy the latest version of this repository, since the categorization code can change with the category tree. Then run the script again without `--skip-embeddings`. It reuses the word embeddings table and rebuilds the category vectors for the new category names.
 
 The metaclass, categorization and attribute extraction functions read the configuration when they start, so a deployed stack keeps the previous configuration until its functions start again. To apply the new configuration right away, update the configuration of each of those functions, for example:
 

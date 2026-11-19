@@ -920,7 +920,7 @@ def generate_always_categories(category_tree: Dict, data_dir: Path):
     return always_categories
 
 
-def validate_configuration(data_dir: Path) -> None:
+def validate_configuration(data_dir: Path, check_vectors: bool = True) -> None:
     """Fail if a generated file refers to a category ID that isn't in labelcats.json.
 
     The categorization functions look every ID up in the category tree, so one unknown ID
@@ -937,7 +937,7 @@ def validate_configuration(data_dir: Path) -> None:
         "linted_attrs.json": sorted(set(load("linted_attrs.json")) - leaves),
     }
     problems = [f"{name}: {', '.join(ids[:10])}" for name, ids in unknown.items() if ids]
-    if (data_dir / "category_vectors.json").exists():
+    if check_vectors and (data_dir / "category_vectors.json").exists():
         stale = sorted(set(load("category_vectors.json")) - set(load("word_map.json")))
         if stale:
             problems.append(f"category_vectors.json has words not in word_map.json: {', '.join(stale[:10])}")
@@ -1065,7 +1065,7 @@ Examples:
             print("=" * 60 + "\n")
 
         # Step 5: Upload to S3
-        validate_configuration(args.data_dir)
+        validate_configuration(args.data_dir, check_vectors=not args.skip_embeddings)
         if not args.skip_upload:
             print("\n" + "=" * 60)
             print("STEP 5: Uploading Configuration to S3")
@@ -1079,13 +1079,15 @@ Examples:
             if args.skip_embeddings:
                 check_deployed_category_words(args.data_dir, config_bucket)
 
-            files_to_upload = [
+            # Category vectors go before the word map, so an interrupted upload never leaves a new
+            # word map next to the previous release's vectors. --skip-embeddings keeps the deployed vectors.
+            files_to_upload = [] if args.skip_embeddings else ["category_vectors.json"]
+            files_to_upload += [
                 "labelcats.json",
                 "linted_attrs.json",
                 "metaclasses.json",
                 "mappings.json",
                 "word_map.json",
-                "category_vectors.json",
                 "marcas.json",
                 "singularize.json",
                 "synonyms.json",

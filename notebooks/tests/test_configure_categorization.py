@@ -208,6 +208,12 @@ def test_category_vectors_from_another_release_fail(tmp_path):
         cc.validate_configuration(tmp_path)
 
 
+def test_skip_embeddings_ignores_local_category_vectors(tmp_path):
+    _write_config(tmp_path, always=["10"], vectors={"lamp": [1.0], "bassinet": [0.5]})
+
+    cc.validate_configuration(tmp_path, check_vectors=False)
+
+
 @pytest.mark.parametrize(
     "gpc",
     [[], {}, {"Schema": []}, {"Schema": [{"Code": 1, "Title": "x"}]}],
