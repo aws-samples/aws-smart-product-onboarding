@@ -2,8 +2,7 @@
 
 - [x] 1. Add Handlebars dependencies to project configuration
 
-  - Update `.projenrc.ts` to include `handlebars` and `@types/handlebars` dependencies
-  - Run `pnpm pdk` to regenerate package.json with new dependencies
+  - Add `handlebars` and `@types/handlebars` to `packages/api/handlers/typescript/package.json`
   - _Requirements: 3.1, 3.2_
 
 - [x] 2. Create template directory structure and Handlebars template file

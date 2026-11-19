@@ -2,32 +2,28 @@
 
 ## Monorepo Organization
 
-This is a **Projen-managed monorepo** using Nx for build orchestration and pnpm workspaces. All project configuration is defined in `.projenrc.ts` - modify this file and run `pnpm pdk` to regenerate project files.
+This is a monorepo managed directly with pnpm workspaces and Nx. Each package defines its Nx targets in `project.json`; edit `package.json`, `project.json` and `pyproject.toml` files directly.
 
 ## Root Level
 
-- `.projenrc.ts` - **Primary project configuration** (modify this, not generated files)
-- `package.json` - Generated root package.json (do not edit directly)
+- `package.json` - Root scripts and shared development dependencies
 - `nx.json` - Nx configuration for build system
 - `pnpm-workspace.yaml` - Workspace configuration
 - `notebooks/` - Jupyter notebooks for system configuration
 - `samples/` - Sample product data for testing
 - `documentation/` - Architecture diagrams and guides
+- `scripts/` - Release and documentation helper scripts
 
 ## Core Packages (`packages/`)
 
 ### API (`packages/api/`)
 
-**Type-Safe API** generated from OpenAPI specification:
+The REST API, defined by an OpenAPI definition:
 
-- `model/` - OpenAPI specification files
-- `handlers/` - Lambda function implementations
-  - `python/` - Python handlers (runtime: Python 3.13)
-  - `typescript/` - TypeScript handlers (runtime: Node.js 22)
-- `generated/` - Auto-generated code (do not edit)
-  - `infrastructure/typescript/` - CDK constructs
-  - `runtime/python/` - Python client library
-  - `libraries/typescript-react-query-hooks/` - React hooks
+- `model/` - OpenAPI definition (`src/main/openapi/main.yaml`). Its `generate` target bundles it into `.api.json` for the infrastructure.
+- `handlers/typescript/` - TypeScript Lambda handlers (runtime: Node.js 24)
+- `generated/types/typescript/` - TypeScript types generated from the definition (checked in)
+- `generated/documentation/` - Markdown API documentation written by `scripts/generate-pdf-doc.sh` (not checked in)
 
 ### Infrastructure (`packages/infra/`)
 
@@ -35,20 +31,20 @@ This is a **Projen-managed monorepo** using Nx for build orchestration and pnpm 
 
 - `src/` - CDK stack definitions
 - `cdk.json` - CDK configuration
-- Uses AWS PDK patterns for accelerated development
+- `src/constructs/apis/open-api-rest-api.ts` - Builds the API Gateway REST API from the bundled OpenAPI definition
 
 ### Website (`packages/website/`)
 
-**Cloudscape React demo** application:
+**React demo** application:
 
 - `src/` - React application source
 - `public/` - Static assets
-- Uses Cloudscape Design System components
+- Uses React Aria Components styled with Tailwind CSS, and TanStack Query with openapi-fetch to call the API
 - Requires runtime config from S3 for deployment
 
 ### Smart Product Onboarding (`packages/smart-product-onboarding/`)
 
-**Python microservices** for AI processing:
+**Python microservices** for AI processing, in one uv workspace:
 
 #### Core Utils (`core-utils/`)
 
@@ -68,11 +64,10 @@ This is a **Projen-managed monorepo** using Nx for build orchestration and pnpm 
 - NLTK text processing
 - Metaclass generation and matching
 
-#### API Runtime (`api/`)
+#### API (`api/`)
 
-- Generated directly from `packages/api/generated/runtime/python/` into workspace
-- Contains `api/runtime/` (generated) and `api/handlers/` (Lambda handlers)
-- Used by Lambda handlers for API interactions
+- `api/common/` - Pydantic models generated from the OpenAPI definition (checked in), and the shared handler wrapper
+- `api/handlers/` - Python Lambda handlers (runtime: Python 3.14)
 
 ## Configuration Workflow
 
@@ -98,28 +93,22 @@ samples/
 
 ## Development Patterns
 
-### Projen Workflow
-
-1. Modify `.projenrc.ts` for project changes
-2. Run `pnpm pdk` to regenerate files
-3. Never edit generated files directly
-
 ### Python Package Dependencies
 
 - `core-utils` is a dependency of other Python packages
-- `api` runtime is generated directly to `smart-product-onboarding/api/runtime/`
 - Use uv for Python dependency management (workspace at `packages/smart-product-onboarding/`)
 
 ### API Development
 
-- Define OpenAPI spec in `packages/api/model/`
-- Handlers auto-generated with type safety
-- Infrastructure constructs generated from API spec
+- Define the operation in `packages/api/model/src/main/openapi/main.yaml`
+- Regenerate the checked-in TypeScript types, website types and Python models (see `packages/api/README.md`); CI fails if they drift from the definition
+- Implement the handler and add it to the API's `integrations` in `packages/infra/src/constructs/apis/smartproductonboardingapi.ts`
 
 ### Build Dependencies
 
 ```
-infra → api (infrastructure + runtime)
+infra → api model (bundled OpenAPI definition)
+infra → api handlers (TypeScript and Python)
 infra → website (for deployment)
 infra → smart-product-onboarding packages
 metaclasses → core-utils
@@ -128,7 +117,6 @@ product-categorization → core-utils
 
 ## Key Files to Modify
 
-- `.projenrc.ts` - Project configuration
 - `packages/api/model/` - API specifications
 - `packages/infra/src/` - Infrastructure code
 - `packages/website/src/` - Frontend code
@@ -137,7 +125,9 @@ product-categorization → core-utils
 
 ## Generated Files (Do Not Edit)
 
-- `package.json`, `nx.json`, workspace configs
-- `packages/api/generated/` - All generated API code
-- Python `pyproject.toml` files in packages
-- CDK `cdk.out/` directories
+Regenerate these from the OpenAPI definition instead:
+
+- `packages/api/generated/types/typescript/src/api.d.ts`
+- `packages/website/src/api/schema.d.ts`
+- `packages/smart-product-onboarding/api/common/amzn_smart_product_onboarding_api_common/models.py`
+- `packages/api/model/.api.json` and CDK `cdk.out/` directories (not checked in)
