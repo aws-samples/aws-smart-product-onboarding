@@ -22,6 +22,7 @@ from amzn_smart_product_onboarding_core_utils.models import (
     ExtractAttributesResponseDict,
 )
 from aws_lambda_powertools.utilities.parser import event_parser
+from botocore.exceptions import ClientError
 
 from amzn_smart_product_onboarding_product_categorization.attributes_extractor import (
     AttributesExtractor,
@@ -36,8 +37,16 @@ BEDROCK_MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "global.anthropic.claude-sonnet
 CONFIG_PATHS_PARAM = os.getenv("CONFIG_PATHS_PARAM")
 
 # Read the schema from the same configuration as the category tree. Configurations written
-# by the notebooks have no attributesSchema entry and keep the schema at the fixed key.
-config_paths: dict[str, str] = json.loads(LAMBDA_SSM_CLIENT.get_parameter(Name=CONFIG_PATHS_PARAM)["Parameter"]["Value"])
+# by the notebooks have no attributesSchema entry and keep the schema at the fixed key, and
+# notebook 1 uploads that key before notebook 2 creates the parameter.
+try:
+    config_paths: dict[str, str] = json.loads(
+        LAMBDA_SSM_CLIENT.get_parameter(Name=CONFIG_PATHS_PARAM)["Parameter"]["Value"]
+    )
+except ClientError as e:
+    if e.response["Error"]["Code"] != "ParameterNotFound":
+        raise
+    config_paths = {}
 SCHEMA_PATH = config_paths.get("attributesSchema", "data/attributes_schema.json")
 
 # AppConfig client for runtime configuration
