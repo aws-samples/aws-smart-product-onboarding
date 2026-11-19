@@ -111,7 +111,14 @@ export const RecentDrafts: React.FC<{
                   to={`/drafts/${d.id}`}
                   onClick={(e) => {
                     // Already open: following the link would reopen it from storage, without edits not yet saved.
-                    if (d.id === activeId) e.preventDefault();
+                    // A modified click still opens it in a new tab or window.
+                    const plain =
+                      e.button === 0 &&
+                      !e.metaKey &&
+                      !e.ctrlKey &&
+                      !e.shiftKey &&
+                      !e.altKey;
+                    if (d.id === activeId && plain) e.preventDefault();
                     onNavigate?.();
                   }}
                   title={title}

@@ -185,6 +185,22 @@ describe("useProductFlow", () => {
       expect(stored()[0].updatedAt).toBeGreaterThan(1000);
     });
 
+    it("saves an edit that is undone after it was saved", async () => {
+      saveDraft(saved());
+      const { result, unmount } = open("d1");
+      act(() => result.current.setMetadata("Brand: Other"));
+      await act(() => vi.advanceTimersByTimeAsync(400));
+      expect(stored()[0].metadata).toBe("Brand: Other");
+      act(() => result.current.setMetadata("Brand: Acme"));
+      await act(() => vi.advanceTimersByTimeAsync(400));
+      expect(stored()[0].metadata).toBe("Brand: Acme");
+      // An edit undone before it was saved is not saved on exit.
+      act(() => result.current.setMetadata("Brand: Third"));
+      act(() => result.current.setMetadata("Brand: Acme"));
+      unmount();
+      expect(stored()[0].metadata).toBe("Brand: Acme");
+    });
+
     it("does not save a draft again after another tab cleared the list", async () => {
       saveDraft(saved());
       const { result } = open("d1");

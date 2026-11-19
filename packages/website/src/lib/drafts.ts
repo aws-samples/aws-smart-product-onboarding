@@ -163,11 +163,8 @@ function commit(drafts: Draft[]): boolean {
   }
   if (ok) {
     cache = list;
-    try {
-      cachedRaw = localStorage.getItem(storageKey());
-    } catch {
-      cache = undefined;
-    }
+    // The text this tab wrote, not a second read that could already hold another tab's write.
+    cachedRaw = JSON.stringify(list);
   } else cache = undefined;
   window.dispatchEvent(new Event(CHANGED));
   return ok;

@@ -217,6 +217,9 @@ export function useProductFlow({
   const savedOnce = useRef(!!initial);
   const deleted = useRef(false);
   const pending = useRef<Draft>();
+  /** The editor values `pending` was built from. */
+  const pendingValues = useRef<unknown[]>();
+  const loaded = useRef<unknown[]>();
   const flush = useCallback(
     (updateAddress = true) => {
       const draft = pending.current;
@@ -231,6 +234,7 @@ export function useProductFlow({
         onSaveFailed?.();
         return;
       }
+      loaded.current = pendingValues.current;
       if (!savedOnce.current) {
         savedOnce.current = true;
         // Keep the router state; only the address changes so a reload reopens this draft.
@@ -254,9 +258,8 @@ export function useProductFlow({
     [onSaveFailed, draftId],
   );
 
-  // The values an opened draft was loaded with. Until one changes there is nothing to save, so
-  // opening a draft does not touch its saved time or overwrite an edit saved in the meantime.
-  const loaded = useRef<unknown[]>();
+  // The values last saved, or that an opened draft was loaded with. Until one changes there is nothing
+  // to save, so opening a draft does not touch its saved time or overwrite an edit saved in the meantime.
   useEffect(() => {
     if (!persist || !product || deleted.current) return undefined;
     const values = [
@@ -277,7 +280,12 @@ export function useProductFlow({
       generatedWith,
     ];
     loaded.current ??= initial ? values : [];
-    if (values.every((v, n) => Object.is(v, loaded.current![n]))) return;
+    if (values.every((v, n) => Object.is(v, loaded.current![n]))) {
+      // Back to what is saved: drop an edit that was waiting to be saved.
+      pending.current = undefined;
+      return undefined;
+    }
+    pendingValues.current = values;
     pending.current = {
       id,
       updatedAt: Date.now(),

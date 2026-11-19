@@ -58,6 +58,18 @@ describe("RecentDrafts", () => {
     expect(screen.getByTestId("path")).toHaveTextContent("/new");
   });
 
+  it("leaves a modified click on the open draft to the browser", () => {
+    show();
+    const link = screen.getByRole("link", { name: /Product open/ });
+    const click = new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      ctrlKey: true,
+    });
+    link.dispatchEvent(click);
+    expect(click.defaultPrevented).toBe(false);
+  });
+
   it("opens another draft", async () => {
     show();
     await userEvent.click(screen.getByRole("link", { name: /Product other/ }));
