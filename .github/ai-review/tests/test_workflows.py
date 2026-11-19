@@ -66,6 +66,21 @@ class Hardening(unittest.TestCase):
         self.assertIn('-f head-sha="$HEAD_SHA"', COMMAND)
         self.assertIn("HEAD_SHA: ${{ steps.check.outputs.head-sha }}", COMMAND)
 
+    def test_dispatch_passes_a_checked_number_to_the_lane(self):
+        # workflow_dispatch inputs arrive as strings; the lane's pr-number is a number
+        self.assertRegex(LANE, r"pr-number:\n\s+type: number")
+        self.assertIn("pr-number: ${{ fromJSON(needs.check-inputs.outputs.pr-number) }}", DISPATCH)
+        self.assertNotIn("pr-number: ${{ inputs.pr-number }}", DISPATCH)
+        self.assertIn("needs: check-inputs", DISPATCH)
+        check = next(s for s in steps(DISPATCH) if s.startswith("Check the pull request number and head SHA"))
+        pattern = re.search(r'"\$PR" =~ (\S+) \]\]', check).group(1)
+        for good in ("1", "142", "999999999"):
+            self.assertRegex(good, pattern)
+        for bad in ("", "0", "-1", "1.5", "142 ", "0x10", "1e3", "07", "1234567890"):
+            self.assertNotRegex(bad, pattern)
+        self.assertIn('"$HEAD_SHA" =~ ^[0-9a-f]{40}$', check)
+        self.assertEqual(check.count("exit 1"), 2)
+
     def test_credentials_assumed_after_installs(self):
         names = [s.split("\n", 1)[0] for s in steps(LANE)]
         creds = next(i for i, s in enumerate(steps(LANE)) if "configure-aws-credentials@" in s)
