@@ -138,18 +138,21 @@ def test_policy_version_is_added_when_the_current_policy_cannot_be_read():
     processor.iam.create_policy_version.assert_called_once()
 
 
-DEPLOYED_PATHS = {"wordMap": "data/old/word_map.json", "categoryVectors": "data/old/category_vectors.json"}
+DEPLOYED_PATHS = {
+    "wordMap": "data/0123456789abcdef/word_map.json",
+    "categoryVectors": "data/0123456789abcdef/category_vectors.json",
+}
 
 
 def _client(name):
     return boto3.client(name, region_name="us-east-1", aws_access_key_id="testing", aws_secret_access_key="testing")
 
 
-def _deployed(monkeypatch, word_map):
+def _deployed(monkeypatch, word_map, paths=DEPLOYED_PATHS):
     """Stub the deployed configuration: the SSM pointer, then the files it points at."""
     s3, ssm = _client("s3"), _client("ssm")
     s3_stub, ssm_stub = Stubber(s3), Stubber(ssm)
-    ssm_stub.add_response("get_parameter", {"Parameter": {"Value": cc.json.dumps(DEPLOYED_PATHS)}})
+    ssm_stub.add_response("get_parameter", {"Parameter": {"Value": cc.json.dumps(paths)}})
     if word_map is None:
         s3_stub.add_client_error("get_object", "NoSuchKey")
     else:
@@ -233,6 +236,29 @@ def test_skip_embeddings_fails_without_deployed_vectors(tmp_path, monkeypatch):
 
     with pytest.raises(cc.ConfigurationError, match="No deployed category vectors"):
         cc.check_deployed_category_words(tmp_path, "bucket")
+
+
+@pytest.mark.parametrize("key", ["wordMap", "categoryVectors"])
+def test_skip_embeddings_fails_on_files_that_can_change(tmp_path, monkeypatch, key):
+    # The notebooks write fixed data/ keys, so files there can be replaced after the check.
+    _write_config(tmp_path, always=["10"])
+    paths = {**DEPLOYED_PATHS, key: f"data/{cc.CONFIG_FILES[key]}"}
+    _deployed(monkeypatch, {"lamp": ["10"]}, paths)
+
+    with pytest.raises(cc.ConfigurationError, match=f"can still change \\(data/{cc.CONFIG_FILES[key]}\\)"):
+        cc.check_deployed_category_words(tmp_path, "bucket")
+
+
+def test_attribute_schema_is_uploaded_with_the_configuration(tmp_path, monkeypatch):
+    _full_config(tmp_path)
+    s3 = MagicMock()
+    monkeypatch.setattr(cc.boto3, "client", lambda *a, **k: s3)
+
+    paths = cc.upload_to_s3(tmp_path, "bucket")
+
+    assert paths["attributesSchema"] == paths["categoryTree"].rsplit("/", 1)[0] + "/linted_attrs.json"
+    (tmp_path / "linted_attrs.json").write_text('{"10": {"attributes_schema": null}}')
+    assert cc.upload_to_s3(tmp_path, "bucket")["attributesSchema"] != paths["attributesSchema"]
 
 
 def test_missing_always_category_raises(tmp_path):

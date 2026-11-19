@@ -17,6 +17,7 @@ import os
 import hashlib
 import time
 import io
+import re
 import gzip
 import tempfile
 from pathlib import Path
@@ -874,7 +875,12 @@ CONFIG_FILES = {
     "synonyms": "synonyms.json",
     "descriptors": "descriptors.json",
     "alwaysCategories": "always.json",
+    "attributesSchema": "linted_attrs.json",
 }
+
+# Prefix of a configuration uploaded by upload_to_s3. Objects under it are never overwritten
+# with other content, unlike the fixed data/ keys the notebooks write.
+VERSIONED_KEY = re.compile(r"data/[0-9a-f]{16}/[^/]+")
 
 
 def upload_to_s3(data_dir: Path, config_bucket: str, keep: Dict[str, str] = None) -> Dict[str, str]:
@@ -979,8 +985,9 @@ def validate_configuration(data_dir: Path, check_vectors: bool = True) -> None:
 def check_deployed_category_words(data_dir: Path, config_bucket: str) -> Dict[str, str]:
     """With --skip-embeddings the deployed category vectors are kept, so the category words must not change.
 
-    Reads the deployed files through the CategorizationConfig parameter, which only ever points at a
-    complete upload, and returns the deployed category vectors key to reuse.
+    Reads the deployed files through the CategorizationConfig parameter and only accepts files under a
+    prefix written by upload_to_s3, which is never overwritten. The fixed data/ keys the notebooks write
+    can change after this check. Returns the deployed category vectors key to reuse.
     """
     s3 = boto3.client("s3")
     ssm = boto3.client("ssm")
@@ -988,6 +995,14 @@ def check_deployed_category_words(data_dir: Path, config_bucket: str) -> Dict[st
         deployed_paths = json.loads(
             ssm.get_parameter(Name=f"{SSM_PREFIX}CategorizationConfig")["Parameter"]["Value"]
         )
+        mutable = [
+            deployed_paths[key] for key in ("wordMap", "categoryVectors") if not VERSIONED_KEY.fullmatch(deployed_paths[key])
+        ]
+        if mutable:
+            raise ConfigurationError(
+                f"The deployed configuration uses files that can still change ({', '.join(mutable)}), "
+                "so its category vectors can't be kept. Run without --skip-embeddings."
+            )
         deployed = json.loads(
             s3.get_object(Bucket=config_bucket, Key=deployed_paths["wordMap"])["Body"].read()
         )
@@ -1129,16 +1144,6 @@ Examples:
             print("=" * 60 + "\n")
 
             save_ssm_configuration(vector_table_name, paths)
-
-            # The attribute extraction functions read the schema from a fixed key. A brick missing
-            # from it only gets no attributes, so it is replaced after the switch to the new files.
-            s3 = boto3.client("s3")
-            s3.upload_file(
-                str(args.data_dir / "linted_attrs.json"),
-                config_bucket,
-                "data/attributes_schema.json",
-            )
-            print("Uploaded attributes_schema.json")
 
         # Success message
         print("\n" + "=" * 60)

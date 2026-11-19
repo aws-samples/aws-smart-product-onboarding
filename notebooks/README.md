@@ -12,8 +12,10 @@ The script and the notebooks need these permissions in the account and Region of
 
 - `ssm:GetParameter` on `/ProductCategorization/ConfigurationBucket`, `/ProductCategorization/WordEmbeddingsPolicyArn` and `/ProductCategorization/CategorizationConfig`, and `ssm:PutParameter` on `/ProductCategorization/CategorizationConfig`
 - `s3:PutObject`, `s3:GetObject`, `s3:ListBucket` and `s3:DeleteObject` on the configuration bucket
-- `dynamodb:DescribeTable`, `dynamodb:ImportTable`, `dynamodb:DescribeImport` and `dynamodb:BatchGetItem` on the `SmartProductOnboarding-english_vectors` table. `dynamodb:DescribeTable` is needed on first-time setup too, to check whether the table exists. A first import also needs the CloudWatch Logs permissions listed in [Requesting a table import in DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/S3DataImport.Requesting.html).
+- `dynamodb:DescribeTable`, `dynamodb:ImportTable`, `dynamodb:BatchGetItem` and `dynamodb:GetItem` on the `SmartProductOnboarding-english_vectors` table, and `dynamodb:DescribeImport` on its imports (`table/SmartProductOnboarding-english_vectors/import/*`). `dynamodb:DescribeTable` is needed on first-time setup too, to check whether the table exists. `dynamodb:GetItem` is only used by notebook 2. A first import also needs the CloudWatch Logs permissions listed in [Requesting a table import in DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/S3DataImport.Requesting.html).
 - `iam:GetPolicy`, `iam:GetPolicyVersion` and `iam:CreatePolicyVersion` on the word embeddings policy
+
+The optional experiments at the end of notebook 2 also call Amazon Bedrock and create and delete their own DynamoDB table.
 
 ## Setup
 
@@ -83,7 +85,8 @@ Run the automated configuration script:
 # 3. Run the configuration script
 uv run python configure_categorization.py --gpc-file "data/GPC as of May 2026 v20260520 GB.json"
 
-# To skip the word embeddings and category vectors (only if the category tree hasn't changed):
+# To skip the word embeddings and category vectors (only if the category tree hasn't changed
+# since the last run of this script):
 uv run python configure_categorization.py --gpc-file "data/GPC as of May 2026 v20260520 GB.json" --skip-embeddings
 ```
 
@@ -93,7 +96,7 @@ The script will:
 - Generate metaclasses from category names
 - Download and import English word embeddings into DynamoDB (~1GB, takes 30-60 minutes). If the word embeddings table already exists, the script reuses it and skips this step.
 - Build the category word vectors
-- Upload the configuration to S3 under a prefix of its own (`data/<hash>/`)
+- Upload the configuration, including the attribute schemas, to S3 under a prefix of its own (`data/<hash>/`)
 - Point the `/ProductCategorization/CategorizationConfig` parameter at the new files. The functions only see a new configuration after this step, so an interrupted run never leaves them with files from two releases.
 
 To update to a newer GPC release, first deploy the latest version of this repository, since the categorization code can change with the category tree. Then run the script again without `--skip-embeddings`. It reuses the word embeddings table and rebuilds the category vectors for the new category names.

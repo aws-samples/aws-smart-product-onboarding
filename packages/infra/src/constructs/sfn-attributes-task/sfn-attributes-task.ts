@@ -18,6 +18,7 @@ import { Construct } from "constructs";
 
 export interface AttributeExtractionTaskFunctionProps {
   configBucket: s3.IBucket;
+  ssmParameterPrefix: string;
   appConfigApplicationId?: string;
   appConfigEnvironmentId?: string;
   appConfigConfigurationProfileId?: string;
@@ -52,6 +53,7 @@ export class AttributeExtractionTaskFunction extends lambda.DockerImageFunction 
       ),
       environment: {
         CONFIG_BUCKET_NAME: props.configBucket.bucketName,
+        CONFIG_PATHS_PARAM: props.ssmParameterPrefix + "/CategorizationConfig",
         BEDROCK_MODEL_ID: "global.anthropic.claude-sonnet-5-5",
         ...(props.appConfigApplicationId && {
           APPCONFIG_APPLICATION_ID: props.appConfigApplicationId,
@@ -119,6 +121,21 @@ export class AttributeExtractionTaskFunction extends lambda.DockerImageFunction 
     );
 
     props.configBucket.grantRead(this);
+
+    this.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["ssm:GetParameter"],
+        resources: [
+          Stack.of(this).formatArn({
+            arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
+            service: "ssm",
+            resource: "parameter",
+            resourceName:
+              props.ssmParameterPrefix.slice(1) + "/CategorizationConfig",
+          }),
+        ],
+      }),
+    );
 
     NagSuppressions.addResourceSuppressions(
       this,

@@ -119,6 +119,7 @@ export class SmartProductOnboardingAPI extends Construct {
       this,
       "ExtractAttributesFunction",
       {
+        ssmParameterPrefix: props.ssmParameterPrefix,
         configBucket: props.configurationBucket,
         appConfigApplicationId: props.appConfigApplicationId,
         appConfigEnvironmentId: props.appConfigEnvironmentId,
