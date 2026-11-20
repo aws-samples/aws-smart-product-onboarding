@@ -22,6 +22,7 @@ from amzn_smart_product_onboarding_core_utils.boto3_helper.ssm_client import (
     LAMBDA_SSM_CLIENT,
 )
 from amzn_smart_product_onboarding_core_utils.exceptions import (
+    ContentFilteredError,
     RateLimitError,
     RetryableError,
     ModelResponseError,
@@ -84,6 +85,9 @@ def extract_attributes(event: ApiRequest[ExtractAttributesRequestContent]) -> Ap
             ),
             event.body.category_id,
         )
+    except ContentFilteredError as e:
+        logger.warning(f"Content filter stopped the model: {e}")
+        return Response.bad_request(str(e))
     except (RateLimitError, RetryableError, ModelResponseError) as e:
         logger.exception(e)
         logger.error(f"Error while extracting attributes: {e}")

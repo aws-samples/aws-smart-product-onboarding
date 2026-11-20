@@ -7,6 +7,7 @@ import {
   createApiClients,
   errorMessage,
   isRetryable,
+  modelRetry,
   uploadFile,
 } from "./client";
 
@@ -84,5 +85,16 @@ describe("API client", () => {
     expect(errorMessage(undefined, "fallback")).toBe("fallback");
     expect(isRetryable("Retryable error")).toBe(true);
     expect(isRetryable({ message: "Internal server error" })).toBe(false);
+  });
+
+  it("does not retry a request the model's content filter blocked", () => {
+    const blocked = {
+      message:
+        "Blocked by the model's content filter. Edit the product details or images and try again.",
+    };
+    expect(modelRetry.retry(0, blocked)).toBe(false);
+    expect(modelRetry.retry(0, { message: "Retryable error" })).toBe(true);
+    expect(modelRetry.retry(2, { message: "Retryable error" })).toBe(true);
+    expect(modelRetry.retry(3, { message: "Retryable error" })).toBe(false);
   });
 });

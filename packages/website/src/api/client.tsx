@@ -90,9 +90,14 @@ export const errorMessage = (
 export const isRetryable = (error: unknown) =>
   errorMessage(error, "").startsWith("Retryable");
 
+/** A content filter blocked the model. The same input is blocked again, so it is not retried. */
+export const isContentFiltered = (error: unknown) =>
+  errorMessage(error, "").startsWith("Blocked by the model's content filter");
+
 /** Retry policy for the model-backed operations: 3 retries, longer waits when the model is throttled. */
 export const modelRetry = {
-  retry: 3,
+  retry: (failureCount: number, error: unknown) =>
+    failureCount < 3 && !isContentFiltered(error),
   retryDelay: (attempt: number, error: unknown) => {
     const base = isRetryable(error) ? 10_000 : 1_000;
     return base * 2 ** attempt + Math.random() * 1_000;

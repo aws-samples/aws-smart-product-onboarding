@@ -221,6 +221,22 @@ describe("Lambda Handler", () => {
     await expect(handler(event)).rejects.toThrow("Invalid model output");
   });
 
+  it("should let ContentFilteredError through so the workflow does not retry it", async () => {
+    const {
+      ProductGeneratorService,
+    } = require("../src/services/productGenerator");
+    const { ContentFilteredError } = require("../src/utils/exceptions");
+    (
+      ProductGeneratorService.prototype.generateProduct as jest.Mock
+    ).mockRejectedValueOnce(new ContentFilteredError());
+
+    const { handler } = require("../src/generate-product-sfn");
+    // Step Functions matches retriers and catchers on the error name.
+    await expect(handler({ images: ["image1.jpg"] })).rejects.toMatchObject({
+      name: "ContentFilteredError",
+    });
+  });
+
   it("should handle and log unknown errors", async () => {
     const unknownError = new Error("Unknown error");
     const {

@@ -169,6 +169,36 @@ describe("generate-product handler", () => {
     });
   });
 
+  it("should answer a content-filtered generation with 400 and its message", async () => {
+    const {
+      ProductGeneratorService,
+    } = require("../src/services/productGenerator");
+    // Required after resetModules so instanceof matches the handler's copy of the class.
+    const {
+      CONTENT_FILTERED_MESSAGE,
+      ContentFilteredError,
+    } = require("../src/utils/exceptions");
+    (
+      ProductGeneratorService.prototype.generateProduct as jest.Mock
+    ).mockRejectedValueOnce(new ContentFilteredError());
+
+    const { handler } = require("../src/generate-product");
+    const result = await handler(
+      apiGatewayEvent(JSON.stringify({ productImages: ["image1.jpg"] })),
+      lambdaContext,
+    );
+
+    expect(result.statusCode).toBe(400);
+    expect(result.headers).toMatchObject({
+      "x-amzn-errortype": "BadRequestError",
+      "access-control-allow-origin": "*",
+      "access-control-allow-headers": "*",
+    });
+    expect(JSON.parse(result.body)).toEqual({
+      message: CONTENT_FILTERED_MESSAGE,
+    });
+  });
+
   it.each([
     ["a body that is not JSON", "not json"],
     ["a missing body", null],

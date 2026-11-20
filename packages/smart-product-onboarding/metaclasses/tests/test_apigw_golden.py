@@ -205,3 +205,20 @@ def expected(name, golden):
 def test_response_matches_previous_runtime(name):
     golden = json.loads(GOLDEN_PATH.read_text())
     assert invoke(name) == expected(name, golden)
+
+
+def test_content_filtered_returns_bad_request():
+    """Added after the previous runtime: a content filter stopping the model answers 400 with a message."""
+    from amzn_smart_product_onboarding_core_utils.exceptions import CONTENT_FILTERED_MESSAGE, ContentFilteredError
+
+    module = _import()
+    module.metaclass_classifier.classify = MagicMock(side_effect=ContentFilteredError())
+    with patch.dict(os.environ, _ENV):
+        response = module.handler(api_event({"product": PRODUCT}), lambda_context())
+    assert response["statusCode"] == 400
+    assert response["headers"] == {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "*",
+        "x-amzn-errortype": "BadRequestError",
+    }
+    assert json.loads(response["body"]) == {"message": CONTENT_FILTERED_MESSAGE}
