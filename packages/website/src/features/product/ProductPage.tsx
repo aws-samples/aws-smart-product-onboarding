@@ -152,13 +152,24 @@ const StaleNotice: React.FC<{ flow: ProductFlow }> = ({ flow }) =>
     </div>
   ) : null;
 
+/**
+ * Which steps can be opened. The generate step stays reachable after a failed first generation,
+ * so going back to the images does not hide the error and its Retry.
+ */
+export const reachableSteps = (
+  flow: Pick<
+    ProductFlow,
+    "product" | "generating" | "genStatus" | "classified" | "classifying"
+  >,
+) => [
+  true,
+  !!flow.product || flow.generating || flow.genStatus === "error",
+  !!flow.product && !flow.generating,
+  flow.classified && !flow.classifying && !flow.generating,
+];
+
 const Steps: React.FC<{ flow: ProductFlow }> = ({ flow }) => {
-  const reachable = [
-    true,
-    !!flow.product || flow.generating,
-    !!flow.product && !flow.generating,
-    flow.classified && !flow.classifying && !flow.generating,
-  ];
+  const reachable = reachableSteps(flow);
   return (
     <nav aria-label="Steps" className="max-md:w-full max-md:overflow-x-auto">
       <ol className="bg-surface border-line flex w-fit gap-0.5 rounded-full border p-[3px]">
@@ -555,7 +566,7 @@ export const ProductPage: React.FC<{ draftId?: string }> = ({ draftId }) => {
                 `${flow.images.length} ${flow.images.length === 1 ? "image" : "images"}`,
                 flow.modelId ? modelLabel(flow.modelId) : undefined,
                 flow.product
-                  ? `${flow.options.language.trim() || "English"}, ${flow.options.descriptionLength}`
+                  ? `${flow.generatedWith.language.trim() || "English"}, ${flow.generatedWith.descriptionLength}`
                   : "Images and details go to Amazon Bedrock to write the listing",
               ]
                 .filter(Boolean)

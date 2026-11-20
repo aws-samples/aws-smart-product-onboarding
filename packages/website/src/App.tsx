@@ -91,7 +91,7 @@ export const AppRoutes: React.FC = () => (
       <Route
         path="/batches"
         element={
-          <PageErrorBoundary>
+          <PageErrorBoundary key="batches">
             <Suspense fallback={<Loading />}>
               <BatchesPage />
             </Suspense>
@@ -101,7 +101,7 @@ export const AppRoutes: React.FC = () => (
       <Route
         path="/quick"
         element={
-          <PageErrorBoundary>
+          <PageErrorBoundary key="quick">
             <Suspense fallback={<Loading />}>
               <QuickGeneratePage />
             </Suspense>
