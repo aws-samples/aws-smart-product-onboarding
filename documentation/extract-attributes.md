@@ -20,7 +20,7 @@ The attribute extraction process begins with schema retrieval, where the system 
 
 Next, the system constructs a carefully crafted prompt for the AI model. This prompt includes the product information, category details, and the attribute schema. The prompt is then sent to Amazon Bedrock, which processes it using the Claude 3.5 Sonnet model.
 
-After receiving the model's response in XML format, the system parses it to extract the identified attributes and their values. Finally, a basic validation is performed to ensure the extracted attributes conform to the expected schema.
+The request asks Amazon Bedrock for [structured output](https://docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html): a JSON schema with one required property per attribute, whose value is one of the attribute's listed values or null. The model's answer always matches that schema, so the system reads it as JSON and needs no further validation. Bedrock can't compile the schema for a few categories with long value lists, such as wines; for those, the system retries once with a schema that only requires each value to be a string or null, and remembers the category for the life of the process.
 
 ### Key Components
 
@@ -44,13 +44,13 @@ The request has a system prompt and a user message.
 
 5. **Extraction Instructions**: How to choose a value, and to use null when the product data doesn't give one.
 
-6. **Output Format**: The exact XML format the parser expects.
+6. **Output Format**: Not in the prompt. The JSON schema in the request's `outputConfig` sets it.
 
 ### Key Strategies
 
 - **Clear Instructions with Reasons**: The prompt says what to do and why. For example, it asks for null rather than a guess because the results fill a product catalog.
 - **Untrusted Input as Data**: Product text comes from sellers, so it is delimited in `<product_data>` and the system prompt tells the model not to follow instructions inside it.
-- **Answer Only**: The prompt asks for the XML answer directly, without a "scratchpad" or reasoning section. Current Claude models reason in their own thinking blocks, and they can decline or content-filter a request that asks them to write their reasoning into the response. See [Keep reasoning in thinking blocks](https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback#keep-reasoning-in-thinking-blocks).
+- **Answer Only**: The prompt asks for the answer directly, without a "scratchpad" or reasoning section. Current Claude models reason in their own thinking blocks, and they can decline or content-filter a request that asks them to write their reasoning into the response. See [Keep reasoning in thinking blocks](https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback#keep-reasoning-in-thinking-blocks).
 
 ### Customization Potential
 

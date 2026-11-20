@@ -35,14 +35,4 @@ Choose the category in <candidate_categories> that best fits the product in <pro
 
 Before you answer, work out the product's core purpose, key features, materials and intended user. Then pick the two or three most relevant candidates, compare the product with each one's description and example products, and choose the best match. Use your general knowledge about products as well as the information given. If no candidate fits, answer "other".
 
-Give the chosen category's ID exactly as it appears in its <id> tag, and its name as the last part of its <name>, after the final ">". Always include the explanation inside <prediction>, because the explanation is shown to the person who reviews the result.
-
-Respond with only this XML, with no text before or after it:
-
-<response>
-  <prediction>
-    <predicted_category_id>ID of the chosen category, or "other"</predicted_category_id>
-    <predicted_category_name>last part of the chosen category's name, or "Other"</predicted_category_name>
-    <explanation>Two or three sentences on why this category fits, naming the product details that decided it. For "other", say why no candidate fits.</explanation>
-  </prediction>
-</response>
+Give an explanation of two or three sentences on why the chosen category fits, naming the product details that decided it; for "other", say why no candidate fits. The explanation is shown to the person who reviews the result. Then give the chosen category's name as the last part of its <name>, after the final ">", or "Other", and its ID exactly as it appears in its <id> tag, or "other".

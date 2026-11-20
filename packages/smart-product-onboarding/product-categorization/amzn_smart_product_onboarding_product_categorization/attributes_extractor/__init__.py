@@ -11,20 +11,17 @@ from typing import TYPE_CHECKING
 
 import jinja2
 from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import (
-    complete_response,
-    extract_response_text,
+    json_output_config,
+    parse_json_response,
     prepare_converse_request,
 )
 from amzn_smart_product_onboarding_core_utils.exceptions import (
-    ModelResponseError,
     RateLimitError,
     RetryableError,
 )
 from amzn_smart_product_onboarding_core_utils.json_to_xml import json_to_xml
-from amzn_smart_product_onboarding_core_utils.xml_output import parse_response
 from botocore.exceptions import ClientError
 from cachetools import TTLCache, cachedmethod
-from pydantic import ValidationError
 
 if TYPE_CHECKING:
     from mypy_boto3_bedrock_runtime.client import BedrockRuntimeClient
@@ -35,6 +32,7 @@ else:
 
 from amzn_smart_product_onboarding_core_utils.logger import logger
 from amzn_smart_product_onboarding_core_utils.models import (
+    Attribute,
     Attributes,
     CategorySchema,
     Product,
@@ -43,6 +41,19 @@ from amzn_smart_product_onboarding_core_utils.models import (
 logger.name = "AttributesExtractor"
 
 EMPTY_RESPONSE = Attributes(attributes=[])
+
+# Categories whose enum schema Bedrock refused to compile, kept for the life of the process.
+_CATEGORIES_NEEDING_STRING_SCHEMA: set[str] = set()
+
+
+def _is_schema_too_complex(error: ClientError) -> bool:
+    return error.response["Error"]["Code"] == "ValidationException" and "Schema is too complex" in error.response[
+        "Error"
+    ].get("Message", "")
+
+
+def _object_schema(properties: dict) -> dict:
+    return {"type": "object", "properties": properties, "required": list(properties), "additionalProperties": False}
 
 
 class CategorySchemaNotFound(Exception): ...
@@ -87,9 +98,6 @@ class GPCSchemaRetriever(SchemaRetriever):
 
 
 class AttributesExtractor:
-    response_open: str = "<response>"
-    response_close: str = "</response>"
-
     def __init__(
         self,
         bedrock_runtime_client: "BedrockRuntimeClient",
@@ -130,18 +138,17 @@ class AttributesExtractor:
         messages, inference_config = prepare_converse_request(
             self.model_id,
             [{"role": "user", "content": [{"text": prompt}]}],
-            self.response_open,
-            self.response_close,
-            self.temperature,
+            temperature=self.temperature,
         )
+        request = {
+            "modelId": self.model_id,
+            "system": [{"text": self.system_prompt}],
+            "inferenceConfig": inference_config,
+            "messages": messages,
+        }
 
         try:
-            response = self.bedrock_runtime_client.converse(
-                modelId=self.model_id,
-                system=[{"text": self.system_prompt}],
-                inferenceConfig=inference_config,
-                messages=messages,
-            )
+            response = self._converse(request, category_id, category_schema)
         except ClientError as e:
             # TODO: extract error handling to a decorator
             if e.response["Error"]["Code"] == "ThrottlingException":
@@ -154,11 +161,28 @@ class AttributesExtractor:
             ):
                 logger.exception(e)
                 raise RetryableError(e)
+            raise
         logger.info({"usage": response["usage"]})
         attributes = self._parse_response(response)
         print(f"ATTRIBUTES ARE: {attributes}")
 
         return attributes
+
+    def _converse(self, request: dict, category_id: str, category_schema: CategorySchema) -> dict:
+        """Call Converse with the enum schema, or with the string schema for categories Bedrock can't compile."""
+        if category_id not in _CATEGORIES_NEEDING_STRING_SCHEMA:
+            try:
+                return self.bedrock_runtime_client.converse(
+                    **request, outputConfig=json_output_config(self.output_schema(category_schema), "attributes")
+                )
+            except ClientError as e:
+                if not _is_schema_too_complex(e):
+                    raise
+                logger.warning({"schema_too_complex": category_id})
+                _CATEGORIES_NEEDING_STRING_SCHEMA.add(category_id)
+        return self.bedrock_runtime_client.converse(
+            **request, outputConfig=json_output_config(self.string_output_schema(category_schema), "attributes")
+        )
 
     def create_prompt(self, category_schema, product: Product) -> str:
         """Use Jinja2 to fill in a prompt from the `product_category` template."""
@@ -173,22 +197,36 @@ class AttributesExtractor:
 
         return prompt
 
-    def _parse_response(self, response) -> Attributes:
-        text = extract_response_text(response)
+    @staticmethod
+    def output_schema(category_schema: CategorySchema) -> dict:
+        """JSON schema with one required property per attribute: one of its listed values, or null.
 
-        xml_response = complete_response(
-            text, response["stopReason"], self.model_id, self.response_open, self.response_close
+        Null is an enum value rather than a "null" type, because Bedrock allows at most 16 union-typed properties.
+        """
+        properties = {
+            attribute["Title"]: (
+                {"enum": [value["Title"] for value in attribute["Childs"]] + [None]}
+                if attribute.get("Childs")
+                else {"type": ["string", "null"]}
+            )
+            for attribute in category_schema.attributes_schema
+        }
+        return _object_schema(properties)
+
+    @staticmethod
+    def string_output_schema(category_schema: CategorySchema) -> dict:
+        """Fallback schema for categories whose enum schema Bedrock can't compile: each attribute is a string or null.
+
+        shortcut: more than 16 attributes would exceed Bedrock's union-type limit; GPC May 2026 has at most 16.
+        """
+        return _object_schema(
+            {attribute["Title"]: {"type": ["string", "null"]} for attribute in category_schema.attributes_schema}
         )
-        if xml_response is None:
-            logger.error(f"Stop reason: {response['stopReason']}")
-            raise ModelResponseError(f"Invalid stop reason: {response['stopReason']}")
-        try:
-            # Schema values can contain "<", such as "<3 YEARS", so don't parse values as XML.
-            parsed_response = parse_response(xml_response, cdata_tags=["value"])
-            attributes = parsed_response["response"]["attributes"]["attribute"]
-            attributes = [attributes] if not isinstance(attributes, list) else attributes
-            return Attributes.model_validate({"attributes": attributes})
-        except (ValueError, ValidationError, KeyError) as e:
-            logger.exception(e)
-            logger.error(f"Failed to parse extracted attributes from response: {xml_response}")
-            raise ModelResponseError("Failed to parse extracted attributes from response")
+
+    def _parse_response(self, response) -> Attributes:
+        values = parse_json_response(response)
+        return Attributes(
+            attributes=[
+                Attribute(name=name, value="null" if value is None else value) for name, value in values.items()
+            ]
+        )
