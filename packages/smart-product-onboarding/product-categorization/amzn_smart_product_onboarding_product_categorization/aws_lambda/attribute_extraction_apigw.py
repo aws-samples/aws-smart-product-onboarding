@@ -1,9 +1,11 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
+import json
 import os
 
 from amzn_smart_product_onboarding_api_common.handler import ApiRequest, ApiResponse, Response, api_handler
+from botocore.exceptions import ClientError
 from amzn_smart_product_onboarding_api_common.models import (
     ExtractAttributesRequestContent,
     ExtractAttributesResponseContent,
@@ -15,6 +17,9 @@ from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_clien
 )
 from amzn_smart_product_onboarding_core_utils.boto3_helper.s3_client import (
     LAMBDA_S3_RESOURCE,
+)
+from amzn_smart_product_onboarding_core_utils.boto3_helper.ssm_client import (
+    LAMBDA_SSM_CLIENT,
 )
 from amzn_smart_product_onboarding_core_utils.exceptions import (
     RateLimitError,
@@ -33,6 +38,20 @@ logger.name = "AttributeExtraction"
 CONFIG_BUCKET_NAME = os.getenv("CONFIG_BUCKET_NAME")
 CONFIG_BUCKET = LAMBDA_S3_RESOURCE.Bucket(CONFIG_BUCKET_NAME)
 MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "global.anthropic.claude-sonnet-5-5")
+CONFIG_PATHS_PARAM = os.getenv("CONFIG_PATHS_PARAM")
+
+# Read the schema from the same configuration as the category tree. Configurations written
+# by the notebooks have no attributesSchema entry and keep the schema at the fixed key, and
+# notebook 1 uploads that key before notebook 2 creates the parameter.
+try:
+    config_paths: dict[str, str] = json.loads(
+        LAMBDA_SSM_CLIENT.get_parameter(Name=CONFIG_PATHS_PARAM)["Parameter"]["Value"]
+    )
+except ClientError as e:
+    if e.response["Error"]["Code"] != "ParameterNotFound":
+        raise
+    config_paths = {}
+SCHEMA_PATH = config_paths.get("attributesSchema", "data/attributes_schema.json")
 
 if os.getenv("BEDROCK_XACCT_ROLE"):
     # when using cross-acct roles we would like to use CRIS (Cross-Region Inference)
@@ -44,7 +63,7 @@ def extract_attributes(event: ApiRequest[ExtractAttributesRequestContent]) -> Ap
 
     try:
         schema_retriever = GPCSchemaRetriever(
-            schema_storage=CONFIG_BUCKET, schema_path="data/attributes_schema.json"
+            schema_storage=CONFIG_BUCKET, schema_path=SCHEMA_PATH
         )
     except Exception as e:
         logger.exception(e)

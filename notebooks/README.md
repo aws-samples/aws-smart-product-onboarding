@@ -6,6 +6,17 @@ This folder contains Jupyter notebooks for preparing and configuring the Smart P
 
 Before running these notebooks, ensure you have completed the CDK deployment as described in the main project README.md. The notebooks depend on an S3 bucket and SSM Parameter Store parameter created during this deployment.
 
+### Permissions
+
+The script and the notebooks need these permissions in the account and Region of the deployment:
+
+- `ssm:GetParameter` on `/ProductCategorization/ConfigurationBucket`, `/ProductCategorization/WordEmbeddingsPolicyArn` and `/ProductCategorization/CategorizationConfig`, and `ssm:PutParameter` on `/ProductCategorization/CategorizationConfig`
+- `s3:PutObject`, `s3:GetObject`, `s3:ListBucket` and `s3:DeleteObject` on the configuration bucket
+- `dynamodb:DescribeTable`, `dynamodb:ImportTable`, `dynamodb:BatchGetItem` and `dynamodb:GetItem` on the `SmartProductOnboarding-english_vectors` table, and `dynamodb:DescribeImport` on its imports (`table/SmartProductOnboarding-english_vectors/import/*`). `dynamodb:DescribeTable` is needed on first-time setup too, to check whether the table exists. `dynamodb:GetItem` is only used by notebook 2. A first import also needs the CloudWatch Logs permissions listed in [Requesting a table import in DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/S3DataImport.Requesting.html).
+- `iam:GetPolicy`, `iam:GetPolicyVersion` and `iam:CreatePolicyVersion` on the word embeddings policy
+
+The optional experiments at the end of notebook 2 also call Amazon Bedrock and create and delete their own DynamoDB table.
+
 ## Setup
 
 You can run the notebooks locally or in Sagemaker Studio.
@@ -63,28 +74,38 @@ You have two options for configuring the system:
 Run the automated configuration script:
 
 ```bash
-# 1. Download the English GS1 GPC as of November 2024 v20241202 in JSON format from https://gpc-browser.gs1.org/
+# 1. Download the English GS1 GPC as of May 2026 v20260520 in JSON format from https://gpc-browser.gs1.org/
 #    - Select "English (GB)" as the language
-#    - Select "GPC as of November 2024 (GSDN)" as the version
+#    - Select "GPC as of May 2026" as the version
 #    - Download as JSON format at the bottom of the page
-#    - Filename: "GPC as of November 2024 v20241202 GB.json"
+#    - Filename: "GPC as of May 2026 v20260520 GB.json"
 #
 # 2. Save it in the notebooks/data/ directory
 
 # 3. Run the configuration script
-uv run python configure_categorization.py --gpc-file "data/GPC as of November 2024 v20241202 GB.json"
+uv run python configure_categorization.py --gpc-file "data/GPC as of May 2026 v20260520 GB.json"
 
-# To skip embeddings processing (if already done):
-uv run python configure_categorization.py --gpc-file "data/GPC as of November 2024 v20241202 GB.json" --skip-embeddings
+# To skip the word embeddings and category vectors (only if the category tree hasn't changed
+# since the last run of this script):
+uv run python configure_categorization.py --gpc-file "data/GPC as of May 2026 v20260520 GB.json" --skip-embeddings
 ```
 
 The script will:
 
 - Process the category tree and attribute schemas
 - Generate metaclasses from category names
-- Download and process English word embeddings (~1GB, takes 30-60 minutes)
-- Upload configuration to S3
-- Update SSM parameters
+- Download and import English word embeddings into DynamoDB (~1GB, takes 30-60 minutes). If the word embeddings table already exists, the script reuses it and skips this step.
+- Build the category word vectors
+- Upload the configuration, including the attribute schemas, to S3 under a prefix of its own (`data/<hash>/`)
+- Point the `/ProductCategorization/CategorizationConfig` parameter at the new files. The functions only see a new configuration after this step, so an interrupted run never leaves them with files from two releases.
+
+To update to a newer GPC release, first deploy the latest version of this repository, since the categorization code can change with the category tree. Then run the script again without `--skip-embeddings`. It reuses the word embeddings table and rebuilds the category vectors for the new category names.
+
+The metaclass, categorization and attribute extraction functions read the configuration when they start, so a deployed stack keeps the previous configuration until its functions start again. To apply the new configuration right away, update the configuration of each of those functions, for example:
+
+```bash
+aws lambda update-function-configuration --function-name <function name> --description ""
+```
 
 ### Option 2: Interactive Notebooks
 

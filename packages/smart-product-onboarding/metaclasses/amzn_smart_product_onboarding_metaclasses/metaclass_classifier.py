@@ -35,7 +35,9 @@ WORD_LIMIT = 20
 
 # Nearest category words to look up for each product word. One neighbour is often the wrong sense
 # ("bike" -> "motorcycle", "guitar" -> "piano"); a few more let the categorization step see the right one.
-EMBEDDING_NEIGHBORS = 3
+# With the GPC May 2026 category words, "handlebar" is the third neighbour of "bike", so four are needed
+# to keep "ride" (Toys - Ride-on).
+EMBEDDING_NEIGHBORS = 4
 
 
 def split_words(text: str) -> list[str]:

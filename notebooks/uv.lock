@@ -19,39 +19,30 @@ constraints = [
 ]
 
 [[package]]
-name = "aenum"
-version = "3.1.17"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/07/e9/8b283567c1fef7c24d1f390b37daede8b61593d8cdaffb8e95d571699e83/aenum-3.1.17.tar.gz", hash = "sha256:a969a4516b194895de72c875ece355f17c0d272146f7fda346ef74f93cf4d5ba", size = 137648, upload-time = "2026-03-20T20:43:29.846Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/48/8d/1fe30c6fd8999b9d462547c4a1bb6690bda24af38f2913c4bec7decb81f2/aenum-3.1.17-py3-none-any.whl", hash = "sha256:8b883a37a04e74cc838ac442bdd28c266eae5bbf13e1342c7ef123ed25230139", size = 165560, upload-time = "2026-03-20T20:43:27.681Z" },
-]
-
-[[package]]
 name = "amazon-ion"
 version = "0.13.0"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/35/61/689d4400a2f51cd2b118014b11063c6baafda3484ea5440c7cab1ec1944e/amazon.ion-0.13.0.tar.gz", hash = "sha256:18a41d3f1192e287ada981dd833af7b2d9cdc8406f3fbb1b54558b0ce36e85be", size = 796475, upload-time = "2025-01-10T23:22:19.169Z" }
 
 [[package]]
-name = "amzn-smart-product-onboarding-api-runtime"
-version = "0.1.0"
-source = { editable = "../packages/smart-product-onboarding/api/runtime" }
+name = "amzn-smart-product-onboarding-api-common"
+version = "0.0.0"
+source = { editable = "../packages/smart-product-onboarding/api/common" }
 dependencies = [
-    { name = "aenum" },
-    { name = "aws-lambda-powertools", extra = ["aws-sdk", "tracer"] },
+    { name = "aws-lambda-powertools", extra = ["tracer"] },
     { name = "pydantic" },
-    { name = "python-dateutil" },
-    { name = "urllib3" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "aenum", specifier = ">=3.1.11" },
-    { name = "aws-lambda-powertools", extras = ["tracer", "aws-sdk"], specifier = ">=2.28.0" },
-    { name = "pydantic", specifier = ">=2.5.2" },
-    { name = "python-dateutil", specifier = "~=2.8.2" },
-    { name = "urllib3", specifier = ">=2.8.0" },
+    { name = "aws-lambda-powertools", extras = ["tracer"], specifier = ">=3.22.0" },
+    { name = "pydantic", specifier = ">=2.12.3" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=9.0.3" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
 ]
 
 [[package]]
@@ -88,7 +79,7 @@ name = "amzn-smart-product-onboarding-metaclasses"
 version = "0.1.0"
 source = { editable = "../packages/smart-product-onboarding/metaclasses" }
 dependencies = [
-    { name = "amzn-smart-product-onboarding-api-runtime" },
+    { name = "amzn-smart-product-onboarding-api-common" },
     { name = "amzn-smart-product-onboarding-core-utils" },
     { name = "cachetools" },
     { name = "faiss-cpu" },
@@ -100,7 +91,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "amzn-smart-product-onboarding-api-runtime", editable = "../packages/smart-product-onboarding/api/runtime" },
+    { name = "amzn-smart-product-onboarding-api-common", editable = "../packages/smart-product-onboarding/api/common" },
     { name = "amzn-smart-product-onboarding-core-utils", editable = "../packages/smart-product-onboarding/core-utils" },
     { name = "cachetools", specifier = ">=5.5.1" },
     { name = "faiss-cpu", specifier = ">=1.10.0" },
@@ -244,9 +235,6 @@ wheels = [
 ]
 
 [package.optional-dependencies]
-aws-sdk = [
-    { name = "boto3" },
-]
 tracer = [
     { name = "aws-xray-sdk" },
 ]
@@ -708,6 +696,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/78/c6/943357d44a21fd995723d07ccaddd78023eace03c1846049a2645d4324a3/inflect-7.5.0.tar.gz", hash = "sha256:faf19801c3742ed5a05a8ce388e0d8fe1a07f8d095c82201eb904f5d27ad571f", size = 73751, upload-time = "2024-12-28T17:11:18.897Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8a/eb/427ed2b20a38a4ee29f24dbe4ae2dafab198674fe9a85e3d6adf9e5f5f41/inflect-7.5.0-py3-none-any.whl", hash = "sha256:2aea70e5e70c35d8350b8097396ec155ffd68def678c7ff97f51aa69c1d92344", size = 35197, upload-time = "2024-12-28T17:11:15.931Z" },
+]
+
+[[package]]
+name = "iniconfig"
+version = "2.3.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/01/e1/2069291243c926a2ff1cd706c7f3eeb9b62144bf60f77c9fb9ff2fb26bd3/iniconfig-2.3.1.tar.gz", hash = "sha256:67f4b9c50da0dedf52af349e7749a80a9057a5031199791b906c3bb3ae878960", size = 21209, upload-time = "2026-10-06T22:48:38.076Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/56/43/4ca9e49d27a1fcf6bece6f6aec0ea46bb9112489b93d4b688fb415457bdb/iniconfig-2.3.1-py3-none-any.whl", hash = "sha256:9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7", size = 7552, upload-time = "2026-10-06T22:48:36.959Z" },
 ]
 
 [[package]]
@@ -1421,6 +1418,7 @@ dev = [
     { name = "ipython" },
     { name = "jupyterlab" },
     { name = "notebook" },
+    { name = "pytest" },
     { name = "ruff" },
 ]
 
@@ -1443,6 +1441,7 @@ dev = [
     { name = "ipython", specifier = ">=8.29.0" },
     { name = "jupyterlab", specifier = ">=4.5.7" },
     { name = "notebook", specifier = ">=7.5.6" },
+    { name = "pytest", specifier = ">=9.0.3" },
     { name = "ruff", specifier = ">=0.8.2" },
 ]
 
@@ -1602,6 +1601,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/61/33/9611380c2bdb1225fdef633e2a9610622310fed35ab11dac9620972ee088/platformdirs-4.5.0.tar.gz", hash = "sha256:70ddccdd7c99fc5942e9fc25636a8b34d04c24b335100223152c2803e4063312", size = 21632, upload-time = "2025-10-08T17:44:48.791Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/73/cb/ac7874b3e5d58441674fb70742e6c374b28b0c7cb988d37d991cde47166c/platformdirs-4.5.0-py3-none-any.whl", hash = "sha256:e578a81bb873cbb89a41fcc904c7ef523cc18284b7e3b3ccf06aca1403b7ebd3", size = 18651, upload-time = "2025-10-08T17:44:47.223Z" },
+]
+
+[[package]]
+name = "pluggy"
+version = "1.7.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/bf/db/7fc19e6f2dc92a966727031389fc2e08b558f0f25eb7403c1119ad4713cd/pluggy-1.7.0.tar.gz", hash = "sha256:d1eaa46ebb595891b860ab086b4d09c8588af65ebd4361b8e8f4bb8920b90ba8", size = 123304, upload-time = "2026-10-15T09:50:58.343Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/40/9e/2b38731e0fc536806f16490e1a12d7f0dc2a1235aa8cc07bcc75416a7daa/pluggy-1.7.0-py3-none-any.whl", hash = "sha256:7dd7b0d8832ba3cb632c306926ded123429211b83641b35dc5c41ad2d34f9bec", size = 27082, upload-time = "2026-10-15T09:50:56.808Z" },
 ]
 
 [[package]]
@@ -1773,6 +1781,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/dd/37/c384631908029676d8e7213dd956bb686af303a80db7afbc9be36bc49495/pympler-1.1.tar.gz", hash = "sha256:1eaa867cb8992c218430f1708fdaccda53df064144d1c5656b1e6f1ee6000424", size = 179954, upload-time = "2024-06-28T19:56:06.563Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/79/4f/a6a2e2b202d7fd97eadfe90979845b8706676b41cbd3b42ba75adf329d1f/Pympler-1.1-py3-none-any.whl", hash = "sha256:5b223d6027d0619584116a0cbc28e8d2e378f7a79c1e5e024f9ff3b673c58506", size = 165766, upload-time = "2024-06-28T19:56:05.087Z" },
+]
+
+[[package]]
+name = "pytest"
+version = "9.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "iniconfig" },
+    { name = "packaging" },
+    { name = "pluggy" },
+    { name = "pygments" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/79/42/bb4641652e58dedeac2ec51abc1f8cae4fee4ec63899a0999016229a0f2a/pytest-9.2.0.tar.gz", hash = "sha256:97c4f3b1f3c7414aa36465e09b8220f1d03627993bd51b1282e193753c80557b", size = 1797555, upload-time = "2026-10-27T21:30:20.728Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/51/39/1f5d8c8877a0fa327db959c19341d4be61660de1ab6b7391f9eb805bcd67/pytest-9.2.0-py3-none-any.whl", hash = "sha256:07acdcf88ec174f907dc01af70bf52d49b014bbab03faeeade31c96b18c2e588", size = 411776, upload-time = "2026-10-27T21:30:19.131Z" },
 ]
 
 [[package]]

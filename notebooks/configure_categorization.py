@@ -17,6 +17,7 @@ import os
 import hashlib
 import time
 import io
+import re
 import gzip
 import tempfile
 from pathlib import Path
@@ -118,6 +119,7 @@ DEFAULT_SINGULARIZE_EXCEPTIONS = {
     "lutescens": "lutescens",
     "perennis": "perennis",
     "index": "index",
+    "asbestos": "asbestos",
 }
 
 DEFAULT_DESCRIPTORS = [
@@ -155,7 +157,6 @@ ALWAYS_CATEGORY_IDS = [
     "10001194",  # GPS Software - Mobile Communications
     "10006237",  # GPS Software - Mobile Communications - Digital
     "10001197",  # Mobile Phone Software
-    "10006238",  # Mobile Phone Software - Digital
     "10000624",  # Cross Segment Variety Packs
     "10002103",  # Textual/Printed/Reference Materials Variety Packs
 ]
@@ -235,6 +236,25 @@ def get_embeddings_models(
             files.append(str(dest_path))
 
     return files
+
+
+GPC_NODE_KEYS = {"Level", "Code", "Title", "Definition", "Active", "Childs"}
+
+
+def validate_gpc(gpc: Any) -> None:
+    """Check that the file has the GS1 GPC JSON layout this script reads"""
+    schema = gpc.get("Schema") if isinstance(gpc, dict) else None
+    if not isinstance(schema, list) or not schema:
+        raise ConfigurationError(
+            "Unexpected GPC file format: expected a JSON object with a non-empty 'Schema' list. "
+            "Download the GPC JSON file named in notebooks/README.md."
+        )
+    missing = GPC_NODE_KEYS - set(schema[0])
+    if missing:
+        raise ConfigurationError(
+            f"Unexpected GPC file format: segments are missing {', '.join(sorted(missing))}. "
+            "Download the GPC JSON file named in notebooks/README.md."
+        )
 
 
 def iterate_category_tree(tree: Dict, path: List = None) -> Dict:
@@ -358,6 +378,7 @@ class CategoryTreeProcessor:
         print(f"Loading GPC data from {gpc_file}...")
         with open(gpc_file, "r") as fp:
             self.gpc = json.load(fp)
+        validate_gpc(self.gpc)
         print(f"Loaded {len(self.gpc['Schema'])} schemas")
 
     def process_category_tree(self) -> Dict:
@@ -582,9 +603,59 @@ class VectorEmbeddingsProcessor:
         print(f"Using configuration bucket: {self.config_bucket}")
 
     def process_embeddings(self) -> Tuple[Dict, faiss.Index, List[str]]:
-        """Download, process, and upload word embeddings"""
+        """Load word embeddings into DynamoDB (if needed) and build category vectors"""
         print("Processing word embeddings...")
+        vector_table_name = f"{VECTOR_TABLE_PREFIX}english_vectors"
 
+        # The table holds generic word vectors, independent of the category tree,
+        # so an existing table is reused when the category tree is updated.
+        if self._vector_table_is_active(vector_table_name):
+            print(
+                f"Reusing existing word vectors table {vector_table_name}; skipping download and import"
+            )
+        else:
+            self._import_vectors(vector_table_name)
+
+        # Build category vectors
+        print("Building category vectors...")
+        vector_table = self.ddbr.Table(vector_table_name)
+        category_vectors = self._build_category_vectors(vector_table)
+
+        # Build FAISS index
+        print("Building FAISS index...")
+        word_index, faiss_index = self._build_faiss_index(category_vectors)
+
+        # Update IAM policy
+        print("Updating IAM policy for word embeddings access...")
+        self._update_iam_policy(vector_table.table_arn)
+
+        return category_vectors, faiss_index, word_index
+
+    def _vector_table_is_active(self, table_name: str) -> bool:
+        """Return True if the word vectors table exists and is ACTIVE, False if it doesn't exist"""
+        try:
+            status = self.ddb.describe_table(TableName=table_name)["Table"][
+                "TableStatus"
+            ]
+        except self.ddb.exceptions.ResourceNotFoundException:
+            return False
+        except self.ddb.exceptions.ClientError as e:
+            if e.response["Error"]["Code"] in ("AccessDeniedException", "UnauthorizedOperation"):
+                raise ConfigurationError(
+                    f"Not allowed to check whether the word vectors table {table_name} exists. "
+                    "Grant dynamodb:DescribeTable on that table (see the permissions in notebooks/README.md) "
+                    "and run the script again."
+                ) from e
+            raise
+        if status != "ACTIVE":
+            raise ConfigurationError(
+                f"DynamoDB table {table_name} exists but is {status}. "
+                "Wait until it is ACTIVE and run the script again."
+            )
+        return True
+
+    def _import_vectors(self, vector_table_name: str):
+        """Download the word embeddings and import them into a new DynamoDB table"""
         # Download embeddings
         embeddings_files = get_embeddings_models(
             [DEFAULT_EMBEDDINGS_MODEL_URL], self.data_dir
@@ -635,7 +706,6 @@ class VectorEmbeddingsProcessor:
         print("Upload complete")
 
         # Import to DynamoDB
-        vector_table_name = f"{VECTOR_TABLE_PREFIX}english_vectors"
         print(f"Importing vectors to DynamoDB table: {vector_table_name}")
 
         job = self.ddb.import_table(
@@ -673,26 +743,11 @@ class VectorEmbeddingsProcessor:
         if status != "COMPLETED":
             raise ConfigurationError(f"DynamoDB import failed with status: {status}")
 
-        # Build category vectors
-        print("Building category vectors...")
-        vector_table = self.ddbr.Table(vector_table_name)
-        category_vectors = self._build_category_vectors(vector_table)
-
-        # Build FAISS index
-        print("Building FAISS index...")
-        word_index, faiss_index = self._build_faiss_index(category_vectors)
-
-        # Update IAM policy
-        print("Updating IAM policy for word embeddings access...")
-        self._update_iam_policy(vector_table.table_arn)
-
         # Clean up S3 import files
         print("Cleaning up S3 import files...")
         for file in import_dir.glob("*.ion.gz"):
             key = f"english_vectors_import/{file.name}"
             s3.delete_object(Bucket=self.config_bucket, Key=key)
-
-        return category_vectors, faiss_index, word_index
 
     def _build_category_vectors(self, vector_table) -> Dict:
         """Build category vectors from word embeddings"""
@@ -758,27 +813,42 @@ class VectorEmbeddingsProcessor:
                 Name=f"{SSM_PREFIX}WordEmbeddingsPolicyArn"
             )["Parameter"]["Value"]
 
+            policy_document = {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Sid": "wordembeddings",
+                        "Effect": "Allow",
+                        "Action": [
+                            "dynamodb:GetItem",
+                            "dynamodb:BatchGetItem",
+                            "dynamodb:Scan",
+                            "dynamodb:Query",
+                            "dynamodb:ConditionCheckItem",
+                        ],
+                        "Resource": table_arn,
+                    }
+                ],
+            }
+
+            # A policy keeps at most five versions, so don't add one that changes nothing.
+            try:
+                default_version = self.iam.get_policy(PolicyArn=word_embeddings_policy_arn)[
+                    "Policy"
+                ]["DefaultVersionId"]
+                current_document = self.iam.get_policy_version(
+                    PolicyArn=word_embeddings_policy_arn, VersionId=default_version
+                )["PolicyVersion"]["Document"]
+            except Exception as e:  # without read access, write the version as before
+                print(f"Could not read the current IAM policy ({e}); updating it")
+                current_document = None
+            if current_document == policy_document:
+                print("IAM policy already grants access to the embeddings table")
+                return
+
             self.iam.create_policy_version(
                 PolicyArn=word_embeddings_policy_arn,
-                PolicyDocument=json.dumps(
-                    {
-                        "Version": "2012-10-17",
-                        "Statement": [
-                            {
-                                "Sid": "wordembeddings",
-                                "Effect": "Allow",
-                                "Action": [
-                                    "dynamodb:GetItem",
-                                    "dynamodb:BatchGetItem",
-                                    "dynamodb:Scan",
-                                    "dynamodb:Query",
-                                    "dynamodb:ConditionCheckItem",
-                                ],
-                                "Resource": table_arn,
-                            }
-                        ],
-                    }
-                ),
+                PolicyDocument=json.dumps(policy_document),
                 SetAsDefault=True,
             )
             print("Updated IAM policy successfully")
@@ -793,41 +863,66 @@ class VectorEmbeddingsProcessor:
         print(f"Saved category vectors to {output_file}")
 
 
-def upload_to_s3(data_dir: Path, config_bucket: str, files: List[str]):
-    """Upload configuration files to S3"""
-    print(f"Uploading configuration files to S3 bucket: {config_bucket}")
-    s3 = boto3.client("s3")
+# Files the functions find through the CategorizationConfig parameter, by configuration key
+CONFIG_FILES = {
+    "categoryTree": "labelcats.json",
+    "metaclasses": "metaclasses.json",
+    "mappings": "mappings.json",
+    "categoryVectors": "category_vectors.json",
+    "wordMap": "word_map.json",
+    "brands": "marcas.json",
+    "singularize": "singularize.json",
+    "synonyms": "synonyms.json",
+    "descriptors": "descriptors.json",
+    "alwaysCategories": "always.json",
+    "attributesSchema": "linted_attrs.json",
+}
 
-    for filename in files:
-        file_path = data_dir / filename
-        if file_path.exists():
-            key = f"data/{filename}"
-            print(f"Uploading {filename}...")
-            s3.upload_file(str(file_path), config_bucket, key)
-        else:
-            print(f"Warning: {filename} not found, skipping")
+# Prefix of a configuration uploaded by upload_to_s3. Objects under it are never overwritten
+# with other content, unlike the fixed data/ keys the notebooks write.
+VERSIONED_KEY = re.compile(r"data/[0-9a-f]{16}/[^/]+")
+
+
+def upload_to_s3(data_dir: Path, config_bucket: str, keep: Dict[str, str] = None) -> Dict[str, str]:
+    """Upload the configuration files under a prefix of their own and return their keys.
+
+    The functions only see the new files once save_ssm_configuration points the
+    CategorizationConfig parameter at them, so an interrupted upload never mixes files
+    from two releases. `keep` maps configuration keys to deployed files to reuse.
+    """
+    keep = keep or {}
+    names = [name for key, name in CONFIG_FILES.items() if key not in keep]
+    missing = [name for name in names if not (data_dir / name).exists()]
+    if missing:
+        raise ConfigurationError(f"Missing configuration files in {data_dir}: {', '.join(missing)}")
+    digest = hashlib.sha256()
+    for name in names:
+        digest.update(name.encode() + (data_dir / name).read_bytes())
+    prefix = f"data/{digest.hexdigest()[:16]}"
+
+    print(f"Uploading configuration files to s3://{config_bucket}/{prefix}/")
+    s3 = boto3.client("s3")
+    paths = dict(keep)
+    for key, name in CONFIG_FILES.items():
+        if key in keep:
+            continue
+        print(f"Uploading {name}...")
+        s3.upload_file(str(data_dir / name), config_bucket, f"{prefix}/{name}")
+        paths[key] = f"{prefix}/{name}"
 
     print("Upload complete")
+    return paths
 
 
-def save_ssm_configuration(vector_table_name: str):
-    """Save configuration to SSM Parameter Store"""
+def save_ssm_configuration(vector_table_name: str, paths: Dict[str, str]):
+    """Point the CategorizationConfig parameter at the uploaded files"""
     print("Saving configuration to SSM Parameter Store...")
     ssm = boto3.client("ssm")
 
     config = {
         "language": "english",
         "wordEmbeddingsTable": vector_table_name,
-        "categoryTree": "data/labelcats.json",
-        "metaclasses": "data/metaclasses.json",
-        "mappings": "data/mappings.json",
-        "categoryVectors": "data/category_vectors.json",
-        "wordMap": "data/word_map.json",
-        "brands": "data/marcas.json",
-        "singularize": "data/singularize.json",
-        "synonyms": "data/synonyms.json",
-        "descriptors": "data/descriptors.json",
-        "alwaysCategories": "data/always.json",
+        **paths,
     }
 
     ssm.put_parameter(
@@ -843,6 +938,12 @@ def save_ssm_configuration(vector_table_name: str):
 def generate_always_categories(category_tree: Dict, data_dir: Path):
     """Generate list of categories to always include (media categories)"""
     print("Generating always-include categories...")
+    missing = [cat_id for cat_id in ALWAYS_CATEGORY_IDS if cat_id not in category_tree]
+    if missing:
+        raise ConfigurationError(
+            f"Always-include categories not found in the GPC file: {', '.join(missing)}. "
+            "Use the GPC release named in notebooks/README.md."
+        )
     always_categories = get_child_category_ids(ALWAYS_CATEGORY_IDS, category_tree)
 
     output_file = data_dir / "always.json"
@@ -853,6 +954,74 @@ def generate_always_categories(category_tree: Dict, data_dir: Path):
     return always_categories
 
 
+def validate_configuration(data_dir: Path, check_vectors: bool = True) -> None:
+    """Fail if a generated file refers to a category ID that isn't in labelcats.json.
+
+    The categorization functions look every ID up in the category tree, so one unknown ID
+    (for example an always-include category from another GPC release) fails every request.
+    """
+    print("Checking generated files against the category tree...")
+    load = lambda name: json.loads((data_dir / name).read_text())
+    tree = load("labelcats.json")
+    leaves = {cat_id for cat_id, cat in tree.items() if cat_id != "root" and not cat["childs"]}
+    unknown = {
+        "always.json": [i for i in load("always.json") if i not in tree],
+        "word_map.json": sorted({i for ids in load("word_map.json").values() for i in ids if i not in tree}),
+        "mappings.json": sorted({i for i in load("mappings.json")["id"].values() if i not in tree}),
+        "linted_attrs.json": sorted(set(load("linted_attrs.json")) - leaves),
+    }
+    problems = [f"{name}: {', '.join(ids[:10])}" for name, ids in unknown.items() if ids]
+    if check_vectors and (data_dir / "category_vectors.json").exists():
+        stale = sorted(set(load("category_vectors.json")) - set(load("word_map.json")))
+        if stale:
+            problems.append(f"category_vectors.json has words not in word_map.json: {', '.join(stale[:10])}")
+    if problems:
+        raise ConfigurationError(
+            "Generated files refer to categories that aren't in labelcats.json:\n  " + "\n  ".join(problems)
+        )
+    print("All generated files match the category tree")
+
+
+def check_deployed_category_words(data_dir: Path, config_bucket: str) -> Dict[str, str]:
+    """With --skip-embeddings the deployed category vectors are kept, so the category words must not change.
+
+    Reads the deployed files through the CategorizationConfig parameter and only accepts files under a
+    prefix written by upload_to_s3, which is never overwritten. The fixed data/ keys the notebooks write
+    can change after this check. Returns the deployed category vectors key to reuse.
+    """
+    s3 = boto3.client("s3")
+    ssm = boto3.client("ssm")
+    try:
+        deployed_paths = json.loads(
+            ssm.get_parameter(Name=f"{SSM_PREFIX}CategorizationConfig")["Parameter"]["Value"]
+        )
+        mutable = [
+            deployed_paths[key] for key in ("wordMap", "categoryVectors") if not VERSIONED_KEY.fullmatch(deployed_paths[key])
+        ]
+        if mutable:
+            raise ConfigurationError(
+                f"The deployed configuration uses files that can still change ({', '.join(mutable)}), "
+                "so its category vectors can't be kept. Run without --skip-embeddings."
+            )
+        deployed = json.loads(
+            s3.get_object(Bucket=config_bucket, Key=deployed_paths["wordMap"])["Body"].read()
+        )
+        s3.head_object(Bucket=config_bucket, Key=deployed_paths["categoryVectors"])
+    except (KeyError, ssm.exceptions.ParameterNotFound, s3.exceptions.ClientError) as e:
+        raise ConfigurationError(
+            f"No deployed category vectors to keep ({e}). Run without --skip-embeddings."
+        )
+    local = json.loads((data_dir / "word_map.json").read_text())
+    if set(deployed) != set(local):
+        added, removed = sorted(set(local) - set(deployed)), sorted(set(deployed) - set(local))
+        raise ConfigurationError(
+            "The category words differ from the deployed configuration "
+            f"(added: {', '.join(added[:10]) or 'none'}; removed: {', '.join(removed[:10]) or 'none'}), "
+            "so the deployed category vectors don't match. Run without --skip-embeddings."
+        )
+    return {"categoryVectors": deployed_paths["categoryVectors"]}
+
+
 def main():
     """Main execution function"""
     parser = argparse.ArgumentParser(
@@ -861,10 +1030,10 @@ def main():
         epilog="""
 Examples:
   # Basic usage with GPC file
-  python configure_categorization.py --gpc-file data/GPC.json
+  python configure_categorization.py --gpc-file "data/GPC as of May 2026 v20260520 GB.json"
   
-  # Skip embeddings processing (if already done)
-  python configure_categorization.py --gpc-file data/GPC.json --skip-embeddings
+  # Keep the deployed category vectors (only when the category words are unchanged)
+  python configure_categorization.py --gpc-file "data/GPC as of May 2026 v20260520 GB.json" --skip-embeddings
         """,
     )
 
@@ -872,7 +1041,7 @@ Examples:
         "--gpc-file",
         type=Path,
         required=True,
-        help="Path to GPC JSON file (download from https://gpc-browser.gs1.org/)",
+        help="Path to the GS1 GPC as of May 2026 (v20260520) JSON file (download from https://gpc-browser.gs1.org/)",
     )
 
     parser.add_argument(
@@ -885,7 +1054,7 @@ Examples:
     parser.add_argument(
         "--skip-embeddings",
         action="store_true",
-        help="Skip word embeddings processing (use if already configured)",
+        help="Skip word embeddings and category vectors and keep the deployed category vectors. The upload stops if the category words differ from the deployed configuration; after changing the category tree, run without it (an existing word vectors table is reused)",
     )
 
     parser.add_argument(
@@ -950,6 +1119,7 @@ Examples:
             print("=" * 60 + "\n")
 
         # Step 5: Upload to S3
+        validate_configuration(args.data_dir, check_vectors=not args.skip_embeddings)
         if not args.skip_upload:
             print("\n" + "=" * 60)
             print("STEP 5: Uploading Configuration to S3")
@@ -960,30 +1130,8 @@ Examples:
                 "Parameter"
             ]["Value"]
 
-            files_to_upload = [
-                "labelcats.json",
-                "linted_attrs.json",
-                "metaclasses.json",
-                "mappings.json",
-                "word_map.json",
-                "category_vectors.json",
-                "marcas.json",
-                "singularize.json",
-                "synonyms.json",
-                "descriptors.json",
-                "always.json",
-            ]
-
-            upload_to_s3(args.data_dir, config_bucket, files_to_upload)
-
-            # Upload attributes schema with specific name
-            s3 = boto3.client("s3")
-            s3.upload_file(
-                str(args.data_dir / "linted_attrs.json"),
-                config_bucket,
-                "data/attributes_schema.json",
-            )
-            print("Uploaded attributes_schema.json")
+            keep = check_deployed_category_words(args.data_dir, config_bucket) if args.skip_embeddings else None
+            paths = upload_to_s3(args.data_dir, config_bucket, keep)
         else:
             print("\n" + "=" * 60)
             print("STEP 5: Skipping S3 Upload (--skip-upload)")
@@ -995,7 +1143,7 @@ Examples:
             print("STEP 6: Saving SSM Configuration")
             print("=" * 60 + "\n")
 
-            save_ssm_configuration(vector_table_name)
+            save_ssm_configuration(vector_table_name, paths)
 
         # Success message
         print("\n" + "=" * 60)
