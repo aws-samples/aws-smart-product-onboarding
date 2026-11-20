@@ -154,7 +154,7 @@ class ProductClassifier:
         result = parse_json_response(response)
         category_id = result["predicted_category_id"]
         if category_id == NO_MATCH_CATEGORY_ID:
-            logger.info({"no_match": result["explanation"]})
+            logger.info("No candidate category fits the product")
             return CategorizationPrediction(
                 predicted_category_id=NO_MATCH_CATEGORY_ID,
                 predicted_category_name=NO_MATCH_CATEGORY_NAME,

@@ -242,3 +242,18 @@ def test_model_without_structured_output_raises_the_bedrock_error(product_classi
 
     with pytest.raises(ClientError, match="outputConfig"):
         product_classifier.get_product_category("Test prompt", ["1", "2"])
+
+
+def test_no_match_explanation_is_not_logged(product_classifier, monkeypatch):
+    # The explanation can repeat seller-supplied product details.
+    from amzn_smart_product_onboarding_product_categorization import product_classifier as module
+
+    logged = Mock()
+    monkeypatch.setattr(module, "logger", logged)
+    product_classifier.bedrock.converse.return_value = model_response(
+        answer("other", name="Other", explanation="Sold by jane@example.com")
+    )
+
+    product_classifier.get_product_category("Test prompt", ["1", "2"])
+
+    assert "jane@example.com" not in str(logged.mock_calls)

@@ -258,12 +258,13 @@ def parse_json_response(response: dict) -> dict:
     Raises ContentFilteredError for a filtered response and ModelResponseError when the model stopped
     before finishing the JSON (max_tokens, malformed_model_output) or returned something that does not parse.
     """
+    # The text can repeat seller-supplied product data, so only its length is logged.
     text = extract_response_text(response)
     if response["stopReason"] != "end_turn":
-        logger.error({"stopReason": response["stopReason"], "text": text})
+        logger.error({"stopReason": response["stopReason"], "text_length": len(text)})
         raise ModelResponseError(response["stopReason"])
     try:
         return json.loads(text)
     except json.JSONDecodeError as e:
-        logger.error({"error": str(e), "text": text})
+        logger.error({"error": str(e), "text_length": len(text)})
         raise ModelResponseError("Response is not valid JSON") from e
