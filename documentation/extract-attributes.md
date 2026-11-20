@@ -20,7 +20,7 @@ The attribute extraction process begins with schema retrieval, where the system 
 
 Next, the system constructs a carefully crafted prompt for the AI model. This prompt includes the product information, category details, and the attribute schema. The prompt is then sent to Amazon Bedrock, which processes it using the Claude 3.5 Sonnet model.
 
-The request asks Amazon Bedrock for [structured output](https://docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html): a JSON schema with one required property per attribute, whose value is one of the attribute's listed values or null. The model's answer always matches that schema, so the system reads it as JSON and needs no further validation. Bedrock can't compile the schema for a few categories with long value lists, such as wines; for those, the system retries once with a schema that only requires each value to be a string or null, and remembers the category for the life of the process.
+The request asks Amazon Bedrock for [structured output](https://docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html): a JSON schema with one required property per attribute, whose value is one of the attribute's listed values or null. The model's answer always matches that schema, so the system reads it as JSON and needs no further validation. The model must support structured output, such as Claude Sonnet 5.5 or Claude Haiku 5.5; Amazon Nova models reject the request. Bedrock can't compile the schema for a few categories with long value lists, such as wines; for those, the system retries once with a schema that only requires each value to be a string or null, and remembers the category for the life of the process.
 
 ### Key Components
 

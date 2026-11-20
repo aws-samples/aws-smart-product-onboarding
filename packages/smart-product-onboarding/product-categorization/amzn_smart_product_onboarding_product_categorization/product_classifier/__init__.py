@@ -206,3 +206,6 @@ class ProductClassifier:
         ):
             logger.exception(error)
             raise RetryableError(error)
+        # For example, a model without structured output (Amazon Nova) rejects outputConfig.
+        logger.error({"model_id": self.model_id, "error": error.response["Error"]})
+        raise error

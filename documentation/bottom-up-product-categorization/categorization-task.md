@@ -16,7 +16,7 @@ Next, the system constructs a prompt for the AI model. This prompt includes the 
 
 The prompt is then sent to Amazon Bedrock, which uses the Anthropic Claude Haiku 5.5 model by default to process it. This model excels at understanding context and nuance, allowing for more accurate categorization of complex or ambiguous products.
 
-The request asks Amazon Bedrock for [structured output](https://docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html): a JSON schema whose category ID is one of the candidate IDs or "other". The schema puts the explanation and the category name before the ID, so the model explains its choice before it commits to it. The system reads the answer as JSON and adds the full path of the predicted category. An "other" answer means no candidate fits, and is returned as category "other" with the model's explanation.
+The request asks Amazon Bedrock for [structured output](https://docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html): a JSON schema whose category ID is one of the candidate IDs or "other". The model must support structured output, such as Claude Haiku 5.5 or Claude Sonnet 5.5; Amazon Nova models reject the request. The schema puts the explanation and the category name before the ID, so the model explains its choice before it commits to it. The system reads the answer as JSON and adds the full path of the predicted category. An "other" answer means no candidate fits, and is returned as category "other" with the model's explanation.
 
 ### Key Components
 
