@@ -361,7 +361,6 @@ def test_prompt_generation_when_metadata_present(product_with_metadata, category
 
 
 def test_prompt_generation_when_metadata_not_present(product, category_schema):
-  def test_prompt_generation_when_metadata_not_present(product, category_schema):
     # given
     extractor = AttributesExtractor(bedrock_runtime_client=Mock(), schema_retriever=Mock())
 
