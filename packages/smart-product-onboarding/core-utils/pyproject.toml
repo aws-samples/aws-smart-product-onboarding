@@ -6,8 +6,7 @@ description = "Core utilities for Smart Product Onboarding"
 requires-python = ">=3.12,<4"
 readme = "README.md"
 dependencies = [
-    "boto3>=1.35.37",
-    "lxml>=6.1.0",
+    "boto3>=1.42.42",
     "pydantic>=2.9.2",
     "tenacity>=9.0.0",
 ]

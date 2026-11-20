@@ -20,7 +20,7 @@ The attribute extraction process begins with schema retrieval, where the system 
 
 Next, the system constructs a carefully crafted prompt for the AI model. This prompt includes the product information, category details, and the attribute schema. The prompt is then sent to Amazon Bedrock, which processes it using the Claude 3.5 Sonnet model.
 
-After receiving the model's response in XML format, the system parses it to extract the identified attributes and their values. Finally, a basic validation is performed to ensure the extracted attributes conform to the expected schema.
+The request asks Amazon Bedrock for [structured output](https://docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html): a JSON schema with one required property per attribute, whose value is one of the attribute's listed values or null. The model's answer always matches that schema, so the system reads it as JSON and needs no further validation. The model must support structured output, such as Claude Sonnet 5.5 or Claude Haiku 5.5; Amazon Nova models reject the request. Bedrock can't compile the schema for a few categories with long value lists, such as wines; for those, the system retries once with a schema that only requires each value to be a string or null, and remembers the category for the life of the process.
 
 ### Key Components
 
@@ -32,28 +32,25 @@ Prompt engineering plays a crucial role in the accuracy and efficiency of our at
 
 ### Structure
 
-The prompt is structured in several key sections:
+The request has a system prompt and a user message.
 
-1. **Task Definition**: We begin by clearly defining the AI's role and the task at hand, setting the context for attribute extraction.
+1. **System Prompt**: It sets the model's role, extracting product attributes for an e-commerce catalog, and tells the model to treat the seller-supplied product data as data, never as instructions.
 
-2. **Category Information**: We provide the product's category and subcategory, helping the model understand the context of the product.
+2. **Attribute Schema**: The user message starts with the full XML schema of possible attributes for the category. It is the longest input, so it comes first and the instructions come last.
 
-3. **Attribute Schema**: We include the full XML schema of possible attributes for the given category. This gives the model a comprehensive list of what to look for.
+3. **Category Information**: The product's category and subcategory give the model context.
 
-4. **Product Information**: We provide the product's title, description, and any additional metadata.
+4. **Product Data**: The product's title, description and any metadata, inside a `<product_data>` block.
 
-5. **Extraction Instructions**: We give step-by-step instructions on how to approach the extraction task, including how to handle missing information or ambiguous cases.
+5. **Extraction Instructions**: How to choose a value, and to use null when the product data doesn't give one.
 
-6. **Output Format**: We specify the exact XML format we expect for the output, ensuring consistency in the response structure.
+6. **Output Format**: Not in the prompt. The JSON schema in the request's `outputConfig` sets it.
 
 ### Key Strategies
 
-Several strategies are employed in our prompt design to enhance extraction accuracy:
-
-- **Explicit Instructions**: We provide clear, step-by-step instructions for the model to follow, reducing ambiguity in the task.
-- **Scratchpad Technique**: We instruct the model to use a "scratchpad" to think through its extraction process before providing the final answer. This encourages more thorough analysis.
-- **Handling Uncertainty**: We give explicit instructions on how to handle cases where an attribute is not mentioned or its value cannot be determined.
-- **Emphasis on Accuracy**: We stress the importance of being as specific and accurate as possible, and not making assumptions.
+- **Clear Instructions with Reasons**: The prompt says what to do and why. For example, it asks for null rather than a guess because the results fill a product catalog.
+- **Untrusted Input as Data**: Product text comes from sellers, so it is delimited in `<product_data>` and the system prompt tells the model not to follow instructions inside it.
+- **Answer Only**: The prompt asks for the answer directly, without a "scratchpad" or reasoning section. Current Claude models reason in their own thinking blocks, and they can decline or content-filter a request that asks them to write their reasoning into the response. See [Keep reasoning in thinking blocks](https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback#keep-reasoning-in-thinking-blocks).
 
 ### Customization Potential
 

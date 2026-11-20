@@ -26,8 +26,8 @@ else:
     MessageOutputTypeDef = dict
 from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import (
     BedrockRuntimeClient,
-    complete_response,
-    extract_response_text,
+    json_output_config,
+    parse_json_response,
     prepare_converse_request,
 )
 from amzn_smart_product_onboarding_core_utils.exceptions import (
@@ -41,17 +41,15 @@ from amzn_smart_product_onboarding_core_utils.models import (
     Product,
     ProductCategory,
 )
-from amzn_smart_product_onboarding_core_utils.xml_output import parse_response
-from pydantic import ValidationError
 
 logger.name = "product_classifier"
 DEFAULT_MODEL_ID = "global.anthropic.claude-haiku-5-5"
+# The prompt lets the model answer "other" when no candidate fits; the prediction then carries this ID.
+NO_MATCH_CATEGORY_ID = "other"
+NO_MATCH_CATEGORY_NAME = "Other"
 
 
 class ProductClassifier:
-    response_open = "<response>\n<thinking>"
-    response_close = "</response>"
-
     def __init__(
         self,
         bedrock: "BedrockRuntimeClient",
@@ -74,6 +72,7 @@ class ProductClassifier:
         self.model_id = model_id
         self.include_prompt = include_prompt
         self.temperature = temperature
+        self.system_prompt = self._template_environment().get_template("product_category_system.jinja2").render()
 
     def classify(
         self,
@@ -82,14 +81,11 @@ class ProductClassifier:
         include_prompt: bool = False,
         dryrun: bool = False,
     ) -> CategorizationPrediction:
-        # Get list of categories
-        # Get category examples
-        # Call LLM
-        # Return predicted category and explanation
         all_candidate_categories_ids = set(candidate_category_ids + self.always_categories)
         candidate_categories = self.get_categories(all_candidate_categories_ids)
         prompt = self.create_prompt(product, candidate_categories)
-        prediction = self.get_product_category(prompt, dryrun=dryrun)
+        # Sorted so the same candidates give the same schema, which Bedrock compiles once and caches.
+        prediction = self.get_product_category(prompt, sorted(all_candidate_categories_ids), dryrun=dryrun)
         if self.include_prompt or include_prompt:
             prediction.prompt = prompt
         return prediction
@@ -99,12 +95,7 @@ class ProductClassifier:
 
     def create_prompt(self, product: Product, candidate_categories: Iterable[ProductCategory]) -> str:
         """Use Jinja2 to fill in a prompt from the `product_category` template."""
-        # nosemgrep: direct-use-of-jinja2,missing-autoescape-disabled - jinja2 output is not rendered by a browser
-        template = jinja2.Environment(  # nosec B701 - template output is not used on a website
-            loader=jinja2.FileSystemLoader(os.path.join(os.path.dirname(__file__), "prompt_templates")),
-            trim_blocks=True,
-            lstrip_blocks=True,
-        ).get_template("product_category.jinja2")
+        template = self._template_environment().get_template("product_category.jinja2")
 
         # nosemgrep: direct-use-of-jinja2 - jinja2 output is not rendered by a browser
         prompt = template.render(
@@ -114,53 +105,70 @@ class ProductClassifier:
         logger.debug({"prompt": prompt})
         return prompt
 
-    def get_product_category(self, prompt: str, dryrun: bool = False) -> CategorizationPrediction:
-        messages = [
-            {
-                "role": "user",
-                "content": [{"text": prompt}],
+    @staticmethod
+    def _template_environment() -> jinja2.Environment:
+        # nosemgrep: direct-use-of-jinja2,missing-autoescape-disabled - jinja2 output is not rendered by a browser
+        return jinja2.Environment(  # nosec B701 - template output is not used on a website
+            loader=jinja2.FileSystemLoader(os.path.join(os.path.dirname(__file__), "prompt_templates")),
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
+
+    @staticmethod
+    def output_schema(candidate_category_ids: list[str]) -> dict:
+        """The model writes its explanation and the category name before it picks the ID.
+
+        With the ID first, the eval set lost three to five correct bricks out of 78.
+        """
+        return {
+            "type": "object",
+            "properties": {
+                "explanation": {"type": "string"},
+                "predicted_category_name": {"type": "string"},
+                "predicted_category_id": {"type": "string", "enum": [*candidate_category_ids, NO_MATCH_CATEGORY_ID]},
             },
-        ]
+            "required": ["explanation", "predicted_category_name", "predicted_category_id"],
+            "additionalProperties": False,
+        }
+
+    def get_product_category(
+        self, prompt: str, candidate_category_ids: list[str], dryrun: bool = False
+    ) -> CategorizationPrediction:
+        messages = [{"role": "user", "content": [{"text": prompt}]}]
         if not dryrun:
-            response = self._get_model_response(messages)
+            response = self._get_model_response(messages, self.output_schema(candidate_category_ids))
         else:
             response = {
                 "output": {
                     "message": {
                         "content": [
                             {
-                                "text": """chain of thought</thinking>
-                                        <prediction>
-                                        <predicted_category_id>1234</predicted_category_id>
-                                        <predicted_category_name>Test</predicted_category_name>
-                                        <explanation>Test</explanation>
-                                        </prediction>"""
+                                "text": '{"explanation": "Test", "predicted_category_name": "Test", '
+                                '"predicted_category_id": "1234"}'
                             }
                         ]
                     }
                 },
-                "stopReason": "stop_sequence",
+                "stopReason": "end_turn",
             }
-        text = self._extract_response_text(response)
-        xml_response = self._build_xml_response(response, text)
-        prediction = self._handle_prediction(xml_response, prompt)
+        result = parse_json_response(response)
+        category_id = result["predicted_category_id"]
+        if category_id == NO_MATCH_CATEGORY_ID:
+            logger.info("No candidate category fits the product")
+            return CategorizationPrediction(
+                predicted_category_id=NO_MATCH_CATEGORY_ID,
+                predicted_category_name=NO_MATCH_CATEGORY_NAME,
+                explanation=result["explanation"],
+            )
+        if category_id not in self.category_tree:
+            logger.error({"predicted_category_id": category_id})
+            raise ModelResponseError("Predicted category is not in the category tree")
 
-        if not dryrun and not self.validate_prediction(prediction):
-            full_response = xml_response
-            response = self._handle_hallucination(full_response, prompt)
-            text = self._extract_response_text(response)
-            xml_response = self._build_xml_response(response, text)
-            prediction = self._handle_prediction(xml_response, prompt)
-            if not self.validate_prediction(prediction):
-                logger.error(f"Hallucination detected twice: {full_response}")
-                raise ModelResponseError("Hallucination detected")
-
-        # set category name to full path
-        prediction.predicted_category_name = " > ".join(
-            [l.name for l in self.category_tree[prediction.predicted_category_id].full_path]
+        return CategorizationPrediction(
+            predicted_category_id=category_id,
+            predicted_category_name=" > ".join(l.name for l in self.category_tree[category_id].full_path),
+            explanation=result["explanation"],
         )
-
-        return prediction
 
     @retry(
         retry=retry_if_exception_type(RateLimitError),
@@ -168,15 +176,19 @@ class ProductClassifier:
         wait=wait_random_exponential(multiplier=2, max=60, min=30),
         reraise=True,
     )
-    def _get_model_response(self, messages: list[MessageTypeDef | MessageOutputTypeDef]) -> ConverseResponseTypeDef:
+    def _get_model_response(
+        self, messages: list[MessageTypeDef | MessageOutputTypeDef], schema: dict
+    ) -> ConverseResponseTypeDef:
         try:
             request_messages, inference_config = prepare_converse_request(
-                self.model_id, messages, self.response_open, self.response_close, self.temperature
+                self.model_id, messages, temperature=self.temperature
             )
             response = self.bedrock.converse(
                 modelId=self.model_id,
+                system=[{"text": self.system_prompt}],
                 messages=request_messages,
                 inferenceConfig=inference_config,
+                outputConfig=json_output_config(schema, "category_prediction"),
             )
             logger.info({"usage": response["usage"]})
             return response
@@ -194,76 +206,6 @@ class ProductClassifier:
         ):
             logger.exception(error)
             raise RetryableError(error)
-
-    def _extract_response_text(self, response: dict) -> str:
-        return extract_response_text(response)
-
-    def _build_xml_response(self, response: dict, text: str) -> str:
-        xml_response = complete_response(
-            text, response["stopReason"], self.model_id, self.response_open, self.response_close
-        )
-        if xml_response is None:
-            logger.error(f"Stop reason: {response['stopReason']}")
-            raise ModelResponseError(response["stopReason"])
-        return xml_response
-
-    def _handle_prediction(self, xml_response: str, prompt: str) -> CategorizationPrediction:
-        try:
-            parsed_response = parse_response(
-                xml_response,
-                cdata_tags=[
-                    "predicted_category_id",
-                    "predicted_category_name",
-                    "explanation",
-                ],
-            )
-            prediction = CategorizationPrediction.model_validate(parsed_response["response"]["prediction"])
-
-            if parsed_response.get("response", {}).get("thinking"):
-                logger.debug({"Chain of Thought": parsed_response["response"]["thinking"]})
-
-            return prediction
-
-        except (ValidationError, KeyError) as e:
-            logger.exception(e)
-            logger.error(f"Failed to parse prediction from response: {xml_response}")
-            raise ModelResponseError("Failed to parse prediction from response")
-
-    def _handle_hallucination(self, full_response: str, prompt: str) -> ConverseResponseTypeDef:
-        messages = [
-            {
-                "role": "user",
-                "content": [{"text": prompt}],
-            },
-            {
-                "role": "assistant",
-                "content": [{"text": full_response}],
-            },
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "text": "The predicted_category_id does not exist in the list of candidate categories, or the "
-                        "name of the predicted_category_id did not match the predicted_category_name. "
-                        "Please provide a corrected response that ensures the predicted category exists "
-                        "in the candidate list and matches the predicted name. Include both the corrected "
-                        "category ID and name in your response in the same XML format."
-                    }
-                ],
-            },
-        ]
-        return self._get_model_response(messages)
-
-    def validate_prediction(self, prediction: CategorizationPrediction) -> bool:
-        """Validate that the predicted category id is in the category tree and matches the predicted category name."""
-        if prediction.predicted_category_id not in self.category_tree:
-            logger.error(f"Predicted category id {prediction.predicted_category_id} not in category tree")
-            return False
-        # It's okay if predicted_category_name is just the name of the leaf or the entire path
-        if not prediction.predicted_category_name.endswith(self.category_tree[prediction.predicted_category_id].name):
-            logger.error(
-                f"Predicted category name {prediction.predicted_category_name} does not match category name "
-                f"{self.category_tree[prediction.predicted_category_id].name}"
-            )
-            return False
-        return True
+        # For example, a model without structured output (Amazon Nova) rejects outputConfig.
+        logger.error({"model_id": self.model_id, "error": error.response["Error"]})
+        raise error

@@ -87,7 +87,7 @@ class TestProductClassifierTemperature:
         )
 
         messages = [{"role": "user", "content": [{"text": "test"}]}]
-        classifier._get_model_response(messages)
+        classifier._get_model_response(messages, ProductClassifier.output_schema(["1234"]))
 
         call_kwargs = mock_bedrock.converse.call_args
         actual_temp = call_kwargs.kwargs["inferenceConfig"]["temperature"]
@@ -114,7 +114,7 @@ class TestProductClassifierTemperature:
         )
 
         messages = [{"role": "user", "content": [{"text": "test"}]}]
-        classifier._get_model_response(messages)
+        classifier._get_model_response(messages, ProductClassifier.output_schema(["1234"]))
 
         call_kwargs = mock_bedrock.converse.call_args
         actual_temp = call_kwargs.kwargs["inferenceConfig"]["temperature"]
@@ -139,7 +139,7 @@ class TestAttributesExtractorTemperature:
         mock_category_schema = MagicMock()
         mock_category_schema.category_name = "Test Category"
         mock_category_schema.subcategory_name = "Test Sub"
-        mock_category_schema.attributes_schema = {"attr1": {"type": "string"}}
+        mock_category_schema.attributes_schema = [{"Title": "attr1", "Childs": []}]
         mock_schema_retriever.get.return_value = mock_category_schema
 
         extractor = AttributesExtractor(
@@ -174,7 +174,7 @@ class TestAttributesExtractorTemperature:
         mock_category_schema = MagicMock()
         mock_category_schema.category_name = "Test Category"
         mock_category_schema.subcategory_name = "Test Sub"
-        mock_category_schema.attributes_schema = {"attr1": {"type": "string"}}
+        mock_category_schema.attributes_schema = [{"Title": "attr1", "Childs": []}]
         mock_schema_retriever.get.return_value = mock_category_schema
 
         extractor = AttributesExtractor(
