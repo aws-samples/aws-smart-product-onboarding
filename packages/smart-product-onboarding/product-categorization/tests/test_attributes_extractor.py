@@ -6,7 +6,7 @@ import pytest
 import random
 from unittest.mock import Mock, ANY
 
-from amzn_smart_product_onboarding_core_utils.exceptions import ModelResponseError
+from amzn_smart_product_onboarding_core_utils.exceptions import ContentFilteredError, ModelResponseError
 from amzn_smart_product_onboarding_product_categorization.attributes_extractor import (
     AttributesExtractor,
     SchemaRetriever,
@@ -193,6 +193,23 @@ def test_attributes_extractor_will_throw_for_invalid_stop_reason(
 
     # then
     with pytest.raises(ModelResponseError, match=f"Invalid stop reason: {an_invalid_stop_reason}"):
+        extractor.extract_attributes(product=product, category_id=predicted_category.predicted_category_id)
+
+
+def test_attributes_extractor_raises_content_filtered_without_text(
+    mock_bedrock, schema_retriever, product, predicted_category
+):
+    # A content-filtered response can carry no text block at all.
+    mock_bedrock.converse.return_value = {
+        "output": {"message": {"content": []}},
+        "stopReason": "content_filtered",
+        "usage": {"inputTokens": 100, "outputTokens": 0},
+    }
+    extractor = AttributesExtractor(
+        bedrock_runtime_client=mock_bedrock, schema_retriever=schema_retriever, model_id=PREFILL_MODEL_ID
+    )
+
+    with pytest.raises(ContentFilteredError):
         extractor.extract_attributes(product=product, category_id=predicted_category.predicted_category_id)
 
 

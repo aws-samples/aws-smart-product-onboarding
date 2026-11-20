@@ -20,6 +20,7 @@ import { TemplateService } from "../../src/services/templateService";
 import { ProductData } from "../../src/types";
 import {
   BadRequestError,
+  ContentFilteredError,
   ModelResponseError,
 } from "../../src/utils/exceptions";
 
@@ -158,6 +159,28 @@ describe("ProductGeneratorService", () => {
         }),
       ).rejects.toThrow(ModelResponseError);
     });
+
+    it.each(["content_filtered", "guardrail_intervened"])(
+      "should throw ContentFilteredError when stop reason is %s, even without text",
+      async (stopReason) => {
+        const mockResponse = {
+          output: { message: { role: "assistant", content: [] } },
+          stopReason,
+          $metadata: {},
+        } as unknown as ConverseCommandOutput;
+        (mockBedrockClient.send as jest.Mock).mockResolvedValueOnce(
+          mockResponse,
+        );
+
+        const result = service.generateProductTitleAndDescription(
+          "test-model",
+          0.7,
+          { role: "user", content: [{ text: "test prompt" }] },
+        );
+        await expect(result).rejects.toThrow(ContentFilteredError);
+        await expect(result).rejects.not.toThrow(ModelResponseError);
+      },
+    );
   });
 
   describe("generateProduct with template system", () => {

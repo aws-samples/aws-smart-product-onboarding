@@ -28,7 +28,7 @@ import {
 import { AppConfigClient } from "./services/appConfigClient";
 import { ProductGeneratorService } from "./services/productGenerator";
 import { TemplateService } from "./services/templateService";
-import { BadRequestError } from "./utils/exceptions";
+import { BadRequestError, ContentFilteredError } from "./utils/exceptions";
 
 const OPERATION_ID = "generateProduct";
 
@@ -156,6 +156,9 @@ export const generateProduct = async (
       return error(500, "Bedrock rate limit exceeded");
     } else if (e instanceof BadRequestError) {
       logger.error(`Invalid input. ${e.name}: ${e.message}`);
+      return error(400, e.message);
+    } else if (e instanceof ContentFilteredError) {
+      logger.warn(e.message);
       return error(400, e.message);
     } else if (e instanceof Error) {
       logger.error(`Failed to generate product data. ${e.name}: ${e.message}`);

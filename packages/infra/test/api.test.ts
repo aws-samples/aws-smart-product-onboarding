@@ -451,4 +451,58 @@ describe("Batch workflow", () => {
       "WAITING",
     ]);
   });
+
+  test("a content-filtered product fails only its own row, without retries", () => {
+    const [machine] = Object.values<any>(
+      template.findResources("AWS::StepFunctions::StateMachine", {
+        Properties: { StateMachineName: "BatchProductOnboarding" },
+      }),
+    );
+    // The definition is a Fn::Join; the tokens sit inside JSON strings, so a placeholder keeps it valid JSON.
+    const definition = JSON.parse(
+      machine.Properties.DefinitionString["Fn::Join"][1]
+        .map((part: unknown) => (typeof part === "string" ? part : "TOKEN"))
+        .join(""),
+    );
+    const findMap = (states: any): any =>
+      Object.values<any>(states)
+        .map((s) =>
+          s.Type === "Map"
+            ? s
+            : s.Branches
+              ? s.Branches.map((b: any) => findMap(b.States)).find(Boolean)
+              : undefined,
+        )
+        .find(Boolean);
+    const items = findMap(definition.States).ItemProcessor.States;
+    const tasks = Object.entries<any>(items).filter(
+      ([, s]) => s.Type === "Task",
+    );
+    expect(tasks.map(([name]) => name).sort()).toEqual([
+      "AttributeExtractionTask",
+      "ClassificationTask",
+      "GenerateProductTask",
+      "InputLambdaTask",
+      "MetaclassTask",
+    ]);
+    for (const [, task] of tasks) {
+      expect(task.Catch).toContainEqual({
+        ErrorEquals: ["ContentFilteredError"],
+        Next: "ContentFiltered",
+      });
+      for (const retrier of task.Retry ?? []) {
+        expect(retrier.ErrorEquals).not.toContain("ContentFilteredError");
+        expect(retrier.ErrorEquals).not.toContain("States.ALL");
+      }
+    }
+    // Same columns as a generated row, so the results CSV keeps one header.
+    expect(Object.keys(items.ContentFiltered.Parameters).sort()).toEqual(
+      Object.keys(items.OutputState.Parameters)
+        .map((key) => key.replace(/\.\$$/, ""))
+        .sort(),
+    );
+    expect(items.ContentFiltered.End).toBe(true);
+    expect(items.ContentFiltered.Parameters.error).toMatch(/content filter/);
+    expect(items.OutputState.Parameters.error).toBe("");
+  });
 });

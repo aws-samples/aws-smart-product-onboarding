@@ -101,3 +101,26 @@ def test_extract_response_text_skips_reasoning_block():
         }
     }
     assert extract_response_text(response) == "answer"
+
+
+@pytest.mark.parametrize("stop_reason", ["content_filtered", "guardrail_intervened"])
+@pytest.mark.parametrize("content", [[], [{"text": "<response>partial"}]])
+def test_extract_response_text_raises_content_filtered(stop_reason, content):
+    from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import (
+        build_full_response,
+        extract_response_text,
+    )
+    from amzn_smart_product_onboarding_core_utils.exceptions import (
+        CONTENT_FILTERED_MESSAGE,
+        ContentFilteredError,
+        RetryableError,
+    )
+
+    response = {"output": {"message": {"content": content}}, "stopReason": stop_reason}
+    with pytest.raises(ContentFilteredError, match="content filter") as error:
+        extract_response_text(response)
+    assert str(error.value) == CONTENT_FILTERED_MESSAGE
+    # Retrying the same input is blocked again, so it must not look retryable.
+    assert not isinstance(error.value, RetryableError)
+    with pytest.raises(ContentFilteredError):
+        build_full_response(response, "<response>", "</response>")

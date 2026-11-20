@@ -4,6 +4,7 @@
  */
 
 import { countByGroup, filterBatches, perDay } from "./batches";
+import { openCamera } from "./camera";
 import { parseCsv, SAMPLE_CSV, summarizeCsv, validateCatalog } from "./csv";
 import {
   clearDrafts,
@@ -15,7 +16,14 @@ import {
   setDraftsOwner,
   type Draft,
 } from "./drafts";
-import { dayRange, formatDuration, parseLocalDate, relativeTime } from "./time";
+import { dataUrlToFile, makePreview } from "./images";
+import {
+  dayRange,
+  formatDateTime,
+  formatDuration,
+  parseLocalDate,
+  relativeTime,
+} from "./time";
 import type { BatchExecution } from "../api/client";
 import { parseRuntimeConfig } from "../config/runtime";
 
@@ -52,6 +60,33 @@ describe("CSV catalog checks", () => {
       validateCatalog({ columns: ["title", "description"], rows: 0 }, false),
     ).toMatch(/no products/);
     expect(validateCatalog({ columns: [], rows: 0 }, false)).toMatch(/empty/);
+  });
+
+  const problem = (csv: string, zip = true) =>
+    validateCatalog(summarizeCsv(csv), zip);
+
+  it("rejects rows the batch could not process", () => {
+    const header = "title,description,images\n";
+    expect(problem(`${header}A,B,\nC,D,\n`)).toBeUndefined();
+    expect(problem(`${header}A,,\n`)).toMatch(/Row 2 needs a title/);
+    expect(problem(`${header}A,B,\n,,\n,D,\n`)).toMatch(/Row 4 needs/);
+    expect(problem(`${header},,front.jpg\n`)).toMatch(/Row 2.*list/);
+    expect(problem(`${header},,"['front.jpg']"\n`)).toBeUndefined();
+    // An unquoted comma in the description shifts the fields.
+    expect(problem("title,description\nA,Warm, soft\n", false)).toMatch(
+      /Row 2 has more fields/,
+    );
+    expect(problem('title,description\n"Mug,Sturdy\n', false)).toMatch(
+      /Row 2 has a quoted value that is never closed/,
+    );
+    // A list the batch can't read, an empty list without text, and an empty extra field.
+    expect(problem(`${header},,[front.jpg]\n`)).toMatch(/Row 2.*list/);
+    expect(problem(`${header},,[]\n`)).toMatch(/Row 2 needs a title/);
+    expect(problem(`${header}A,B,[]\n`)).toBeUndefined();
+    expect(problem(`${header},,"['a.jpg', ""b.png""]"\n`)).toBeUndefined();
+    expect(problem("title,description\nA,B,\n", false)).toMatch(
+      /Row 2 has more fields/,
+    );
   });
 });
 
@@ -158,6 +193,60 @@ describe("recent drafts", () => {
     expect(localStorage.getItem(`${DRAFTS_KEY}:maria`)).toBe("[]");
   });
 
+  it("does not bring back drafts that another tab cleared", () => {
+    saveDraft(draft("a", 1));
+    saveDraft(draft("b", 2));
+    expect(listDrafts()).toHaveLength(2);
+    // Another tab cleared the list; this tab has not been told yet.
+    localStorage.setItem(`${DRAFTS_KEY}:maria`, "[]");
+    saveDraft(draft("c", 3));
+    expect(listDrafts().map((d) => d.id)).toEqual(["c"]);
+  });
+
+  it("keeps drafts by account ID, so a reused user name starts empty", () => {
+    setDraftsOwner("sub-1", "maria");
+    saveDraft(draft("old", 1));
+    expect(localStorage.getItem(`${DRAFTS_KEY}:sub-1`)).toContain("old");
+    // The account was deleted and created again under the same user name.
+    setDraftsOwner("");
+    setDraftsOwner("sub-2", "maria");
+    expect(listDrafts()).toEqual([]);
+  });
+
+  it("moves drafts saved under the user name once, to an account that has none", () => {
+    localStorage.setItem(`${DRAFTS_KEY}:li`, JSON.stringify([draft("old", 1)]));
+    setDraftsOwner("sub-li", "li");
+    expect(listDrafts().map((d) => d.id)).toEqual(["old"]);
+    expect(localStorage.getItem(`${DRAFTS_KEY}:li`)).toBeNull();
+    // An account that already has drafts keeps them and leaves the old ones alone.
+    localStorage.setItem(`${DRAFTS_KEY}:jo`, JSON.stringify([draft("old", 1)]));
+    localStorage.setItem(`${DRAFTS_KEY}:sub-jo`, JSON.stringify([]));
+    setDraftsOwner("sub-jo", "jo");
+    expect(listDrafts()).toEqual([]);
+    expect(localStorage.getItem(`${DRAFTS_KEY}:jo`)).not.toBeNull();
+  });
+
+  it("drops photos that could not be restored when storage is full", () => {
+    const real = Storage.prototype.setItem;
+    const spy = vi
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(function (this: Storage, k, v) {
+        if (v.includes("base64"))
+          throw new DOMException("full", "QuotaExceededError");
+        real.call(this, k, v);
+      });
+    const d = draft("big", 1);
+    d.images.push({
+      id: "new",
+      name: "b.jpg",
+      type: "image/jpeg",
+      dataUrl: "data:image/jpeg;base64,BBBB",
+    });
+    saveDraft(d);
+    expect(listDrafts()[0].images.map((i) => i.id)).toEqual(["i"]);
+    spy.mockRestore();
+  });
+
   it("drops images when storage is full instead of losing the draft", () => {
     const real = Storage.prototype.setItem;
     const spy = vi
@@ -240,5 +329,104 @@ describe("batch list", () => {
     const days = perDay(items, 3, new Date("2026-11-18T12:00:00"));
     expect(days.map((d) => d.count).reduce((a, c) => a + c, 0)).toBe(4);
     expect(days).toHaveLength(3);
+  });
+});
+
+describe("time of day", () => {
+  it("writes midnight as 00:xx, never 24:xx", () => {
+    const midnight = new Date(2026, 10, 18, 0, 5);
+    const spy = vi.spyOn(Date.prototype, "toLocaleTimeString");
+    expect(formatDateTime(midnight.toISOString(), midnight)).toBe("00:05");
+    // Some browsers read hour12: false as a 1-24 clock.
+    expect(spy.mock.calls[0][1]).toMatchObject({ hourCycle: "h23" });
+    expect(spy.mock.calls[0][1]).not.toHaveProperty("hour12");
+    spy.mockRestore();
+  });
+});
+
+describe("saved previews", () => {
+  it("rebuilds an image from a data URL and refuses damaged ones", () => {
+    expect(dataUrlToFile("data:image/jpeg;base64,AAAA", "a.png")?.name).toBe(
+      "a.jpg",
+    );
+    expect(dataUrlToFile("data:,", "a.jpg")).toBeUndefined();
+    expect(
+      dataUrlToFile("data:image/jpeg;base64,@@@", "a.jpg"),
+    ).toBeUndefined();
+  });
+});
+
+describe("previews of extreme images", () => {
+  it("keeps at least one pixel on the short side", async () => {
+    vi.stubGlobal("createImageBitmap", async () => ({
+      width: 10_000,
+      height: 1,
+      close: () => undefined,
+    }));
+    const canvas = {
+      width: 0,
+      height: 0,
+      getContext: () => ({
+        fillRect: () => undefined,
+        drawImage: () => undefined,
+      }),
+      toDataURL: () => "data:image/jpeg;base64,AAAA",
+    };
+    const create = vi
+      .spyOn(document, "createElement")
+      .mockReturnValue(canvas as unknown as HTMLElement);
+    await makePreview(new Blob(["x"]));
+    create.mockRestore();
+    vi.unstubAllGlobals();
+    expect(canvas.width).toBe(640);
+    expect(canvas.height).toBe(1);
+  });
+});
+
+describe("camera", () => {
+  const stream = {} as MediaStream;
+  const overconstrained = () =>
+    Object.assign(new Error("no"), { name: "OverconstrainedError" });
+
+  it("drops the preferences a camera can't meet", async () => {
+    const get = vi
+      .fn()
+      .mockRejectedValueOnce(overconstrained())
+      .mockResolvedValue(stream);
+    await expect(openCamera(get, "", true)).resolves.toBe(stream);
+    expect(get.mock.calls[0][0].video).toMatchObject({
+      facingMode: "environment",
+    });
+    expect(get.mock.calls[1][0]).toEqual({ video: true });
+  });
+
+  it("keeps a chosen camera while only the size can't be met", async () => {
+    const get = vi
+      .fn()
+      .mockRejectedValueOnce(overconstrained())
+      .mockResolvedValue(stream);
+    await openCamera(get, "cam-2", false);
+    expect(get.mock.calls[1][0]).toEqual({
+      video: { deviceId: { exact: "cam-2" } },
+    });
+  });
+
+  it("makes no further attempt once the camera is no longer wanted", async () => {
+    let wanted = true;
+    const get = vi.fn().mockImplementation(async () => {
+      wanted = false;
+      throw overconstrained();
+    });
+    await expect(
+      openCamera(get, "cam-2", false, () => wanted),
+    ).rejects.toThrow();
+    expect(get).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops at once when access is refused", async () => {
+    const denied = Object.assign(new Error("no"), { name: "NotAllowedError" });
+    const get = vi.fn().mockRejectedValue(denied);
+    await expect(openCamera(get, "", false)).rejects.toBe(denied);
+    expect(get).toHaveBeenCalledTimes(1);
   });
 });

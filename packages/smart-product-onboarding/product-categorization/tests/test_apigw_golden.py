@@ -19,7 +19,11 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
-from amzn_smart_product_onboarding_core_utils.exceptions import RateLimitError
+from amzn_smart_product_onboarding_core_utils.exceptions import (
+    CONTENT_FILTERED_MESSAGE,
+    ContentFilteredError,
+    RateLimitError,
+)
 from amzn_smart_product_onboarding_core_utils.models import CategorizationPrediction
 
 GOLDEN_PATH = Path(__file__).parent / "golden" / "apigw_responses.json"
@@ -245,3 +249,32 @@ def expected(name, golden):
 def test_response_matches_previous_runtime(name):
     golden = json.loads(GOLDEN_PATH.read_text())
     assert invoke(name) == expected(name, golden)
+
+
+# Added after the previous runtime, so there is no recorded baseline: a content filter stopping the model
+# is the client's input, so it answers 400 with a message the website shows, never a retryable 500.
+CONTENT_FILTERED_CASES = {
+    "categorize: content filtered": (
+        categorize(MagicMock(side_effect=ContentFilteredError())),
+        api_event("/categorizeProduct", {"product": PRODUCT, "possibleCategories": ["10000637"]}),
+    ),
+    "extract: content filtered": (
+        extract(error=ContentFilteredError()),
+        api_event("/extractAttributes", {"product": PRODUCT, "categoryId": "10000637"}),
+    ),
+}
+
+
+@pytest.mark.parametrize("name", list(CONTENT_FILTERED_CASES))
+def test_content_filtered_returns_bad_request(name):
+    setup, event = CONTENT_FILTERED_CASES[name]
+    module = setup()
+    with patch.dict(os.environ, _ENV):
+        result = module.handler(event, lambda_context())
+    assert result["statusCode"] == 400
+    assert result["headers"] == {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "*",
+        "x-amzn-errortype": "BadRequestError",
+    }
+    assert json.loads(result["body"]) == {"message": CONTENT_FILTERED_MESSAGE}

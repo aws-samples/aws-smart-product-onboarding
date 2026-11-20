@@ -16,11 +16,15 @@ from tenacity import (
 )
 
 from amzn_smart_product_onboarding_core_utils.exceptions import (
+    ContentFilteredError,
     ModelResponseError,
     RateLimitError,
     RetryableError,
 )
 from amzn_smart_product_onboarding_core_utils.logger import logger
+
+# Converse stop reasons for a request or response that a content filter or guardrail blocked.
+CONTENT_FILTER_STOP_REASONS = ("content_filtered", "guardrail_intervened")
 
 if TYPE_CHECKING:
     # mypy_boto3_* is a test-dependency only and not available at runtime
@@ -206,7 +210,14 @@ def complete_response(
 
 
 def extract_response_text(response: dict) -> str:
-    """Return the first text block. Reasoning models put a reasoningContent block before it."""
+    """Return the first text block. Reasoning models put a reasoningContent block before it.
+
+    Raises ContentFilteredError first when a content filter or guardrail stopped the model, because the
+    response then has no usable text, or none at all.
+    """
+    if response.get("stopReason") in CONTENT_FILTER_STOP_REASONS:
+        logger.warning({"stopReason": response["stopReason"]})
+        raise ContentFilteredError()
     try:
         return next(block["text"] for block in response["output"]["message"]["content"] if "text" in block)
     except (KeyError, StopIteration):

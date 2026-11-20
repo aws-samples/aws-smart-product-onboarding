@@ -170,6 +170,7 @@ export class ApplicationStack extends Stack {
       this,
       "AttributeExtractionTaskFunction",
       {
+        ssmParameterPrefix: ssmParameterPrefix,
         configBucket: configurationBucket,
         appConfigApplicationId: appConfig.applicationId,
         appConfigEnvironmentId: appConfig.environmentId,

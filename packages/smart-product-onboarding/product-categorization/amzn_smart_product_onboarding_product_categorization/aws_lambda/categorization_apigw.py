@@ -20,6 +20,7 @@ from amzn_smart_product_onboarding_core_utils.boto3_helper.ssm_client import (
     LAMBDA_SSM_CLIENT,
 )
 from amzn_smart_product_onboarding_core_utils.exceptions import (
+    ContentFilteredError,
     RateLimitError,
     RetryableError,
     ModelResponseError,
@@ -80,6 +81,9 @@ def categorize_product(event: ApiRequest[CategorizeProductRequestContent]) -> Ap
             event.body.possible_categories,
             include_prompt=event.body.demo,
         )
+    except ContentFilteredError as e:
+        logger.warning(f"Content filter stopped the model: {e}")
+        return Response.bad_request(str(e))
     except (RateLimitError, RetryableError, ModelResponseError) as e:
         logger.exception(e)
         logger.error(f"Retryable error while categorizing: {e}")

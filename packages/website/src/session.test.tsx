@@ -8,6 +8,7 @@ import userEvent from "@testing-library/user-event";
 import { useApi } from "./api/client";
 import { SessionRoot } from "./App";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
+import { DRAFTS_KEY, saveDraft, type Draft } from "./lib/drafts";
 import { useToast } from "./ui/Toast";
 
 const auth = vi.hoisted(() => ({
@@ -80,7 +81,10 @@ const otherTabChanged = () =>
 describe("signed-in session", () => {
   beforeEach(() => {
     Object.values(auth).forEach((f) => f.mockReset());
-    auth.getCurrentUser.mockResolvedValue({ username: "maria" });
+    auth.getCurrentUser.mockResolvedValue({
+      username: "maria",
+      userId: "sub-maria",
+    });
     auth.fetchAuthSession.mockResolvedValue(session("maria"));
     auth.signOut.mockResolvedValue(undefined);
   });
@@ -93,6 +97,28 @@ describe("signed-in session", () => {
     await userEvent.click(screen.getByText("Sign out"));
     expect(await screen.findByText("Sign-in screen")).toBeInTheDocument();
     expect(screen.queryByText("Upload failed")).not.toBeInTheDocument();
+  });
+
+  it("keeps drafts under the account ID, not the user name", async () => {
+    localStorage.clear();
+    renderApp();
+    await screen.findByText("App for maria");
+    saveDraft({ id: "d1", step: 0 } as Draft);
+    expect(localStorage.getItem(`${DRAFTS_KEY}:sub-maria`)).toContain("d1");
+    expect(localStorage.getItem(`${DRAFTS_KEY}:maria`)).toBeNull();
+  });
+
+  it("reloads when another tab signs in as a new account with the same user name", async () => {
+    const reload = vi.fn();
+    vi.stubGlobal("location", { ...window.location, reload });
+    renderApp();
+    await screen.findByText("App for maria");
+    auth.getCurrentUser.mockResolvedValue({
+      username: "maria",
+      userId: "sub-new",
+    });
+    otherTabChanged();
+    await vi.waitFor(() => expect(reload).toHaveBeenCalled());
   });
 
   it("shows sign-in when another tab signs out", async () => {
@@ -109,7 +135,7 @@ describe("signed-in session", () => {
     vi.stubGlobal("location", { ...window.location, reload });
     renderApp();
     await screen.findByText("App for maria");
-    auth.getCurrentUser.mockResolvedValue({ username: "li" });
+    auth.getCurrentUser.mockResolvedValue({ username: "li", userId: "sub-li" });
     otherTabChanged();
     await vi.waitFor(() => expect(reload).toHaveBeenCalled());
   });

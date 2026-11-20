@@ -66,11 +66,12 @@ export function parseLocalDate(value: string): Date | undefined {
 export function formatDateTime(iso: string, now = new Date()): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  const time = d.toLocaleTimeString("en", {
+  const hour = {
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
-  });
+    hourCycle: "h23",
+  } as const;
+  const time = d.toLocaleTimeString("en", hour);
   if (localDate(d) === localDate(now)) return time;
   return `${d.toLocaleDateString("en", { month: "short", day: "numeric" })} ${time}`;
 }

@@ -21,6 +21,7 @@ from amzn_smart_product_onboarding_core_utils.boto3_helper.s3_client import (
 from amzn_smart_product_onboarding_core_utils.boto3_helper.ssm_client import (
     LAMBDA_SSM_CLIENT,
 )
+from amzn_smart_product_onboarding_core_utils.exceptions import ContentFilteredError
 from amzn_smart_product_onboarding_core_utils.logger import logger
 from amzn_smart_product_onboarding_core_utils.models import (
     Product,
@@ -134,6 +135,9 @@ def metaclass(event: ApiRequest[MetaclassRequestContent]) -> ApiResponse:
         if not demo:
             prediction.clean_title = None
             prediction.findings = None
+    except ContentFilteredError as e:
+        logger.warning(f"Content filter stopped the model: {e}")
+        return Response.bad_request(str(e))
     except Exception as e:
         logger.exception(e)
         logger.error(f"Error while predicting metaclass: {e}")

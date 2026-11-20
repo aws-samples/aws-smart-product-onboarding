@@ -17,6 +17,7 @@ import {
   type ProductData,
 } from "../../api/client";
 import {
+  draftExists,
   FLUSH_DRAFTS,
   getDraft,
   saveDraft,
@@ -78,17 +79,21 @@ const newId = () =>
     ? crypto.randomUUID()
     : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 
-/** Restores images. Images that were never uploaded are rebuilt from their saved JPEG preview. */
+/**
+ * Restores images. Images that were never uploaded are rebuilt from their saved JPEG preview.
+ * A preview that cannot be decoded is dropped, so the image shows as not saved and the draft still opens.
+ */
 const fromDraft = (d?: Draft): FlowImage[] =>
   (d?.images ?? []).map((i) => {
     const file =
       !i.key && i.dataUrl ? dataUrlToFile(i.dataUrl, i.name) : undefined;
+    const dataUrl = i.key || file ? i.dataUrl : "";
     return {
       id: i.id,
       name: file?.name ?? i.name,
       type: file?.type ?? i.type,
-      url: i.dataUrl,
-      dataUrl: i.dataUrl,
+      url: dataUrl,
+      dataUrl,
       key: i.key,
       file,
     };
@@ -165,6 +170,8 @@ export function useProductFlow({
         : undefined),
   );
 
+  const [generatedWith, setGeneratedWith] = useState(initial?.generatedWith);
+
   const [genStatus, setGenStatus] = useState<GenStatus>(
     initial?.product ? "done" : "idle",
   );
@@ -210,12 +217,15 @@ export function useProductFlow({
   const savedOnce = useRef(!!initial);
   const deleted = useRef(false);
   const pending = useRef<Draft>();
+  /** The editor values `pending` was built from. */
+  const pendingValues = useRef<unknown[]>();
+  const loaded = useRef<unknown[]>();
   const flush = useCallback(
     (updateAddress = true) => {
       const draft = pending.current;
       pending.current = undefined;
       if (!draft || deleted.current) return;
-      if (savedOnce.current && !getDraft(draft.id)) {
+      if (savedOnce.current && !draftExists(draft.id)) {
         // The draft was cleared from Recent drafts: stop saving it again.
         deleted.current = true;
         return;
@@ -224,14 +234,17 @@ export function useProductFlow({
         onSaveFailed?.();
         return;
       }
+      loaded.current = pendingValues.current;
       if (!savedOnce.current) {
         savedOnce.current = true;
         // Keep the router state; only the address changes so a reload reopens this draft.
         // Not on unmount: the user may already be on another page, such as a new product.
+        // The address can also be a draft that no longer exists: it now names this one.
+        const path = window.location.pathname;
         if (
           updateAddress &&
           live.current &&
-          window.location.pathname === "/new"
+          (path === "/new" || (draftId && path === `/drafts/${draftId}`))
         ) {
           window.history.replaceState(
             window.history.state,
@@ -242,11 +255,37 @@ export function useProductFlow({
       }
       setActiveDraftId(draft.id);
     },
-    [onSaveFailed],
+    [onSaveFailed, draftId],
   );
 
+  // The values last saved, or that an opened draft was loaded with. Until one changes there is nothing
+  // to save, so opening a draft does not touch its saved time or overwrite an edit saved in the meantime.
   useEffect(() => {
     if (!persist || !product || deleted.current) return undefined;
+    const values = [
+      step,
+      images,
+      metadata,
+      options,
+      examples,
+      product,
+      usage,
+      modelId,
+      possibleCategories,
+      classification,
+      attributes,
+      classifiedFor,
+      extractedFor,
+      generatedFrom,
+      generatedWith,
+    ];
+    loaded.current ??= initial ? values : [];
+    if (values.every((v, n) => Object.is(v, loaded.current![n]))) {
+      // Back to what is saved: drop an edit that was waiting to be saved.
+      pending.current = undefined;
+      return undefined;
+    }
+    pendingValues.current = values;
     pending.current = {
       id,
       updatedAt: Date.now(),
@@ -270,11 +309,13 @@ export function useProductFlow({
       classifiedFor,
       extractedFor,
       generatedFrom,
+      generatedWith,
     };
     const t = setTimeout(() => flush(), 300);
     return () => clearTimeout(t);
   }, [
     persist,
+    initial,
     id,
     step,
     images,
@@ -290,6 +331,7 @@ export function useProductFlow({
     classifiedFor,
     extractedFor,
     generatedFrom,
+    generatedWith,
     flush,
   ]);
 
@@ -444,6 +486,10 @@ export function useProductFlow({
       if (!current()) return;
       setProduct(result.product);
       setGeneratedFrom(generationInputs(keyed, metadata));
+      setGeneratedWith({
+        language: options.language,
+        descriptionLength: options.descriptionLength,
+      });
       setUsage(result.usage);
       setModelId(options.model || undefined);
       // New listing text: the old category and attributes no longer describe it.
@@ -620,6 +666,8 @@ export function useProductFlow({
     setMetadata,
     options,
     setOptions,
+    /** The language and length the current listing was written with. */
+    generatedWith: generatedWith ?? options,
     languageError,
     examples,
     setExamples,
