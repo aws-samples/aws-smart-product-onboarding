@@ -88,5 +88,6 @@ def handler(event: ProductReadyForCategorization, _):
         include_prompt=event.demo,
         dryrun=event.dryrun,
     )
-    logger.debug(f"Prediction: {prediction.model_dump_json()}")
+    # The explanation can repeat seller-supplied product data, so only the ID is logged.
+    logger.debug({"predicted_category_id": prediction.predicted_category_id})
     return prediction.model_dump()

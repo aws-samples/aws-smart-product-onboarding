@@ -95,7 +95,8 @@ def categorize_product(event: ApiRequest[CategorizeProductRequestContent]) -> Ap
         logger.error(f"Error while categorizing: {e}")
         return Response.internal_failure("Internal server error")
 
-    logger.debug(f"Prediction: {prediction.model_dump_json()}")
+    # The explanation can repeat seller-supplied product data, so only the ID is logged.
+    logger.debug({"predicted_category_id": prediction.predicted_category_id})
     try:
         return Response.success(
             CategorizeProductResponseContent(
