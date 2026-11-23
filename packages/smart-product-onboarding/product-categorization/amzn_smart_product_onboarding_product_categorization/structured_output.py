@@ -9,6 +9,7 @@ on models that don't, such as Amazon Nova. Bedrock doesn't check a tool call's i
 every answer is validated here as well, and the model gets one retry when it doesn't match.
 """
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import supports_temperature
@@ -51,8 +52,12 @@ def get_structured_output(
     schema: dict,
     name: str,
     temperature: float = 0,
+    check: Callable[[dict], str | None] | None = None,
 ) -> dict:
     """Return the model's answer to `prompt` as a dict that matches `schema`.
+
+    `check` can reject an answer that matches the schema; the message it returns goes to the model with the retry,
+    and is not logged.
 
     Raises:
         ContentFilteredError: A content filter or guardrail stopped the model.
@@ -74,6 +79,9 @@ def get_structured_output(
             logger.warning({"schema_mismatch": name, "errors": [_where(error) for error in errors]})
             # The model gets the full messages; only the log leaves the values out.
             raise ModelRetry("The answer does not match the schema: " + "; ".join(error.message for error in errors))
+        if check and (problem := check(output)):
+            logger.warning({"check_failed": name})
+            raise ModelRetry(problem)
         return output
 
     settings = ModelSettings(max_tokens=MAX_TOKENS)

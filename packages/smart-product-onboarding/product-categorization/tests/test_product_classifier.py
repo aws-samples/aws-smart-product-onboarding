@@ -312,3 +312,32 @@ def test_nova_gets_a_forced_tool_and_its_answer_is_validated(product_classifier)
     assert list(schema["properties"]) == ["explanation", "predicted_category_name", "predicted_category_id"]
     assert schema["properties"]["predicted_category_id"]["enum"] == ["1", "2", "other"]
     assert first["inferenceConfig"]["temperature"] == 0
+
+
+def test_a_name_that_doesnt_match_the_id_is_retried_once(product_classifier):
+    # Both IDs are candidates, so the schema accepts either; the name says which one the model meant.
+    product_classifier.bedrock.converse.side_effect = [
+        model_response(answer("3", name="Smartphones")),
+        model_response(answer("2", name="Smartphones")),
+    ]
+
+    result = product_classifier.get_product_category("Test prompt", ["2", "3"])
+
+    assert result.predicted_category_id == "2"
+    retry = product_classifier.bedrock.converse.call_args_list[1].kwargs["messages"][-1]["content"][0]["text"]
+    assert "whose name is Books" in retry
+
+
+def test_a_name_that_still_doesnt_match_the_id_is_an_error(product_classifier):
+    product_classifier.bedrock.converse.return_value = model_response(answer("3", name="Smartphones"))
+
+    with pytest.raises(ModelResponseError):
+        product_classifier.get_product_category("Test prompt", ["2", "3"])
+    assert product_classifier.bedrock.converse.call_count == 2
+
+
+def test_the_full_path_is_accepted_as_the_name(product_classifier):
+    product_classifier.bedrock.converse.return_value = model_response(answer("2", name="Electronics > Smartphones"))
+
+    assert product_classifier.get_product_category("Test prompt", ["2", "3"]).predicted_category_id == "2"
+    product_classifier.bedrock.converse.assert_called_once()

@@ -157,9 +157,21 @@ class ProductClassifier:
                 schema,
                 "category_prediction",
                 temperature=self.temperature,
+                check=self._name_matches_id,
             )
         except botocore.exceptions.ClientError as e:
             self._handle_client_error(e)
+
+    def _name_matches_id(self, answer: dict) -> str | None:
+        """The category name must name the chosen ID, so the explanation and the returned category agree."""
+        category = self.category_tree.get(answer["predicted_category_id"])
+        # The name may be the leaf or the whole path.
+        if category is None or answer["predicted_category_name"].endswith(category.name):
+            return None
+        return (
+            f"predicted_category_name does not match predicted_category_id {answer['predicted_category_id']}, "
+            f"whose name is {category.name}. Answer again with the ID of the category you named."
+        )
 
     def _handle_client_error(self, error: botocore.exceptions.ClientError):
         if error.response["Error"]["Code"] == "ThrottlingException":
