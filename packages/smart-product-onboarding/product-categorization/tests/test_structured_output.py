@@ -266,3 +266,15 @@ def test_the_mismatch_log_doesnt_name_an_extra_key(mock_bedrock, monkeypatch):
     _ask(mock_bedrock)
 
     assert warnings == [{"schema_mismatch": "answer", "attempt": 1, "errors": ["<extra key>: extra_forbidden"]}]
+
+
+def test_strands_uses_the_callers_client_without_creating_its_own(mock_bedrock, monkeypatch):
+    import boto3.session
+
+    def no_new_clients(*args, **kwargs):
+        raise AssertionError("a second Bedrock client was created")
+
+    monkeypatch.setattr(boto3.session.Session, "client", no_new_clients)
+    mock_bedrock.converse.return_value = _text({"Type_of_Material": None, "Groe": None})
+
+    assert _ask(mock_bedrock) == {"Type of Material": None, "Größe": None}

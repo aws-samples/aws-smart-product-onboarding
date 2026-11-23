@@ -133,18 +133,27 @@ class _Client:
         return getattr(self._client, name)
 
 
-# Building a BedrockModel creates a boto3 client, so one is kept per caller client and model.
+class _Session:
+    """Hands Strands the caller's client, so BedrockModel doesn't create its own from the default credentials."""
+
+    def __init__(self, client: "BedrockRuntimeClient"):
+        self.region_name = client.meta.region_name
+        self._client = client
+
+    def client(self, *args: Any, **kwargs: Any) -> _Client:
+        return _Client(self._client)
+
+
+# One BedrockModel per caller client and model.
 @functools.lru_cache(maxsize=8)
 def _model(bedrock: "BedrockRuntimeClient", model_id: str) -> BedrockModel:
-    model = BedrockModel(
-        region_name=bedrock.meta.region_name,
+    return BedrockModel(
+        boto_session=_Session(bedrock),
         model_id=model_id,
         max_tokens=MAX_TOKENS,
         # Converse, not ConverseStream: the Step Functions task roles only allow bedrock:InvokeModel.
         streaming=False,
     )
-    model.client = _Client(bedrock)
-    return model
 
 
 def _schema_errors(schema: dict, value: Any) -> list[ValidationError]:
