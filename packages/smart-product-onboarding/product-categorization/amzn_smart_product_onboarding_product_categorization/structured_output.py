@@ -133,19 +133,16 @@ class _Client:
         return getattr(self._client, name)
 
 
-# Building a BedrockModel creates a boto3 client, so one is kept per caller client, model and temperature.
+# Building a BedrockModel creates a boto3 client, so one is kept per caller client and model.
 @functools.lru_cache(maxsize=8)
-def _model(bedrock: "BedrockRuntimeClient", model_id: str, temperature: float) -> BedrockModel:
-    config: dict[str, Any] = {
-        "model_id": model_id,
-        "max_tokens": MAX_TOKENS,
+def _model(bedrock: "BedrockRuntimeClient", model_id: str) -> BedrockModel:
+    model = BedrockModel(
+        region_name=bedrock.meta.region_name,
+        model_id=model_id,
+        max_tokens=MAX_TOKENS,
         # Converse, not ConverseStream: the Step Functions task roles only allow bedrock:InvokeModel.
-        "streaming": False,
-    }
-    # Claude 4.7 and later reject temperature.
-    if supports_temperature(model_id):
-        config["temperature"] = temperature
-    model = BedrockModel(region_name=bedrock.meta.region_name, **config)
+        streaming=False,
+    )
     model.client = _Client(bedrock)
     return model
 
@@ -242,7 +239,10 @@ def get_structured_output(
     keys = safe_keys(schema["properties"])
     originals = {key: original for original, key in keys.items()}
     output_type = output_model(schema, name, keys)
-    model = _model(bedrock, model_id, temperature)
+    model = _model(bedrock, model_id)
+    # Claude 4.7 and later reject temperature.
+    if supports_temperature(model_id):
+        model.update_config(temperature=temperature)
 
     feedback = None
     for attempt in range(OUTPUT_RETRIES + 1):

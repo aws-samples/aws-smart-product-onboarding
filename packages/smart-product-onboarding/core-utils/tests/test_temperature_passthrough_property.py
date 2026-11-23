@@ -14,6 +14,7 @@ must pass that exact temperature value in the inferenceConfig of the Bedrock con
 from __future__ import annotations
 
 import contextlib
+import functools
 
 from unittest.mock import MagicMock, patch
 
@@ -43,11 +44,19 @@ def _make_converse_response(stop_reason: str = "stop_sequence") -> dict:
 # ---------------------------------------------------------------------------
 
 
-def _bedrock_client() -> MagicMock:
-    """A real client, so Strands can read the Converse service model; only the call is stubbed."""
+@functools.cache
+def _client():
     import boto3
 
-    client = boto3.client("bedrock-runtime", region_name="us-east-1", aws_access_key_id="x", aws_secret_access_key="x")
+    return boto3.client("bedrock-runtime", region_name="us-east-1", aws_access_key_id="x", aws_secret_access_key="x")
+
+
+def _bedrock_client() -> MagicMock:
+    """A real client, so Strands can read the Converse service model; only the call is stubbed.
+
+    One client for every test, so Strands builds its model once rather than once per example.
+    """
+    client = _client()
     client.converse = MagicMock()
     return client
 
