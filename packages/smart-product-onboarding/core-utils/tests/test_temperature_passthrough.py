@@ -86,8 +86,9 @@ class TestProductClassifierTemperature:
             temperature=0.5,
         )
 
-        messages = [{"role": "user", "content": [{"text": "test"}]}]
-        classifier._get_model_response(messages, ProductClassifier.output_schema(["1234"]))
+        # The mock reply isn't a valid answer; only the request matters here.
+        with contextlib.suppress(Exception):
+            classifier._get_model_response("test", ProductClassifier.output_schema(["1234"]))
 
         call_kwargs = mock_bedrock.converse.call_args
         actual_temp = call_kwargs.kwargs["inferenceConfig"]["temperature"]
@@ -113,8 +114,9 @@ class TestProductClassifierTemperature:
             model_id="test-model",
         )
 
-        messages = [{"role": "user", "content": [{"text": "test"}]}]
-        classifier._get_model_response(messages, ProductClassifier.output_schema(["1234"]))
+        # The mock reply isn't a valid answer; only the request matters here.
+        with contextlib.suppress(Exception):
+            classifier._get_model_response("test", ProductClassifier.output_schema(["1234"]))
 
         call_kwargs = mock_bedrock.converse.call_args
         actual_temp = call_kwargs.kwargs["inferenceConfig"]["temperature"]

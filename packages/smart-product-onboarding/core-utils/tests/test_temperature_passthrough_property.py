@@ -13,6 +13,8 @@ must pass that exact temperature value in the inferenceConfig of the Bedrock con
 
 from __future__ import annotations
 
+import contextlib
+
 from unittest.mock import MagicMock, patch
 
 from hypothesis import given, settings
@@ -108,8 +110,9 @@ class TestProductClassifierTemperaturePassthrough:
         )
 
         # Call _get_model_response directly to isolate the temperature check
-        messages = [{"role": "user", "content": [{"text": "test prompt"}]}]
-        classifier._get_model_response(messages, ProductClassifier.output_schema(["1234"]))
+        # The mock reply isn't a valid answer; only the request matters here.
+        with contextlib.suppress(Exception):
+            classifier._get_model_response("test prompt", ProductClassifier.output_schema(["1234"]))
 
         call_kwargs = mock_bedrock.converse.call_args
         inference_config = call_kwargs.kwargs.get("inferenceConfig") or call_kwargs[1].get("inferenceConfig", {})
