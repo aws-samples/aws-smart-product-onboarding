@@ -26,6 +26,15 @@ def _make_converse_response(stop_reason: str = "stop_sequence") -> dict:
     }
 
 
+def _bedrock_client() -> MagicMock:
+    """A real client, so Strands can read the Converse service model; only the call is stubbed."""
+    import boto3
+
+    client = boto3.client("bedrock-runtime", region_name="us-east-1", aws_access_key_id="x", aws_secret_access_key="x")
+    client.converse = MagicMock()
+    return client
+
+
 class TestGetModelResponseTemperature:
     """Requirement 5.1 – get_model_response passes temperature to Bedrock."""
 
@@ -71,7 +80,7 @@ class TestProductClassifierTemperature:
             ProductClassifier,
         )
 
-        mock_bedrock = MagicMock()
+        mock_bedrock = _bedrock_client()
         mock_bedrock.converse.return_value = _make_converse_response()
 
         mock_category = MagicMock()
@@ -100,7 +109,7 @@ class TestProductClassifierTemperature:
             ProductClassifier,
         )
 
-        mock_bedrock = MagicMock()
+        mock_bedrock = _bedrock_client()
         mock_bedrock.converse.return_value = _make_converse_response()
 
         mock_category = MagicMock()
@@ -134,7 +143,7 @@ class TestAttributesExtractorTemperature:
 
         from amzn_smart_product_onboarding_core_utils.models import Product
 
-        mock_bedrock = MagicMock()
+        mock_bedrock = _bedrock_client()
         mock_bedrock.converse.return_value = _make_converse_response()
 
         mock_schema_retriever = MagicMock()
@@ -169,7 +178,7 @@ class TestAttributesExtractorTemperature:
 
         from amzn_smart_product_onboarding_core_utils.models import Product
 
-        mock_bedrock = MagicMock()
+        mock_bedrock = _bedrock_client()
         mock_bedrock.converse.return_value = _make_converse_response()
 
         mock_schema_retriever = MagicMock()

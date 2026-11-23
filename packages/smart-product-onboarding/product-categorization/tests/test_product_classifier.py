@@ -59,7 +59,7 @@ def product_classifier(mock_bedrock, category_tree):
 def model_response(answer, stop_reason="end_turn"):
     text = answer if isinstance(answer, str) else json.dumps(answer)
     return {
-        "output": {"message": {"content": [{"text": text}]}},
+        "output": {"message": {"role": "assistant", "content": [{"text": text}]}},
         "stopReason": stop_reason,
         "usage": {"inputTokens": 100, "outputTokens": 50},
     }
@@ -142,7 +142,7 @@ def test_category_outside_the_tree_is_an_error(product_classifier):
 
 def test_content_filtered_response_raises_content_filtered_error(product_classifier):
     product_classifier.bedrock.converse.return_value = {
-        "output": {"message": {"content": []}},
+        "output": {"message": {"role": "assistant", "content": []}},
         "stopReason": "content_filtered",
         "usage": {"inputTokens": 100, "outputTokens": 0},
     }
@@ -292,7 +292,9 @@ def test_nova_gets_a_forced_tool_and_its_answer_is_validated(product_classifier)
             "output": {
                 "message": {
                     "role": "assistant",
-                    "content": [{"toolUse": {"toolUseId": "t1", "name": "final_result", "input": answer(category_id)}}],
+                    "content": [
+                        {"toolUse": {"toolUseId": "t1", "name": "category_prediction", "input": answer(category_id)}}
+                    ],
                 }
             },
             "stopReason": "tool_use",

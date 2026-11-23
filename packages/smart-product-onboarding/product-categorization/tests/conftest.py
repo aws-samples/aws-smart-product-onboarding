@@ -14,9 +14,10 @@ from amzn_smart_product_onboarding_core_utils.models import (
 
 @pytest.fixture
 def mock_bedrock():
-    # A real client, so Pydantic AI can read the Converse service model; only the call itself is stubbed.
+    # A real client, so Strands can read the Converse service model; only the call itself is stubbed.
     client = boto3.client("bedrock-runtime", region_name="us-east-1", aws_access_key_id="x", aws_secret_access_key="x")
     client.converse = Mock()
+    client.converse_stream = Mock(side_effect=AssertionError("ConverseStream is not allowed"))
     return client
 
 

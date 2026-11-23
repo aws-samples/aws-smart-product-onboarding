@@ -18,7 +18,10 @@ from amzn_smart_product_onboarding_core_utils.json_to_xml import json_to_xml
 from botocore.exceptions import ClientError
 from cachetools import TTLCache, cachedmethod
 
-from amzn_smart_product_onboarding_product_categorization.structured_output import get_structured_output
+from amzn_smart_product_onboarding_product_categorization.structured_output import (
+    get_structured_output,
+    is_schema_too_complex,
+)
 
 if TYPE_CHECKING:
     from mypy_boto3_bedrock_runtime.client import BedrockRuntimeClient
@@ -41,12 +44,6 @@ EMPTY_RESPONSE = Attributes(attributes=[])
 
 # Categories whose enum schema Bedrock refused to compile, kept for the life of the process.
 _CATEGORIES_NEEDING_STRING_SCHEMA: set[str] = set()
-
-
-def _is_schema_too_complex(error: ClientError) -> bool:
-    return error.response["Error"]["Code"] == "ValidationException" and "Schema is too complex" in error.response[
-        "Error"
-    ].get("Message", "")
 
 
 def _object_schema(properties: dict) -> dict:
@@ -159,7 +156,7 @@ class AttributesExtractor:
             try:
                 return self._ask(prompt, self.output_schema(category_schema))
             except ClientError as e:
-                if not _is_schema_too_complex(e):
+                if not is_schema_too_complex(e):
                     raise
                 logger.warning({"schema_too_complex": category_id})
                 _CATEGORIES_NEEDING_STRING_SCHEMA.add(category_id)

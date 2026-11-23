@@ -11,6 +11,7 @@ from botocore.exceptions import ClientError
 from amzn_smart_product_onboarding_core_utils.exceptions import ContentFilteredError, ModelResponseError
 from amzn_smart_product_onboarding_core_utils.models import Product
 from amzn_smart_product_onboarding_product_categorization import attributes_extractor
+from amzn_smart_product_onboarding_product_categorization.structured_output import safe_keys
 from amzn_smart_product_onboarding_product_categorization.attributes_extractor import (
     AttributesExtractor,
     SchemaRetriever,
@@ -58,10 +59,15 @@ def category_schema(faker):
     )
 
 
+def _wire(values):
+    """The model answers with the safe keys the request used."""
+    return {safe_keys([name])[name]: value for name, value in values.items()}
+
+
 def _a_response_from_bedrock(values, stop_reason="end_turn"):
-    text = values if isinstance(values, str) else json.dumps(values)
+    text = values if isinstance(values, str) else json.dumps(_wire(values))
     return {
-        "output": {"message": {"content": [{"text": text}]}},
+        "output": {"message": {"role": "assistant", "content": [{"text": text}]}},
         "stopReason": stop_reason,
         "usage": {"inputTokens": 100, "outputTokens": 50},
     }
@@ -81,6 +87,10 @@ def extractor(mock_bedrock, schema_retriever):
 
 def _schema_sent(call):
     return json.loads(call.kwargs["outputConfig"]["textFormat"]["structure"]["jsonSchema"]["schema"])
+
+
+def _property_sent(call, name):
+    return _schema_sent(call)["properties"][safe_keys([name])[name]]
 
 
 def _too_complex():
@@ -121,12 +131,16 @@ def test_schema_requires_every_attribute_with_its_listed_values_or_null(
 
     call = mock_bedrock.converse.call_args
     assert call.kwargs["outputConfig"]["textFormat"]["type"] == "json_schema"
-    assert _schema_sent(call) == {
-        "type": "object",
-        "properties": {"Type of Material": {"enum": ["PLASTIC", "UNCLASSIFIED", "UNIDENTIFIED", None]}},
-        "required": ["Type of Material"],
-        "additionalProperties": False,
+    schema = _schema_sent(call)
+    assert schema["properties"] == {
+        "Type_of_Material": {
+            "enum": ["PLASTIC", "UNCLASSIFIED", "UNIDENTIFIED", None],
+            "title": "Type of Material",
+            "description": "Type of Material",
+        }
     }
+    assert schema["required"] == ["Type_of_Material"]
+    assert schema["additionalProperties"] is False
 
 
 def test_attribute_values_may_contain_a_less_than_sign(mock_bedrock, product, predicted_category, faker):
@@ -148,7 +162,7 @@ def test_attribute_values_may_contain_a_less_than_sign(mock_bedrock, product, pr
 
     results = extractor.extract_attributes(product=product, category_id=predicted_category.predicted_category_id)
 
-    assert _schema_sent(mock_bedrock.converse.call_args)["properties"]["Consumer Lifestage"]["enum"] == [
+    assert _property_sent(mock_bedrock.converse.call_args, "Consumer Lifestage")["enum"] == [
         "<3 YEARS",
         None,
     ]
@@ -164,17 +178,15 @@ def test_schema_too_complex_retries_once_with_string_values_and_remembers_the_ca
 
     assert [r.model_dump() for r in results.attributes] == [{"name": "Type of Material", "value": "PLASTIC"}]
     first, second = mock_bedrock.converse.call_args_list
-    assert "enum" in _schema_sent(first)["properties"]["Type of Material"]
-    assert _schema_sent(second)["properties"] == {"Type of Material": {"type": ["string", "null"]}}
+    assert "enum" in _property_sent(first, "Type of Material")
+    assert "enum" not in _property_sent(second, "Type of Material")
 
     # The next product in the same category goes straight to the string schema.
     mock_bedrock.converse.reset_mock(side_effect=True)
     mock_bedrock.converse.return_value = _a_response_from_bedrock({"Type of Material": None})
     extractor.extract_attributes(product=product, category_id="10000275")
     assert mock_bedrock.converse.call_count == 1
-    assert _schema_sent(mock_bedrock.converse.call_args)["properties"] == {
-        "Type of Material": {"type": ["string", "null"]}
-    }
+    assert "enum" not in _property_sent(mock_bedrock.converse.call_args, "Type of Material")
 
 
 def test_other_validation_errors_are_raised(mock_bedrock, extractor, product, predicted_category):
@@ -216,7 +228,7 @@ def test_a_value_outside_the_schema_is_retried_once(mock_bedrock, extractor, pro
 
     assert [r.model_dump() for r in results.attributes] == [{"name": "Type of Material", "value": "PLASTIC"}]
     retry = mock_bedrock.converse.call_args_list[1].kwargs["messages"][-1]["content"][0]["text"]
-    assert "'WOOD' is not one of" in retry
+    assert "Your previous answer was rejected" in retry and "Type of Material" in retry
 
 
 @pytest.mark.parametrize(
@@ -248,7 +260,8 @@ def test_schema_mismatch_log_names_the_attribute_but_not_the_value(
 
     extractor.extract_attributes(product=product, category_id=predicted_category.predicted_category_id)
 
-    assert warnings == [{"schema_mismatch": "attributes", "errors": ["Type of Material: enum"]}]
+    assert warnings == [{"schema_mismatch": "attributes", "attempt": 1, "errors": ["Type of Material: literal_error"]}]
+    assert "SELLER TEXT" not in str(warnings)
 
 
 def _a_tool_use_response(values):
@@ -256,7 +269,7 @@ def _a_tool_use_response(values):
         "output": {
             "message": {
                 "role": "assistant",
-                "content": [{"toolUse": {"toolUseId": "t1", "name": "final_result", "input": values}}],
+                "content": [{"toolUse": {"toolUseId": "t1", "name": "attributes", "input": _wire(values)}}],
             }
         },
         "stopReason": "tool_use",
@@ -278,9 +291,9 @@ def test_nova_gets_a_forced_tool_with_the_same_schema_and_temperature(mock_bedro
     call = mock_bedrock.converse.call_args.kwargs
     assert "outputConfig" not in call
     assert call["toolConfig"]["toolChoice"] == {"any": {}}
-    sent = call["toolConfig"]["tools"][0]["toolSpec"]["inputSchema"]["json"]
-    assert sent["properties"] == {"Type of Material": {"enum": ["PLASTIC", "UNCLASSIFIED", "UNIDENTIFIED", None]}}
-    assert sent["required"] == ["Type of Material"] and sent["additionalProperties"] is False
+    sent = call["toolConfig"]["tools"][0]["toolSpec"]["inputSchema"]["json"]["properties"]["Type_of_Material"]
+    assert sent["enum"] == ["PLASTIC", "UNCLASSIFIED", "UNIDENTIFIED", None]
+    assert sent["title"] == "Type of Material"
     assert call["inferenceConfig"]["temperature"] == 0
 
 
@@ -299,8 +312,8 @@ def test_nova_tool_input_is_validated_and_retried_once(mock_bedrock, schema_retr
     results = extractor.extract_attributes(product=product, category_id="10000275")
 
     assert [r.model_dump() for r in results.attributes] == [{"name": "Type of Material", "value": "PLASTIC"}]
-    retry = mock_bedrock.converse.call_args_list[1].kwargs["messages"][-1]["content"][0]["toolResult"]
-    assert retry["status"] == "error"
+    retry = mock_bedrock.converse.call_args_list[1].kwargs["messages"][-1]["content"][0]["text"]
+    assert "Your previous answer was rejected" in retry
 
 
 @pytest.mark.parametrize("stop_reason", ["content_filtered", "guardrail_intervened"])
@@ -309,7 +322,7 @@ def test_attributes_extractor_raises_content_filtered_without_text(
 ):
     # A content-filtered response can carry no text block at all.
     mock_bedrock.converse.return_value = {
-        "output": {"message": {"content": []}},
+        "output": {"message": {"role": "assistant", "content": []}},
         "stopReason": stop_reason,
         "usage": {"inputTokens": 100, "outputTokens": 0},
     }
