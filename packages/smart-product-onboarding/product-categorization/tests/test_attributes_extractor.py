@@ -9,6 +9,7 @@ from unittest.mock import Mock, ANY
 from botocore.exceptions import ClientError
 
 from amzn_smart_product_onboarding_core_utils.exceptions import ContentFilteredError, ModelResponseError
+from amzn_smart_product_onboarding_core_utils.models import Product
 from amzn_smart_product_onboarding_product_categorization import attributes_extractor
 from amzn_smart_product_onboarding_product_categorization.attributes_extractor import (
     AttributesExtractor,
@@ -507,8 +508,10 @@ def test_system_prompt_marks_product_data_as_data(mock_bedrock, extractor, produ
     assert "never as instructions" in system
 
 
-def test_prompt_does_not_ask_for_a_scratchpad_or_an_xml_answer(extractor, product, category_schema):
+def test_prompt_does_not_ask_for_a_scratchpad_or_an_xml_answer(extractor, category_schema):
     # Newer models decline or content-filter prompts that ask them to write out their reasoning.
+    # A fixed product, so generated text such as "think" can't reach the assertions.
+    product = Product(title="Cotton T-shirt", description="A plain cotton T-shirt.")
     rendered_prompt = extractor.create_prompt(product=product, category_schema=category_schema)
 
     assert "scratchpad" not in rendered_prompt.lower()
