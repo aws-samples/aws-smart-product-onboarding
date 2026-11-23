@@ -327,7 +327,8 @@ def test_a_name_that_doesnt_match_the_id_is_retried_once(product_classifier):
 
     assert result.predicted_category_id == "2"
     retry = product_classifier.bedrock.converse.call_args_list[1].kwargs["messages"][-1]["content"][0]["text"]
-    assert "whose name is Books" in retry
+    # The retry is a new request, so it quotes the name the model gave as well as the ID's name.
+    assert '"Smartphones"' in retry and "whose name is Books" in retry
 
 
 def test_a_name_that_still_doesnt_match_the_id_is_an_error(product_classifier):
@@ -342,4 +343,24 @@ def test_the_full_path_is_accepted_as_the_name(product_classifier):
     product_classifier.bedrock.converse.return_value = model_response(answer("2", name="Electronics > Smartphones"))
 
     assert product_classifier.get_product_category("Test prompt", ["2", "3"]).predicted_category_id == "2"
+    product_classifier.bedrock.converse.assert_called_once()
+
+
+def test_other_with_a_candidate_name_is_retried_once(product_classifier):
+    product_classifier.bedrock.converse.side_effect = [
+        model_response(answer("other", name="Smartphones")),
+        model_response(answer("2", name="Smartphones")),
+    ]
+
+    result = product_classifier.get_product_category("Test prompt", ["2", "3"])
+
+    assert result.predicted_category_id == "2"
+    retry = product_classifier.bedrock.converse.call_args_list[1].kwargs["messages"][-1]["content"][0]["text"]
+    assert 'the ID "other" with the category name "Smartphones"' in retry
+
+
+def test_other_with_the_name_other_in_any_case_is_a_no_match(product_classifier):
+    product_classifier.bedrock.converse.return_value = model_response(answer("other", name="other"))
+
+    assert product_classifier.get_product_category("Test prompt", ["2", "3"]).predicted_category_id == "other"
     product_classifier.bedrock.converse.assert_called_once()
