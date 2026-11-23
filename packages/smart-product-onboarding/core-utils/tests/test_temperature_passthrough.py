@@ -27,6 +27,21 @@ def _make_converse_response(stop_reason: str = "stop_sequence") -> dict:
     }
 
 
+def _classifier_answer() -> dict:
+    """A valid categorization answer, as a forced tool call."""
+    answer = {"explanation": "Test", "predicted_category_name": "Test", "predicted_category_id": "1234"}
+    return {
+        "output": {
+            "message": {
+                "role": "assistant",
+                "content": [{"toolUse": {"toolUseId": "t1", "name": "category_prediction", "input": answer}}],
+            }
+        },
+        "stopReason": "tool_use",
+        "usage": {"inputTokens": 10, "outputTokens": 5, "totalTokens": 15},
+    }
+
+
 @functools.cache
 def _client():
     import boto3
@@ -90,7 +105,7 @@ class TestProductClassifierTemperature:
         )
 
         mock_bedrock = _bedrock_client()
-        mock_bedrock.converse.return_value = _make_converse_response()
+        mock_bedrock.converse.return_value = _classifier_answer()
 
         mock_category = MagicMock()
         mock_category.name = "Test"
@@ -104,9 +119,7 @@ class TestProductClassifierTemperature:
             temperature=0.5,
         )
 
-        # The mock reply isn't a valid answer; only the request matters here.
-        with contextlib.suppress(Exception):
-            classifier._get_model_response("test", ProductClassifier.output_schema(["1234"]))
+        classifier._get_model_response("test", ProductClassifier.output_schema(["1234"]))
 
         call_kwargs = mock_bedrock.converse.call_args
         actual_temp = call_kwargs.kwargs["inferenceConfig"]["temperature"]
@@ -119,7 +132,7 @@ class TestProductClassifierTemperature:
         )
 
         mock_bedrock = _bedrock_client()
-        mock_bedrock.converse.return_value = _make_converse_response()
+        mock_bedrock.converse.return_value = _classifier_answer()
 
         mock_category = MagicMock()
         mock_category.name = "Test"
@@ -132,9 +145,7 @@ class TestProductClassifierTemperature:
             model_id="test-model",
         )
 
-        # The mock reply isn't a valid answer; only the request matters here.
-        with contextlib.suppress(Exception):
-            classifier._get_model_response("test", ProductClassifier.output_schema(["1234"]))
+        classifier._get_model_response("test", ProductClassifier.output_schema(["1234"]))
 
         call_kwargs = mock_bedrock.converse.call_args
         actual_temp = call_kwargs.kwargs["inferenceConfig"]["temperature"]
