@@ -3,33 +3,10 @@
 
 import os
 from collections.abc import Iterable
-from typing import TYPE_CHECKING
 
 import botocore.exceptions
 import jinja2
-from tenacity import (
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_random_exponential,
-)
-
-if TYPE_CHECKING:
-    from mypy_boto3_bedrock_runtime.type_defs import (
-        ConverseResponseTypeDef,
-        MessageOutputTypeDef,
-        MessageTypeDef,
-    )
-else:
-    ConverseResponseTypeDef = dict
-    MessageTypeDef = dict
-    MessageOutputTypeDef = dict
-from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import (
-    BedrockRuntimeClient,
-    json_output_config,
-    parse_json_response,
-    prepare_converse_request,
-)
+from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import BedrockRuntimeClient
 from amzn_smart_product_onboarding_core_utils.exceptions import (
     ModelResponseError,
     RateLimitError,
@@ -41,6 +18,14 @@ from amzn_smart_product_onboarding_core_utils.models import (
     Product,
     ProductCategory,
 )
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_random_exponential,
+)
+
+from amzn_smart_product_onboarding_product_categorization.structured_output import get_structured_output
 
 logger.name = "product_classifier"
 DEFAULT_MODEL_ID = "global.anthropic.claude-haiku-5-5"
@@ -134,24 +119,10 @@ class ProductClassifier:
     def get_product_category(
         self, prompt: str, candidate_category_ids: list[str], dryrun: bool = False
     ) -> CategorizationPrediction:
-        messages = [{"role": "user", "content": [{"text": prompt}]}]
         if not dryrun:
-            response = self._get_model_response(messages, self.output_schema(candidate_category_ids))
+            result = self._get_model_response(prompt, self.output_schema(candidate_category_ids))
         else:
-            response = {
-                "output": {
-                    "message": {
-                        "content": [
-                            {
-                                "text": '{"explanation": "Test", "predicted_category_name": "Test", '
-                                '"predicted_category_id": "1234"}'
-                            }
-                        ]
-                    }
-                },
-                "stopReason": "end_turn",
-            }
-        result = parse_json_response(response)
+            result = {"explanation": "Test", "predicted_category_name": "Test", "predicted_category_id": "1234"}
         category_id = result["predicted_category_id"]
         if category_id == NO_MATCH_CATEGORY_ID:
             logger.info("No candidate category fits the product")
@@ -176,22 +147,17 @@ class ProductClassifier:
         wait=wait_random_exponential(multiplier=2, max=60, min=30),
         reraise=True,
     )
-    def _get_model_response(
-        self, messages: list[MessageTypeDef | MessageOutputTypeDef], schema: dict
-    ) -> ConverseResponseTypeDef:
+    def _get_model_response(self, prompt: str, schema: dict) -> dict:
         try:
-            request_messages, inference_config = prepare_converse_request(
-                self.model_id, messages, temperature=self.temperature
+            return get_structured_output(
+                self.bedrock,
+                self.model_id,
+                self.system_prompt,
+                prompt,
+                schema,
+                "category_prediction",
+                temperature=self.temperature,
             )
-            response = self.bedrock.converse(
-                modelId=self.model_id,
-                system=[{"text": self.system_prompt}],
-                messages=request_messages,
-                inferenceConfig=inference_config,
-                outputConfig=json_output_config(schema, "category_prediction"),
-            )
-            logger.info({"usage": response["usage"]})
-            return response
         except botocore.exceptions.ClientError as e:
             self._handle_client_error(e)
 
@@ -206,6 +172,6 @@ class ProductClassifier:
         ):
             logger.exception(error)
             raise RetryableError(error)
-        # For example, a model without structured output (Amazon Nova) rejects outputConfig.
+        # For example, a ValidationException for a model that can't run the request.
         logger.error({"model_id": self.model_id, "error": error.response["Error"]})
         raise error

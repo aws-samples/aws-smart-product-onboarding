@@ -1,7 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-import json
 import os
 import re
 from typing import TYPE_CHECKING, Union
@@ -240,31 +239,3 @@ def build_full_response(response: dict, response_open: str = "", response_close:
         )
         raise ModelResponseError(response["stopReason"])
     return full
-
-
-def json_output_config(schema: dict, name: str) -> dict:
-    """Converse outputConfig that constrains the model's text to match a JSON schema."""
-    return {
-        "textFormat": {
-            "type": "json_schema",
-            "structure": {"jsonSchema": {"schema": json.dumps(schema), "name": name}},
-        }
-    }
-
-
-def parse_json_response(response: dict) -> dict:
-    """Return the JSON object from a structured-output response.
-
-    Raises ContentFilteredError for a filtered response and ModelResponseError when the model stopped
-    before finishing the JSON (max_tokens, malformed_model_output) or returned something that does not parse.
-    """
-    # The text can repeat seller-supplied product data, so only its length is logged.
-    text = extract_response_text(response)
-    if response["stopReason"] != "end_turn":
-        logger.error({"stopReason": response["stopReason"], "text_length": len(text)})
-        raise ModelResponseError(response["stopReason"])
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError as e:
-        logger.error({"error": str(e), "text_length": len(text)})
-        raise ModelResponseError("Response is not valid JSON") from e

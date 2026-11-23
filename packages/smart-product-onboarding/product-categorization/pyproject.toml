@@ -9,6 +9,8 @@ dependencies = [
     "cachetools>=5.5.1",
     "faker>=30.1.0",
     "jinja2>=3.1.4",
+    "jsonschema>=4.23.0",
+    "pydantic-ai-slim[bedrock]==2.71.0",
     "amzn-smart-product-onboarding-api-common",
     "amzn-smart-product-onboarding-core-utils",
 ]

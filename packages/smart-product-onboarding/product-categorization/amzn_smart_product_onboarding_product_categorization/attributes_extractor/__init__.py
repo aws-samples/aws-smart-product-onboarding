@@ -10,11 +10,6 @@ from abc import ABC
 from typing import TYPE_CHECKING
 
 import jinja2
-from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import (
-    json_output_config,
-    parse_json_response,
-    prepare_converse_request,
-)
 from amzn_smart_product_onboarding_core_utils.exceptions import (
     RateLimitError,
     RetryableError,
@@ -22,6 +17,8 @@ from amzn_smart_product_onboarding_core_utils.exceptions import (
 from amzn_smart_product_onboarding_core_utils.json_to_xml import json_to_xml
 from botocore.exceptions import ClientError
 from cachetools import TTLCache, cachedmethod
+
+from amzn_smart_product_onboarding_product_categorization.structured_output import get_structured_output
 
 if TYPE_CHECKING:
     from mypy_boto3_bedrock_runtime.client import BedrockRuntimeClient
@@ -135,20 +132,8 @@ class AttributesExtractor:
 
         prompt = self.create_prompt(category_schema, product)
 
-        messages, inference_config = prepare_converse_request(
-            self.model_id,
-            [{"role": "user", "content": [{"text": prompt}]}],
-            temperature=self.temperature,
-        )
-        request = {
-            "modelId": self.model_id,
-            "system": [{"text": self.system_prompt}],
-            "inferenceConfig": inference_config,
-            "messages": messages,
-        }
-
         try:
-            response = self._converse(request, category_id, category_schema)
+            values = self._get_answer(prompt, category_id, category_schema)
         except ClientError as e:
             # TODO: extract error handling to a decorator
             if e.response["Error"]["Code"] == "ThrottlingException":
@@ -162,26 +147,33 @@ class AttributesExtractor:
                 logger.exception(e)
                 raise RetryableError(e)
             raise
-        logger.info({"usage": response["usage"]})
-        attributes = self._parse_response(response)
-        print(f"ATTRIBUTES ARE: {attributes}")
+        return Attributes(
+            attributes=[
+                Attribute(name=name, value="null" if value is None else value) for name, value in values.items()
+            ]
+        )
 
-        return attributes
-
-    def _converse(self, request: dict, category_id: str, category_schema: CategorySchema) -> dict:
-        """Call Converse with the enum schema, or with the string schema for categories Bedrock can't compile."""
+    def _get_answer(self, prompt: str, category_id: str, category_schema: CategorySchema) -> dict:
+        """Ask with the enum schema, or with the string schema for categories Bedrock can't compile."""
         if category_id not in _CATEGORIES_NEEDING_STRING_SCHEMA:
             try:
-                return self.bedrock_runtime_client.converse(
-                    **request, outputConfig=json_output_config(self.output_schema(category_schema), "attributes")
-                )
+                return self._ask(prompt, self.output_schema(category_schema))
             except ClientError as e:
                 if not _is_schema_too_complex(e):
                     raise
                 logger.warning({"schema_too_complex": category_id})
                 _CATEGORIES_NEEDING_STRING_SCHEMA.add(category_id)
-        return self.bedrock_runtime_client.converse(
-            **request, outputConfig=json_output_config(self.string_output_schema(category_schema), "attributes")
+        return self._ask(prompt, self.string_output_schema(category_schema))
+
+    def _ask(self, prompt: str, schema: dict) -> dict:
+        return get_structured_output(
+            self.bedrock_runtime_client,
+            self.model_id,
+            self.system_prompt,
+            prompt,
+            schema,
+            "attributes",
+            temperature=self.temperature,
         )
 
     def create_prompt(self, category_schema, product: Product) -> str:
@@ -221,12 +213,4 @@ class AttributesExtractor:
         """
         return _object_schema(
             {attribute["Title"]: {"type": ["string", "null"]} for attribute in category_schema.attributes_schema}
-        )
-
-    def _parse_response(self, response) -> Attributes:
-        values = parse_json_response(response)
-        return Attributes(
-            attributes=[
-                Attribute(name=name, value="null" if value is None else value) for name, value in values.items()
-            ]
         )

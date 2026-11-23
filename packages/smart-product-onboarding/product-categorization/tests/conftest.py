@@ -3,11 +3,9 @@
 
 from unittest.mock import Mock
 
+import boto3
 import pytest
 
-from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import (
-    BedrockRuntimeClient,
-)
 from amzn_smart_product_onboarding_core_utils.models import (
     Product,
     CategorizationPrediction,
@@ -16,9 +14,10 @@ from amzn_smart_product_onboarding_core_utils.models import (
 
 @pytest.fixture
 def mock_bedrock():
-    mock = Mock(spec=BedrockRuntimeClient)
-    mock.converse = Mock()
-    return mock
+    # A real client, so Pydantic AI can read the Converse service model; only the call itself is stubbed.
+    client = boto3.client("bedrock-runtime", region_name="us-west-2", aws_access_key_id="x", aws_secret_access_key="x")
+    client.converse = Mock()
+    return client
 
 
 @pytest.fixture

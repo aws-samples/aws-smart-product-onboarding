@@ -20,7 +20,7 @@ The attribute extraction process begins with schema retrieval, where the system 
 
 Next, the system constructs a carefully crafted prompt for the AI model. This prompt includes the product information, category details, and the attribute schema. The prompt is then sent to Amazon Bedrock, which processes it using the Claude 3.5 Sonnet model.
 
-The request asks Amazon Bedrock for [structured output](https://docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html): a JSON schema with one required property per attribute, whose value is one of the attribute's listed values or null. The model's answer always matches that schema, so the system reads it as JSON and needs no further validation. The model must support structured output, such as Claude Sonnet 5.5 or Claude Haiku 5.5; Amazon Nova models reject the request. Bedrock can't compile the schema for a few categories with long value lists, such as wines; for those, the system retries once with a schema that only requires each value to be a string or null, and remembers the category for the life of the process.
+The request asks Amazon Bedrock for [structured output](https://docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html): a JSON schema with one required property per attribute, whose value is one of the attribute's listed values or null. The system sends the request through [Pydantic AI](https://ai.pydantic.dev/), which picks how to constrain the answer for the model. Models with JSON schema output, such as Claude Sonnet 5.5 and Claude Haiku 5.5, get the schema in the request's `outputConfig`. Models without it, such as Amazon Nova, get a forced tool call whose input schema is the same JSON schema. Bedrock doesn't check a tool call's input against its schema, so the system validates every answer against the schema and gives the model one retry when it doesn't match. Bedrock can't compile the schema for a few categories with long value lists, such as wines; for those, the system retries once with a schema that only requires each value to be a string or null, and remembers the category for the life of the process.
 
 ### Key Components
 
@@ -44,7 +44,7 @@ The request has a system prompt and a user message.
 
 5. **Extraction Instructions**: How to choose a value, and to use null when the product data doesn't give one.
 
-6. **Output Format**: Not in the prompt. The JSON schema in the request's `outputConfig` sets it.
+6. **Output Format**: Not in the prompt. The JSON schema in the request sets it.
 
 ### Key Strategies
 

@@ -187,11 +187,12 @@ def test_other_validation_errors_are_raised(mock_bedrock, extractor, product, pr
     assert not attributes_extractor._CATEGORIES_NEEDING_STRING_SCHEMA
 
 
-def test_attributes_extractor_will_throw_for_invalid_json(mock_bedrock, extractor, product, predicted_category):
+def test_invalid_json_is_retried_once_then_a_model_response_error(mock_bedrock, extractor, product, predicted_category):
     mock_bedrock.converse.return_value = _a_response_from_bedrock("this is not json")
 
-    with pytest.raises(ModelResponseError, match="not valid JSON"):
+    with pytest.raises(ModelResponseError, match="No valid attributes answer"):
         extractor.extract_attributes(product=product, category_id=predicted_category.predicted_category_id)
+    assert mock_bedrock.converse.call_count == 2
 
 
 @pytest.mark.parametrize("stop_reason", ["max_tokens", "malformed_model_output"])
@@ -200,17 +201,115 @@ def test_attributes_extractor_will_throw_for_incomplete_response(
 ):
     mock_bedrock.converse.return_value = _a_response_from_bedrock('{"Type of Material": "PLA', stop_reason)
 
-    with pytest.raises(ModelResponseError, match=stop_reason):
+    with pytest.raises(ModelResponseError, match="No valid attributes answer"):
         extractor.extract_attributes(product=product, category_id=predicted_category.predicted_category_id)
 
 
+def test_a_value_outside_the_schema_is_retried_once(mock_bedrock, extractor, product, predicted_category):
+    mock_bedrock.converse.side_effect = [
+        _a_response_from_bedrock({"Type of Material": "WOOD"}),
+        _a_response_from_bedrock({"Type of Material": "PLASTIC"}),
+    ]
+
+    results = extractor.extract_attributes(product=product, category_id=predicted_category.predicted_category_id)
+
+    assert [r.model_dump() for r in results.attributes] == [{"name": "Type of Material", "value": "PLASTIC"}]
+    retry = mock_bedrock.converse.call_args_list[1].kwargs["messages"][-1]["content"][0]["text"]
+    assert "'WOOD' is not one of" in retry
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [{"Type of Material": "WOOD"}, {"Type of Material": None, "Colour": "RED"}, {}],
+    ids=["enum", "extra key", "missing key"],
+)
+def test_an_answer_that_still_breaks_the_schema_after_the_retry_is_an_error(
+    mock_bedrock, extractor, product, predicted_category, answer
+):
+    mock_bedrock.converse.return_value = _a_response_from_bedrock(answer)
+
+    with pytest.raises(ModelResponseError):
+        extractor.extract_attributes(product=product, category_id=predicted_category.predicted_category_id)
+    assert mock_bedrock.converse.call_count == 2
+
+
+def test_schema_mismatch_log_names_the_attribute_but_not_the_value(
+    mock_bedrock, extractor, product, predicted_category, monkeypatch
+):
+    from amzn_smart_product_onboarding_product_categorization import structured_output
+
+    warnings = []
+    monkeypatch.setattr(structured_output.logger, "warning", warnings.append)
+    mock_bedrock.converse.side_effect = [
+        _a_response_from_bedrock({"Type of Material": "SELLER TEXT"}),
+        _a_response_from_bedrock({"Type of Material": "PLASTIC"}),
+    ]
+
+    extractor.extract_attributes(product=product, category_id=predicted_category.predicted_category_id)
+
+    assert warnings == [{"schema_mismatch": "attributes", "errors": ["Type of Material: enum"]}]
+
+
+def _a_tool_use_response(values):
+    return {
+        "output": {
+            "message": {
+                "role": "assistant",
+                "content": [{"toolUse": {"toolUseId": "t1", "name": "final_result", "input": values}}],
+            }
+        },
+        "stopReason": "tool_use",
+        "usage": {"inputTokens": 100, "outputTokens": 50},
+    }
+
+
+def test_nova_gets_a_forced_tool_with_the_same_schema_and_temperature(mock_bedrock, schema_retriever, product):
+    extractor = AttributesExtractor(
+        bedrock_runtime_client=mock_bedrock,
+        schema_retriever=schema_retriever,
+        model_id="global.amazon.nova-2-lite-v1:0",
+    )
+    mock_bedrock.converse.return_value = _a_tool_use_response({"Type of Material": "PLASTIC"})
+
+    results = extractor.extract_attributes(product=product, category_id="10000275")
+
+    assert [r.model_dump() for r in results.attributes] == [{"name": "Type of Material", "value": "PLASTIC"}]
+    call = mock_bedrock.converse.call_args.kwargs
+    assert "outputConfig" not in call
+    assert call["toolConfig"]["toolChoice"] == {"any": {}}
+    sent = call["toolConfig"]["tools"][0]["toolSpec"]["inputSchema"]["json"]
+    assert sent["properties"] == {"Type of Material": {"enum": ["PLASTIC", "UNCLASSIFIED", "UNIDENTIFIED", None]}}
+    assert sent["required"] == ["Type of Material"] and sent["additionalProperties"] is False
+    assert call["inferenceConfig"]["temperature"] == 0
+
+
+def test_nova_tool_input_is_validated_and_retried_once(mock_bedrock, schema_retriever, product):
+    # Bedrock doesn't check a tool call's input against its schema, so the answer is validated locally.
+    extractor = AttributesExtractor(
+        bedrock_runtime_client=mock_bedrock,
+        schema_retriever=schema_retriever,
+        model_id="global.amazon.nova-2-lite-v1:0",
+    )
+    mock_bedrock.converse.side_effect = [
+        _a_tool_use_response({"Type of Material": "WOOD", "Colour": "RED"}),
+        _a_tool_use_response({"Type of Material": "PLASTIC"}),
+    ]
+
+    results = extractor.extract_attributes(product=product, category_id="10000275")
+
+    assert [r.model_dump() for r in results.attributes] == [{"name": "Type of Material", "value": "PLASTIC"}]
+    retry = mock_bedrock.converse.call_args_list[1].kwargs["messages"][-1]["content"][0]["toolResult"]
+    assert retry["status"] == "error"
+
+
+@pytest.mark.parametrize("stop_reason", ["content_filtered", "guardrail_intervened"])
 def test_attributes_extractor_raises_content_filtered_without_text(
-    mock_bedrock, extractor, product, predicted_category
+    mock_bedrock, extractor, product, predicted_category, stop_reason
 ):
     # A content-filtered response can carry no text block at all.
     mock_bedrock.converse.return_value = {
         "output": {"message": {"content": []}},
-        "stopReason": "content_filtered",
+        "stopReason": stop_reason,
         "usage": {"inputTokens": 100, "outputTokens": 0},
     }
 

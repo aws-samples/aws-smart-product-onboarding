@@ -257,3 +257,58 @@ def test_no_match_explanation_is_not_logged(product_classifier, monkeypatch):
     product_classifier.get_product_category("Test prompt", ["1", "2"])
 
     assert "jane@example.com" not in str(logged.mock_calls)
+
+
+def test_an_id_outside_the_candidates_is_retried_once(product_classifier):
+    product_classifier.bedrock.converse.side_effect = [model_response(answer("3")), model_response(answer("2"))]
+
+    result = product_classifier.get_product_category("Test prompt", ["1", "2"])
+
+    assert result.predicted_category_id == "2"
+    assert product_classifier.bedrock.converse.call_count == 2
+
+
+def test_an_id_outside_the_candidates_after_the_retry_is_an_error(product_classifier):
+    product_classifier.bedrock.converse.return_value = model_response(answer("3"))
+
+    with pytest.raises(ModelResponseError):
+        product_classifier.get_product_category("Test prompt", ["1", "2"])
+    assert product_classifier.bedrock.converse.call_count == 2
+
+
+def test_claude_request_has_no_temperature(product_classifier):
+    product_classifier.bedrock.converse.return_value = model_response(answer("2"))
+
+    product_classifier.get_product_category("Test prompt", ["1", "2"])
+
+    assert "temperature" not in product_classifier.bedrock.converse.call_args.kwargs["inferenceConfig"]
+
+
+def test_nova_gets_a_forced_tool_and_its_answer_is_validated(product_classifier):
+    product_classifier.model_id = "global.amazon.nova-2-lite-v1:0"
+
+    def tool_use(category_id):
+        return {
+            "output": {
+                "message": {
+                    "role": "assistant",
+                    "content": [{"toolUse": {"toolUseId": "t1", "name": "final_result", "input": answer(category_id)}}],
+                }
+            },
+            "stopReason": "tool_use",
+            "usage": {"inputTokens": 100, "outputTokens": 50},
+        }
+
+    # Bedrock doesn't check the tool input, so an ID outside the candidates gets one retry.
+    product_classifier.bedrock.converse.side_effect = [tool_use("3"), tool_use("2")]
+
+    result = product_classifier.get_product_category("Test prompt", ["1", "2"])
+
+    assert result.predicted_category_id == "2"
+    first = product_classifier.bedrock.converse.call_args_list[0].kwargs
+    assert "outputConfig" not in first
+    assert first["toolConfig"]["toolChoice"] == {"any": {}}
+    schema = first["toolConfig"]["tools"][0]["toolSpec"]["inputSchema"]["json"]
+    assert list(schema["properties"]) == ["explanation", "predicted_category_name", "predicted_category_id"]
+    assert schema["properties"]["predicted_category_id"]["enum"] == ["1", "2", "other"]
+    assert first["inferenceConfig"]["temperature"] == 0
