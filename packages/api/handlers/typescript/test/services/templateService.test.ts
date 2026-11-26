@@ -319,7 +319,7 @@ Create a product with title and description{{#if language}} in {{{language}}}{{/
   });
 });
 
-describe("product-generation-xml-improved template", () => {
+describe("product-generation template", () => {
   const service = new TemplateService(
     path.join(__dirname, "../../src/templates"),
   );
@@ -337,10 +337,7 @@ describe("product-generation-xml-improved template", () => {
   };
 
   it("puts the metadata in a data block before the instructions and marks it as data", async () => {
-    const result = await service.render(
-      "product-generation-xml-improved",
-      context,
-    );
+    const result = await service.render("product-generation", context);
     expect(result.startsWith("<metadata>Brand: TestBrand</metadata>")).toBe(
       true,
     );
@@ -349,12 +346,9 @@ describe("product-generation-xml-improved template", () => {
     expect(result).toContain("in English");
   });
 
-  it("ends with the output format the parser expects", async () => {
-    const result = await service.render(
-      "product-generation-xml-improved",
-      context,
-    );
-    expect(result.trimEnd().endsWith("</product>")).toBe(true);
-    expect(result).toContain("<title>product title</title>");
+  it("asks for no XML answer, since the schema sets the output format", async () => {
+    const result = await service.render("product-generation", context);
+    expect(result).not.toMatch(/XML|<product>|<title>|<description>/);
+    expect(result).toContain("plain text");
   });
 });
