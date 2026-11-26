@@ -12,7 +12,7 @@ This solution takes one or more product images as input, along with optional met
 
 The process begins with input processing, where the solution receives product images (stored in Amazon S3) and optional metadata. Configuration parameters such as language, description length, and styling examples are also accepted at this stage. Next, a carefully crafted prompt is constructed, incorporating the product images, metadata, and any provided examples. This prompt includes specific instructions for the AI model on how to generate the title and description.
 
-Once the prompt is prepared, it is sent to Amazon Bedrock, which uses the Anthropic Claude Haiku 5.5 model by default. You can choose another multimodal model per request or through AppConfig. The model processes the input and generates the product title and description. The request asks Amazon Bedrock for an answer that matches a JSON schema with a `title` and a `description` field, and the answer is checked against that schema before it is returned. Finally, the solution returns the generated product data, ready for further processing or storage in the product catalog.
+Once the prompt is prepared, it is sent to Amazon Bedrock, which uses the Anthropic Claude Haiku 5.5 model by default. You can choose another multimodal model per request or through AppConfig. The model processes the input and generates the product title and description. After the AI model completes its task, the response, formatted in XML, is parsed to extract the generated title and description. Finally, the solution returns the generated product data, ready for further processing or storage in the product catalog.
 
 ## Why We Designed it This Way
 
@@ -20,7 +20,7 @@ Our choice of a Haiku-class model (originally Claude 3 Haiku, now Claude Haiku 5
 
 We leveraged Amazon Bedrock and AWS Lambda for their complementary strengths. Amazon Bedrock provides easy access to state-of-the-art AI models without the need for model training or management. AWS Lambda allows for serverless execution, optimizing costs and providing automatic scaling based on demand. This combination ensures that our solution is both powerful and scalable.
 
-The answer's format comes from a JSON schema rather than from instructions in the prompt. On models with structured output, such as Claude Haiku 5.5, Amazon Bedrock constrains the answer to the schema. Models without it, such as Amazon Nova, are asked to call a tool whose input is the schema; Bedrock doesn't check that input, so the solution validates every answer and asks once more when it doesn't match. The prompt only describes what the title and description should say.
+The decision to use XML for the model's output format was deliberate. XML provides more precise control over the response structure compared to JSON. By using XML tags as start and stop sequences, we can help prevent the model from generating extraneous content outside the desired structure, ensuring cleaner and more predictable outputs.
 
 Flexibility was a key consideration in our design. The solution supports various customization options, including language selection, description length, and styling examples. This adaptability allows sellers to maintain consistent branding and tone across their product catalog while catering to different product types and e-commerce platforms.
 

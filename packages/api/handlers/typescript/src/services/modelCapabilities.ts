@@ -26,6 +26,11 @@ function isAtLeast(
   );
 }
 
+/** Claude 4.6 and later reject a final assistant message (prefill). */
+export function supportsPrefill(modelId: string): boolean {
+  return !isAtLeast(claudeVersion(modelId), 4, 6);
+}
+
 /** Claude 4.7 and later reject the temperature inference parameter. */
 export function supportsTemperature(modelId: string): boolean {
   return !isAtLeast(claudeVersion(modelId), 4, 7);

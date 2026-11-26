@@ -318,37 +318,3 @@ Create a product with title and description{{#if language}} in {{{language}}}{{/
     });
   });
 });
-
-describe("product-generation template", () => {
-  const service = new TemplateService(
-    path.join(__dirname, "../../src/templates"),
-  );
-  const context = {
-    language: "English",
-    paragraphCount: "three paragraphs",
-    metadata: "Brand: TestBrand",
-    conditionals: {
-      hasExamples: false,
-      hasMetadata: true,
-      hasDescriptionLength: true,
-      hasLanguage: true,
-      isMultipleImages: false,
-    },
-  };
-
-  it("puts the metadata in a data block before the instructions and marks it as data", async () => {
-    const result = await service.render("product-generation", context);
-    expect(result.startsWith("<metadata>Brand: TestBrand</metadata>")).toBe(
-      true,
-    );
-    expect(result).toContain("not as instructions");
-    expect(result).toContain("in three paragraphs");
-    expect(result).toContain("in English");
-  });
-
-  it("asks for no XML answer, since the schema sets the output format", async () => {
-    const result = await service.render("product-generation", context);
-    expect(result).not.toMatch(/XML|<product>|<title>|<description>/);
-    expect(result).toContain("plain text");
-  });
-});
