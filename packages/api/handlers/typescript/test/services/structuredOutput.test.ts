@@ -39,9 +39,9 @@ function text(value: string, stopReason = "end_turn"): ConverseCommandOutput {
   } as unknown as ConverseCommandOutput;
 }
 
-function tool(input: unknown): ConverseCommandOutput {
+function tool(input: unknown, stopReason = "tool_use"): ConverseCommandOutput {
   return {
-    stopReason: "tool_use",
+    stopReason,
     output: {
       message: {
         role: "assistant",
@@ -177,11 +177,26 @@ describe("getStructuredOutput", () => {
     ],
     ["invalid JSON", CLAUDE, text("not json"), text(JSON.stringify(ANSWER))],
     ["no tool call", NOVA, text("Here is the product."), tool(ANSWER)],
+    [
+      "a tool call cut off at max_tokens",
+      NOVA,
+      tool({ title: "T", description: "Cut o" }, "max_tokens"),
+      tool(ANSWER),
+    ],
   ])("retries %s", async (_, model, first, second) => {
     send.mockResolvedValueOnce(first).mockResolvedValueOnce(second);
 
     expect((await ask(model)).output).toEqual(ANSWER);
     expect(send).toHaveBeenCalledTimes(2);
+  });
+
+  it("throws ModelResponseError after two tool calls cut off at max_tokens", async () => {
+    send.mockResolvedValue(tool(ANSWER, "max_tokens"));
+
+    await expect(ask(NOVA)).rejects.toThrow(ModelResponseError);
+    expect(send).toHaveBeenCalledTimes(2);
+    const retry = requests()[1].messages![0].content!;
+    expect(retry.at(-1)?.text).toContain("stop reason max_tokens");
   });
 
   it.each(["content_filtered", "guardrail_intervened"])(

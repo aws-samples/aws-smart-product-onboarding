@@ -116,6 +116,13 @@ function answerOf(
         stopReason: response.stopReason,
       });
     }
+    // Any other stop, such as max_tokens, can leave the tool input cut off.
+    if (response.stopReason !== "tool_use") {
+      throw new InvalidAnswer(
+        `The answer was incomplete (stop reason ${response.stopReason}).`,
+        { stopReason: response.stopReason },
+      );
+    }
     return toolUse.input;
   }
   // Reasoning models put a reasoningContent block before the text block.
