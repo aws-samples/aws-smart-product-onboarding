@@ -4,6 +4,7 @@
 """The generateProduct API handler and the batch workflow's generate-product step."""
 
 import importlib
+import io
 import json
 import logging
 import os
@@ -292,3 +293,60 @@ def test_the_step_logs_the_usage_but_not_the_product(caplog):
 
     assert "inputTokens" in caplog.text
     assert "SELLER" not in caplog.text
+
+
+# API: request validation and logging
+
+
+def _raw_event(body):
+    event = api_event("/generateProduct", None)
+    event["body"] = body
+    return event
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "not json",
+        None,
+        json.dumps({"language": "English"}),
+        json.dumps({"productImages": "a"}),
+        json.dumps({"productImages": ["a"], "model": "unknown-model"}),
+    ],
+    ids=["not JSON", "no body", "no productImages", "productImages not a list", "unknown model"],
+)
+def test_an_invalid_body_is_a_bad_request_and_generates_nothing(body):
+    module, generator = _load(_API)
+
+    with patch.dict(os.environ, _ENV):
+        result = module.handler(_raw_event(body), lambda_context())
+
+    assert (result["statusCode"], json.loads(result["body"])) == (400, {"message": "Invalid request body"})
+    assert result["headers"]["x-amzn-errortype"] == "BadRequestError"
+    generator.generate.assert_not_called()
+
+
+def test_the_api_logs_no_headers_or_authorizer_claims(caplog):
+    from amzn_smart_product_onboarding_api_common.handler import logger as api_logger
+
+    token = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.c2ln"
+    email = "someone@example.com"
+    event = api_event("/generateProduct", IMAGE)
+    event["headers"]["Authorization"] = token
+    event["requestContext"]["authorizer"] = {"claims": {"email": email}}
+    module, _ = _load(_API)
+    buffer = io.StringIO()
+    stream = api_logger.registered_handler.setStream(buffer)
+    level = api_logger.log_level
+    api_logger.setLevel("DEBUG")
+    try:
+        with caplog.at_level(logging.DEBUG), patch.dict(os.environ, _ENV):
+            assert module.handler(event, lambda_context())["statusCode"] == 200
+    finally:
+        api_logger.setLevel(level)
+        api_logger.registered_handler.setStream(stream)
+
+    output = buffer.getvalue() + caplog.text
+    assert "Start GenerateProduct Operation" in output
+    for secret in (token, email, "Authorization", "claims"):
+        assert secret not in output
