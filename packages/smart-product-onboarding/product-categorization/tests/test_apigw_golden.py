@@ -278,3 +278,31 @@ def test_content_filtered_returns_bad_request(name):
         "x-amzn-errortype": "BadRequestError",
     }
     assert json.loads(result["body"]) == {"message": CONTENT_FILTERED_MESSAGE}
+
+
+def test_no_matching_category_returns_other():
+    # Added after the previous runtime: the model may answer "other" when no candidate fits.
+    no_match = CategorizationPrediction(
+        predicted_category_id="other", predicted_category_name="Other", explanation="Not a product we list."
+    )
+    module = categorize(MagicMock(return_value=no_match))()
+    event = api_event("/categorizeProduct", {"product": PRODUCT, "possibleCategories": ["10000637"]})
+    with patch.dict(os.environ, _ENV):
+        result = module.handler(event, lambda_context())
+    assert result["statusCode"] == 200
+    body = json.loads(result["body"])
+    assert (body["categoryId"], body["categoryName"], body["categoryPath"]) == ("other", "Other", "Other")
+    assert body["explanation"] == "Not a product we list."
+
+
+def test_categorize_debug_log_leaves_out_the_explanation():
+    # The explanation can repeat seller-supplied product data.
+    prediction = CategorizationPrediction(
+        predicted_category_id="other", predicted_category_name="Other", explanation="Contact seller@example.com"
+    )
+    module = categorize(MagicMock(return_value=prediction))()
+    event = api_event("/categorizeProduct", {"product": PRODUCT, "possibleCategories": ["10000637"]})
+    with patch.dict(os.environ, _ENV), patch.object(module.logger, "debug") as debug:
+        module.handler(event, lambda_context())
+    assert debug.call_args_list
+    assert all("seller@example.com" not in str(call) for call in debug.call_args_list)

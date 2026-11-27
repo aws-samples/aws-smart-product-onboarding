@@ -9,6 +9,7 @@ dependencies = [
     "cachetools>=5.5.1",
     "faker>=30.1.0",
     "jinja2>=3.1.4",
+    "strands-agents==1.65.0",
     "amzn-smart-product-onboarding-api-common",
     "amzn-smart-product-onboarding-core-utils",
 ]

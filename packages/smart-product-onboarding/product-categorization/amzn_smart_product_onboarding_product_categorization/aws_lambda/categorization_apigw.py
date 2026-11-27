@@ -28,6 +28,8 @@ from amzn_smart_product_onboarding_core_utils.exceptions import (
 from amzn_smart_product_onboarding_core_utils.logger import logger
 from amzn_smart_product_onboarding_core_utils.models import ProductCategory
 from amzn_smart_product_onboarding_product_categorization.product_classifier import (
+    NO_MATCH_CATEGORY_ID,
+    NO_MATCH_CATEGORY_NAME,
     ProductClassifier,
 )
 
@@ -93,15 +95,18 @@ def categorize_product(event: ApiRequest[CategorizeProductRequestContent]) -> Ap
         logger.error(f"Error while categorizing: {e}")
         return Response.internal_failure("Internal server error")
 
-    logger.debug(f"Prediction: {prediction.model_dump_json()}")
+    # The explanation can repeat seller-supplied product data, so only the ID is logged.
+    logger.debug({"predicted_category_id": prediction.predicted_category_id})
     try:
         return Response.success(
             CategorizeProductResponseContent(
                 category_id=prediction.predicted_category_id,
                 category_name=prediction.predicted_category_name,
-                category_path=category_tree[
-                    prediction.predicted_category_id
-                ].formatted_path,
+                category_path=(
+                    NO_MATCH_CATEGORY_NAME
+                    if prediction.predicted_category_id == NO_MATCH_CATEGORY_ID
+                    else category_tree[prediction.predicted_category_id].formatted_path
+                ),
                 explanation=prediction.explanation,
                 prompt=prediction.prompt if event.body.demo else None,
             )

@@ -10,6 +10,7 @@ Validates: Requirements 5.1, 5.2, 5.3
 from __future__ import annotations
 
 import contextlib
+import functools
 from unittest.mock import MagicMock, patch
 
 
@@ -24,6 +25,38 @@ def _make_converse_response(stop_reason: str = "stop_sequence") -> dict:
         "stopReason": stop_reason,
         "usage": {"inputTokens": 10, "outputTokens": 5, "totalTokens": 15},
     }
+
+
+def _classifier_answer() -> dict:
+    """A valid categorization answer, as a forced tool call."""
+    answer = {"explanation": "Test", "predicted_category_name": "Test", "predicted_category_id": "1234"}
+    return {
+        "output": {
+            "message": {
+                "role": "assistant",
+                "content": [{"toolUse": {"toolUseId": "t1", "name": "category_prediction", "input": answer}}],
+            }
+        },
+        "stopReason": "tool_use",
+        "usage": {"inputTokens": 10, "outputTokens": 5, "totalTokens": 15},
+    }
+
+
+@functools.cache
+def _client():
+    import boto3
+
+    return boto3.client("bedrock-runtime", region_name="us-east-1", aws_access_key_id="x", aws_secret_access_key="x")
+
+
+def _bedrock_client() -> MagicMock:
+    """A real client, so Strands can read the Converse service model; only the call is stubbed.
+
+    One client for every test, so Strands builds its model once rather than once per example.
+    """
+    client = _client()
+    client.converse = MagicMock()
+    return client
 
 
 class TestGetModelResponseTemperature:
@@ -71,8 +104,8 @@ class TestProductClassifierTemperature:
             ProductClassifier,
         )
 
-        mock_bedrock = MagicMock()
-        mock_bedrock.converse.return_value = _make_converse_response()
+        mock_bedrock = _bedrock_client()
+        mock_bedrock.converse.return_value = _classifier_answer()
 
         mock_category = MagicMock()
         mock_category.name = "Test"
@@ -86,8 +119,7 @@ class TestProductClassifierTemperature:
             temperature=0.5,
         )
 
-        messages = [{"role": "user", "content": [{"text": "test"}]}]
-        classifier._get_model_response(messages)
+        classifier._get_model_response("test", ProductClassifier.output_schema(["1234"]))
 
         call_kwargs = mock_bedrock.converse.call_args
         actual_temp = call_kwargs.kwargs["inferenceConfig"]["temperature"]
@@ -99,8 +131,8 @@ class TestProductClassifierTemperature:
             ProductClassifier,
         )
 
-        mock_bedrock = MagicMock()
-        mock_bedrock.converse.return_value = _make_converse_response()
+        mock_bedrock = _bedrock_client()
+        mock_bedrock.converse.return_value = _classifier_answer()
 
         mock_category = MagicMock()
         mock_category.name = "Test"
@@ -113,8 +145,7 @@ class TestProductClassifierTemperature:
             model_id="test-model",
         )
 
-        messages = [{"role": "user", "content": [{"text": "test"}]}]
-        classifier._get_model_response(messages)
+        classifier._get_model_response("test", ProductClassifier.output_schema(["1234"]))
 
         call_kwargs = mock_bedrock.converse.call_args
         actual_temp = call_kwargs.kwargs["inferenceConfig"]["temperature"]
@@ -132,14 +163,14 @@ class TestAttributesExtractorTemperature:
 
         from amzn_smart_product_onboarding_core_utils.models import Product
 
-        mock_bedrock = MagicMock()
+        mock_bedrock = _bedrock_client()
         mock_bedrock.converse.return_value = _make_converse_response()
 
         mock_schema_retriever = MagicMock()
         mock_category_schema = MagicMock()
         mock_category_schema.category_name = "Test Category"
         mock_category_schema.subcategory_name = "Test Sub"
-        mock_category_schema.attributes_schema = {"attr1": {"type": "string"}}
+        mock_category_schema.attributes_schema = [{"Title": "attr1", "Childs": []}]
         mock_schema_retriever.get.return_value = mock_category_schema
 
         extractor = AttributesExtractor(
@@ -167,14 +198,14 @@ class TestAttributesExtractorTemperature:
 
         from amzn_smart_product_onboarding_core_utils.models import Product
 
-        mock_bedrock = MagicMock()
+        mock_bedrock = _bedrock_client()
         mock_bedrock.converse.return_value = _make_converse_response()
 
         mock_schema_retriever = MagicMock()
         mock_category_schema = MagicMock()
         mock_category_schema.category_name = "Test Category"
         mock_category_schema.subcategory_name = "Test Sub"
-        mock_category_schema.attributes_schema = {"attr1": {"type": "string"}}
+        mock_category_schema.attributes_schema = [{"Title": "attr1", "Childs": []}]
         mock_schema_retriever.get.return_value = mock_category_schema
 
         extractor = AttributesExtractor(
