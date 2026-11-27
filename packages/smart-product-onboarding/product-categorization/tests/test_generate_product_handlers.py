@@ -23,7 +23,11 @@ from amzn_smart_product_onboarding_core_utils.exceptions import (
 )
 from botocore.exceptions import ClientError
 
-from amzn_smart_product_onboarding_product_categorization.product_generator import BadRequestError, GeneratedProduct
+from amzn_smart_product_onboarding_product_categorization.product_generator import (
+    BadRequestError,
+    GeneratedProduct,
+    ProductGenerator,
+)
 
 _BOTO3_HELPER_MODULES = [
     "amzn_smart_product_onboarding_core_utils.boto3_helper.s3_client",
@@ -283,15 +287,30 @@ def test_the_step_raises_errors_for_the_state_machine_by_name(error):
     assert raised.value is error
 
 
-def test_the_step_logs_the_usage_but_not_the_product(caplog):
-    module, _ = _load(
-        _SFN, generate=GeneratedProduct("SELLER TITLE", "SELLER TEXT", {"inputTokens": 1, "outputTokens": 2})
-    )
+def test_the_step_logs_the_usage_once_and_not_the_product(caplog, mock_bedrock):
+    # The real generator, with a stubbed Converse answer and image read.
+    module, _ = _load(_SFN)
+    module.ProductGenerator = ProductGenerator
+    module.LAMBDA_BEDROCK_RUNTIME_CLIENT = mock_bedrock
+    module.LAMBDA_S3_CLIENT = MagicMock()
+    module.LAMBDA_S3_CLIENT.get_object.return_value = {"Body": io.BytesIO(b"x"), "ContentType": "image/jpeg"}
+    mock_bedrock.converse.return_value = {
+        "output": {
+            "message": {
+                "role": "assistant",
+                "content": [{"text": json.dumps({"title": "SELLER TITLE", "description": "SELLER TEXT"})}],
+            }
+        },
+        "stopReason": "end_turn",
+        "usage": {"inputTokens": 1234, "outputTokens": 56, "totalTokens": 1290},
+    }
 
-    with caplog.at_level(logging.DEBUG):
-        _call_sfn(module, {"images": ["front.jpg"], "metadata": "SELLER METADATA"})
+    # INFO is the deployed log level; at DEBUG, Strands logs the whole request.
+    with caplog.at_level(logging.INFO):
+        result = _call_sfn(module, {"images": ["front.jpg"], "metadata": "SELLER METADATA"})
 
-    assert "inputTokens" in caplog.text
+    assert result == {"title": "SELLER TITLE", "description": "SELLER TEXT"}
+    assert caplog.text.count("1234") == 1
     assert "SELLER" not in caplog.text
 
 

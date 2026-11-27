@@ -57,6 +57,5 @@ def handler(event: GenerateProductEvent, _) -> dict:
         metadata=event.metadata,
         examples=config.examples if config else None,
     )
-    # The title and description can repeat seller-supplied metadata, so only the usage is logged.
-    logger.info({"usage": product.usage})
+    # Not logged: the title and description can repeat seller-supplied metadata. Each attempt logs its usage.
     return {"title": product.title, "description": product.description}
