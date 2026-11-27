@@ -4,14 +4,9 @@
 import os
 from collections.abc import Iterable
 
-import botocore.exceptions
 import jinja2
 from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import BedrockRuntimeClient
-from amzn_smart_product_onboarding_core_utils.exceptions import (
-    ModelResponseError,
-    RateLimitError,
-    RetryableError,
-)
+from amzn_smart_product_onboarding_core_utils.exceptions import RateLimitError
 from amzn_smart_product_onboarding_core_utils.logger import logger
 from amzn_smart_product_onboarding_core_utils.models import (
     CategorizationPrediction,
@@ -57,7 +52,14 @@ class ProductClassifier:
         self.model_id = model_id
         self.include_prompt = include_prompt
         self.temperature = temperature
-        self.system_prompt = self._template_environment().get_template("product_category_system.jinja2").render()
+        # nosemgrep: direct-use-of-jinja2,missing-autoescape-disabled - jinja2 output is not rendered by a browser
+        environment = jinja2.Environment(  # nosec B701 - template output is not used on a website
+            loader=jinja2.FileSystemLoader(os.path.join(os.path.dirname(__file__), "prompt_templates")),
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
+        self.template = environment.get_template("product_category.jinja2")
+        self.system_prompt = environment.get_template("product_category_system.jinja2").render()
 
     def classify(
         self,
@@ -80,24 +82,13 @@ class ProductClassifier:
 
     def create_prompt(self, product: Product, candidate_categories: Iterable[ProductCategory]) -> str:
         """Use Jinja2 to fill in a prompt from the `product_category` template."""
-        template = self._template_environment().get_template("product_category.jinja2")
-
         # nosemgrep: direct-use-of-jinja2 - jinja2 output is not rendered by a browser
-        prompt = template.render(
+        prompt = self.template.render(
             product=product,
             candidate_categories=candidate_categories,
         )
         logger.debug({"prompt": prompt})
         return prompt
-
-    @staticmethod
-    def _template_environment() -> jinja2.Environment:
-        # nosemgrep: direct-use-of-jinja2,missing-autoescape-disabled - jinja2 output is not rendered by a browser
-        return jinja2.Environment(  # nosec B701 - template output is not used on a website
-            loader=jinja2.FileSystemLoader(os.path.join(os.path.dirname(__file__), "prompt_templates")),
-            trim_blocks=True,
-            lstrip_blocks=True,
-        )
 
     @staticmethod
     def output_schema(candidate_category_ids: list[str]) -> dict:
@@ -126,19 +117,12 @@ class ProductClassifier:
         category_id = result["predicted_category_id"]
         if category_id == NO_MATCH_CATEGORY_ID:
             logger.info("No candidate category fits the product")
-            return CategorizationPrediction(
-                predicted_category_id=NO_MATCH_CATEGORY_ID,
-                predicted_category_name=NO_MATCH_CATEGORY_NAME,
-                explanation=result["explanation"],
-            )
-        if category_id not in self.category_tree:
-            logger.error({"predicted_category_id": category_id})
-            raise ModelResponseError("Predicted category is not in the category tree")
-
+            name = NO_MATCH_CATEGORY_NAME
+        else:
+            # The schema's enum only allows candidates, which all come from the category tree.
+            name = self.category_tree[category_id].formatted_path
         return CategorizationPrediction(
-            predicted_category_id=category_id,
-            predicted_category_name=" > ".join(l.name for l in self.category_tree[category_id].full_path),
-            explanation=result["explanation"],
+            predicted_category_id=category_id, predicted_category_name=name, explanation=result["explanation"]
         )
 
     @retry(
@@ -148,19 +132,16 @@ class ProductClassifier:
         reraise=True,
     )
     def _get_model_response(self, prompt: str, schema: dict) -> dict:
-        try:
-            return get_structured_output(
-                self.bedrock,
-                self.model_id,
-                self.system_prompt,
-                prompt,
-                schema,
-                "category_prediction",
-                temperature=self.temperature,
-                check=self._name_matches_id,
-            )
-        except botocore.exceptions.ClientError as e:
-            self._handle_client_error(e)
+        return get_structured_output(
+            self.bedrock,
+            self.model_id,
+            self.system_prompt,
+            prompt,
+            schema,
+            "category_prediction",
+            temperature=self.temperature,
+            check=self._name_matches_id,
+        )
 
     def _name_matches_id(self, answer: dict) -> str | None:
         """The category name must name the chosen ID, so the explanation and the returned category agree.
@@ -175,26 +156,11 @@ class ProductClassifier:
                 f'You answered the ID "other" with the category name "{name}". If no candidate fits, the name is '
                 '"Other"; otherwise answer with the ID of the category you named.'
             )
-        category = self.category_tree.get(category_id)
         # The name may be the leaf or the whole path.
-        if category is None or name.endswith(category.name):
+        category = self.category_tree[category_id]
+        if name.endswith(category.name):
             return None
         return (
             f'You answered the category name "{name}" with the ID {category_id}, whose name is {category.name}. '
             "Answer again with the ID of the category you named."
         )
-
-    def _handle_client_error(self, error: botocore.exceptions.ClientError):
-        if error.response["Error"]["Code"] == "ThrottlingException":
-            logger.error(error.response["Error"]["Code"])
-            raise RateLimitError(error)
-        elif error.response["Error"]["Code"] in (
-            "ModelTimeoutException",
-            "InternalServerException",
-            "ServiceUnavailableException",
-        ):
-            logger.exception(error)
-            raise RetryableError(error)
-        # For example, a ValidationException for a model that can't run the request.
-        logger.error({"model_id": self.model_id, "error": error.response["Error"]})
-        raise error

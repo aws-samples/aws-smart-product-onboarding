@@ -10,10 +10,6 @@ from abc import ABC
 from typing import TYPE_CHECKING
 
 import jinja2
-from amzn_smart_product_onboarding_core_utils.exceptions import (
-    RateLimitError,
-    RetryableError,
-)
 from amzn_smart_product_onboarding_core_utils.json_to_xml import json_to_xml
 from botocore.exceptions import ClientError
 from cachetools import TTLCache, cachedmethod
@@ -44,10 +40,6 @@ EMPTY_RESPONSE = Attributes(attributes=[])
 
 # Categories whose enum schema Bedrock refused to compile, kept for the life of the process.
 _CATEGORIES_NEEDING_STRING_SCHEMA: set[str] = set()
-
-
-def _object_schema(properties: dict) -> dict:
-    return {"type": "object", "properties": properties, "required": list(properties), "additionalProperties": False}
 
 
 class CategorySchemaNotFound(Exception): ...
@@ -129,21 +121,7 @@ class AttributesExtractor:
 
         prompt = self.create_prompt(category_schema, product)
 
-        try:
-            values = self._get_answer(prompt, category_id, category_schema)
-        except ClientError as e:
-            # TODO: extract error handling to a decorator
-            if e.response["Error"]["Code"] == "ThrottlingException":
-                logger.error(e.response["Error"]["Code"])
-                raise RateLimitError(e)
-            elif e.response["Error"]["Code"] in (
-                "ModelTimeoutException",
-                "InternalServerException",
-                "ServiceUnavailableException",
-            ):
-                logger.exception(e)
-                raise RetryableError(e)
-            raise
+        values = self._get_answer(prompt, category_id, category_schema)
         return Attributes(
             attributes=[
                 Attribute(name=name, value="null" if value is None else value) for name, value in values.items()
@@ -152,26 +130,23 @@ class AttributesExtractor:
 
     def _get_answer(self, prompt: str, category_id: str, category_schema: CategorySchema) -> dict:
         """Ask with the enum schema, or with the string schema for categories Bedrock can't compile."""
-        if category_id not in _CATEGORIES_NEEDING_STRING_SCHEMA:
-            try:
-                return self._ask(prompt, self.output_schema(category_schema))
-            except ClientError as e:
-                if not is_schema_too_complex(e):
-                    raise
-                logger.warning({"schema_too_complex": category_id})
-                _CATEGORIES_NEEDING_STRING_SCHEMA.add(category_id)
-        return self._ask(prompt, self.string_output_schema(category_schema))
-
-    def _ask(self, prompt: str, schema: dict) -> dict:
-        return get_structured_output(
-            self.bedrock_runtime_client,
-            self.model_id,
-            self.system_prompt,
-            prompt,
-            schema,
-            "attributes",
-            temperature=self.temperature,
-        )
+        enums = category_id not in _CATEGORIES_NEEDING_STRING_SCHEMA
+        try:
+            return get_structured_output(
+                self.bedrock_runtime_client,
+                self.model_id,
+                self.system_prompt,
+                prompt,
+                self.output_schema(category_schema, enums),
+                "attributes",
+                temperature=self.temperature,
+            )
+        except ClientError as e:
+            if not (enums and is_schema_too_complex(e)):
+                raise
+            logger.warning({"schema_too_complex": category_id})
+            _CATEGORIES_NEEDING_STRING_SCHEMA.add(category_id)
+            return self._get_answer(prompt, category_id, category_schema)
 
     def create_prompt(self, category_schema, product: Product) -> str:
         """Use Jinja2 to fill in a prompt from the `product_category` template."""
@@ -187,27 +162,19 @@ class AttributesExtractor:
         return prompt
 
     @staticmethod
-    def output_schema(category_schema: CategorySchema) -> dict:
-        """JSON schema with one required property per attribute: one of its listed values, or null.
+    def output_schema(category_schema: CategorySchema, enums: bool = True) -> dict:
+        """JSON schema with one required property per attribute: one of its listed values, or null. Without `enums`,
+        the fallback for a category whose enum schema Bedrock can't compile, every attribute is a string or null.
 
         Null is an enum value rather than a "null" type, because Bedrock allows at most 16 union-typed properties.
+        shortcut: GPC May 2026 has at most 16 attributes per category, so the fallback stays within that limit.
         """
         properties = {
             attribute["Title"]: (
                 {"enum": [value["Title"] for value in attribute["Childs"]] + [None]}
-                if attribute.get("Childs")
+                if enums and attribute.get("Childs")
                 else {"type": ["string", "null"]}
             )
             for attribute in category_schema.attributes_schema
         }
-        return _object_schema(properties)
-
-    @staticmethod
-    def string_output_schema(category_schema: CategorySchema) -> dict:
-        """Fallback schema for categories whose enum schema Bedrock can't compile: each attribute is a string or null.
-
-        shortcut: more than 16 attributes would exceed Bedrock's union-type limit; GPC May 2026 has at most 16.
-        """
-        return _object_schema(
-            {attribute["Title"]: {"type": ["string", "null"]} for attribute in category_schema.attributes_schema}
-        )
+        return {"type": "object", "properties": properties, "required": list(properties), "additionalProperties": False}

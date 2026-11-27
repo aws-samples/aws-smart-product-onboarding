@@ -5,7 +5,12 @@ import json
 import re
 
 import pytest
-from amzn_smart_product_onboarding_core_utils.exceptions import ContentFilteredError, ModelResponseError
+from amzn_smart_product_onboarding_core_utils.exceptions import (
+    ContentFilteredError,
+    ModelResponseError,
+    RateLimitError,
+    RetryableError,
+)
 from botocore.exceptions import ClientError
 
 from amzn_smart_product_onboarding_product_categorization import structured_output
@@ -162,16 +167,13 @@ def test_an_answer_outside_the_schema_is_retried_once(mock_bedrock, model_id):
     assert "Your previous answer was rejected" in retry
 
 
-def test_the_original_schema_is_checked_after_mapping_back(mock_bedrock, monkeypatch):
-    # The Pydantic model is looser than this schema; the original schema still decides.
+def test_a_schema_keyword_the_output_model_cant_enforce_is_refused(mock_bedrock):
+    # The output model is the only check on the answer, so it must not be looser than the schema.
     schema = {**SCHEMA, "properties": {**SCHEMA["properties"], "Größe": {"type": ["string", "null"], "maxLength": 2}}}
-    mock_bedrock.converse.side_effect = [
-        _text({"Type_of_Material": None, "Groe": "LARGE"}),
-        _text({"Type_of_Material": None, "Groe": "XL"}),
-    ]
 
-    assert _ask(mock_bedrock, schema=schema) == {"Type of Material": None, "Größe": "XL"}
-    assert mock_bedrock.converse.call_count == 2
+    with pytest.raises(ValueError, match="maxLength"):
+        _ask(mock_bedrock, schema=schema)
+    mock_bedrock.converse.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -245,13 +247,21 @@ def test_other_bedrock_errors_are_raised(mock_bedrock):
         _ask(mock_bedrock)
 
 
-def test_throttling_is_raised_as_bedrocks_error(mock_bedrock):
-    throttled = ClientError({"Error": {"Code": "ThrottlingException", "Message": "slow down"}}, "Converse")
-    mock_bedrock.converse.side_effect = throttled
+@pytest.mark.parametrize(
+    "code, raised",
+    [
+        ("ThrottlingException", RateLimitError),
+        ("ModelTimeoutException", RetryableError),
+        ("InternalServerException", RetryableError),
+        ("ServiceUnavailableException", RetryableError),
+    ],
+)
+def test_throttling_and_transient_errors_are_retryable(mock_bedrock, code, raised):
+    mock_bedrock.converse.side_effect = ClientError({"Error": {"Code": code, "Message": "slow down"}}, "Converse")
 
-    with pytest.raises(ClientError) as error:
+    with pytest.raises(raised):
         _ask(mock_bedrock)
-    assert error.value is throttled
+    mock_bedrock.converse.assert_called_once()
 
 
 def test_the_mismatch_log_doesnt_name_an_extra_key(mock_bedrock, monkeypatch):
