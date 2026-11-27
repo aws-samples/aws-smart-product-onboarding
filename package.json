@@ -99,7 +99,6 @@
   "private": true,
   "workspaces": {
     "packages": [
-      "packages/api/handlers/typescript",
       "packages/api/generated/types/typescript",
       "packages/website",
       "packages/infra"

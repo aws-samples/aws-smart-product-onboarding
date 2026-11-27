@@ -5,7 +5,6 @@
 
 import * as path from "path";
 import {
-  ArnFormat,
   aws_iam as iam,
   aws_lambda as lambda,
   aws_logs as logs,
@@ -13,7 +12,6 @@ import {
   aws_stepfunctions as sfn,
   Duration,
   RemovalPolicy,
-  Stack,
 } from "aws-cdk-lib";
 import {
   AccessLogFormat,
@@ -22,13 +20,12 @@ import {
   MethodLoggingLevel,
   ResponseType,
 } from "aws-cdk-lib/aws-apigateway";
-import { Effect, PolicyDocument, PolicyStatement } from "aws-cdk-lib/aws-iam";
+import { PolicyDocument } from "aws-cdk-lib/aws-iam";
 import { NagSuppressions } from "cdk-nag";
 import { Construct } from "constructs";
 import {
   CreateBatchExecutionFunction,
   DownloadFileFunction,
-  GenerateProductFunction,
   GetBatchExecutionFunction,
   ListBatchExecutionsFunction,
   UploadFileFunction,
@@ -37,6 +34,7 @@ import { OpenApiRestApi } from "./open-api-rest-api";
 import { ApiPersistence } from "../api-persistence/api-persistence";
 import { AttributeExtractionTaskFunction } from "../sfn-attributes-task/sfn-attributes-task";
 import { ClassificationTaskFunction } from "../sfn-classification-task/sfn-classification-task";
+import { GenerateProductFunction } from "../sfn-generate-product-task/sfn-generate-product-task";
 import { MetaclassTaskFunction } from "../sfn-metaclass-task/sfn-metaclass-task";
 import { UserIdentity } from "../user-identity/user-identity";
 
@@ -131,91 +129,27 @@ export class SmartProductOnboardingAPI extends Construct {
       },
     );
 
+    // The website uploads the product images through uploadFile, which writes them under uploads/.
     const generateProductFunction = new GenerateProductFunction(
       this,
       "GenerateProductFunction",
       {
-        environment: {
-          IMAGE_BUCKET: props.inputBucket.bucketName,
-          BEDROCK_MODEL_ID: "global.anthropic.claude-haiku-5-5",
-          ...(props.appConfigApplicationId && {
-            APPCONFIG_APPLICATION_ID: props.appConfigApplicationId,
-          }),
-          ...(props.appConfigEnvironmentId && {
-            APPCONFIG_ENVIRONMENT_ID: props.appConfigEnvironmentId,
-          }),
-          ...(props.appConfigConfigurationProfileId && {
-            APPCONFIG_CONFIGURATION_PROFILE_ID:
-              props.appConfigConfigurationProfileId,
-          }),
-        },
-        memorySize: 512,
-        architecture: lambda.Architecture.ARM_64,
+        imagesBucket: props.inputBucket,
+        imageKeyPattern: "uploads/*",
+        cmd: [
+          "amzn_smart_product_onboarding_product_categorization.aws_lambda.generate_product_apigw.handler",
+        ],
+        timeout: Duration.seconds(30),
+        appConfigApplicationId: props.appConfigApplicationId,
+        appConfigEnvironmentId: props.appConfigEnvironmentId,
+        appConfigConfigurationProfileId: props.appConfigConfigurationProfileId,
       },
     );
-    props.inputBucket.grantRead(generateProductFunction);
 
     this.metaclassFunction = metaclassFunction;
     this.categorizeProductFunction = categorizeProductFunction;
     this.extractAttributesFunction = extractAttributesFunction;
     this.generateProductFunction = generateProductFunction;
-
-    generateProductFunction.addToRolePolicy(
-      new PolicyStatement({
-        effect: Effect.ALLOW,
-        resources: [
-          Stack.of(this).formatArn({
-            service: "bedrock",
-            resource: "inference-profile",
-            resourceName: "*.anthropic.claude-*",
-            arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
-          }),
-          Stack.of(this).formatArn({
-            service: "bedrock",
-            resource: "inference-profile",
-            resourceName: "*.amazon.nova-*",
-            arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
-          }),
-          Stack.of(this).formatArn({
-            service: "bedrock",
-            resource: "foundation-model",
-            resourceName: "anthropic.claude-*",
-            arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
-            account: "",
-            region: "*",
-          }),
-          Stack.of(this).formatArn({
-            service: "bedrock",
-            resource: "foundation-model",
-            resourceName: "amazon.nova-*",
-            arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
-            account: "",
-            region: "*",
-          }),
-        ],
-        actions: [
-          "bedrock:InvokeModel",
-          "bedrock:InvokeModelWithResponseStream",
-        ],
-      }),
-    );
-
-    NagSuppressions.addResourceSuppressions(
-      generateProductFunction,
-      [
-        {
-          id: "AwsSolutions-IAM4",
-          reason:
-            "Lambda Basic Execution Managed Policy used to expedite development.",
-        },
-        {
-          id: "AwsSolutions-IAM5",
-          reason:
-            "This policy has wildcards to read and objects from a specific S3 bucket.",
-        },
-      ],
-      true,
-    );
 
     const createBatchExecutionFunction = new CreateBatchExecutionFunction(
       this,
@@ -369,7 +303,6 @@ export class SmartProductOnboardingAPI extends Construct {
     });
 
     for (const resource of [
-      generateProductFunction,
       createBatchExecutionFunction,
       listBatchExecutionsFunction,
       getBatchExecutionFunction,
@@ -382,9 +315,7 @@ export class SmartProductOnboardingAPI extends Construct {
           {
             id: "AwsSolutions-L1",
             reason:
-              resource === generateProductFunction
-                ? "Uses the latest generally available Lambda runtime (Node.js 24). cdk-nag compares against the newest runtime defined in aws-cdk-lib, which is a public preview runtime (Node.js 26) not supported for production workloads."
-                : "Uses the latest generally available Lambda runtime (Python 3.14). cdk-nag compares against the newest runtime defined in aws-cdk-lib, which is a public preview runtime (Python 3.15) not supported for production workloads.",
+              "Uses the latest generally available Lambda runtime (Python 3.14). cdk-nag compares against the newest runtime defined in aws-cdk-lib, which is a public preview runtime (Python 3.15) not supported for production workloads.",
           },
           {
             id: "AwsSolutions-IAM5",

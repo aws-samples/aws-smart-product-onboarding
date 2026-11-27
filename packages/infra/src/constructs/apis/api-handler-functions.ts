@@ -195,39 +195,3 @@ export class UploadFileFunction extends Function {
     });
   }
 }
-
-/**
- * Options for the GenerateProductFunction construct
- */
-export interface GenerateProductFunctionProps
-  extends Omit<FunctionProps, "code" | "handler" | "runtime"> {}
-
-/**
- * Lambda function construct which points to the typescript implementation of GenerateProduct
- */
-export class GenerateProductFunction extends Function {
-  constructor(
-    scope: Construct,
-    id: string,
-    props?: GenerateProductFunctionProps,
-  ) {
-    super(scope, id, {
-      runtime: Runtime.NODEJS_24_X,
-      handler: "index.handler",
-      code: Code.fromAsset(
-        path.resolve(
-          __dirname,
-          "..",
-          "..",
-          "..",
-          "..",
-          "api/handlers/typescript/dist/lambda",
-          "generate-product",
-        ),
-      ),
-      tracing: Tracing.ACTIVE,
-      timeout: Duration.seconds(30),
-      ...props,
-    });
-  }
-}

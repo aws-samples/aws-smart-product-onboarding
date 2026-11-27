@@ -12,7 +12,7 @@ import {
   SpecRestApiProps,
 } from "aws-cdk-lib/aws-apigateway";
 import { IUserPool } from "aws-cdk-lib/aws-cognito";
-import { CfnPermission, IFunction } from "aws-cdk-lib/aws-lambda";
+import { CfnFunction, CfnPermission, IFunction } from "aws-cdk-lib/aws-lambda";
 import { NagSuppressions } from "cdk-nag";
 import { Construct } from "constructs";
 
@@ -128,8 +128,19 @@ export class OpenApiRestApi extends Construct {
       ...restApiProps,
       apiDefinition: ApiDefinition.fromInline(preparedSpec),
     });
-    // Redeploy the stage whenever the prepared definition changes.
+    // Redeploy the stage whenever the prepared definition changes, and when a function behind it is replaced: the
+    // definition names each function by the same token, but a replaced function has a new ARN. A function without
+    // a fixed name is only replaced when its package type changes.
     this.api.latestDeployment?.addToLogicalId(preparedSpec);
+    this.api.latestDeployment?.addToLogicalId(
+      Object.fromEntries(
+        Object.entries(integrations).map(([operationId, fn]) => [
+          operationId,
+          (fn.node.defaultChild as CfnFunction | undefined)?.packageType ??
+            null,
+        ]),
+      ),
+    );
 
     for (const { operationId, method, path } of operations) {
       new CfnPermission(this, `LambdaPermission-${operationId}`, {

@@ -6,6 +6,7 @@
 import path from "path";
 import {
   ArnFormat,
+  aws_ecr_assets as ecr_assets,
   aws_iam as iam,
   aws_lambda as lambda,
   aws_s3 as s3,
@@ -18,39 +19,63 @@ import { NagSuppressions } from "cdk-nag";
 import { Construct } from "constructs";
 
 /**
- * Options for the SfnGenerateProductFunction construct
+ * Options for the GenerateProductFunction construct
  */
-export interface SfnGenerateProductFunctionProps
-  extends Omit<lambda.FunctionProps, "code" | "handler" | "runtime"> {}
+export interface GenerateProductFunctionProps {
+  imagesBucket: s3.IBucket;
+  /** The image keys the function may read, such as "uploads/*". */
+  imageKeyPattern: string;
+  /** The handler; the default is the batch workflow step. */
+  cmd?: string[];
+  timeout?: Duration;
+  appConfigApplicationId?: string;
+  appConfigEnvironmentId?: string;
+  appConfigConfigurationProfileId?: string;
+}
 
 /**
- * Lambda function construct which points to the typescript implementation of GenerateProductSFN
+ * Lambda function that generates a product title and description from images, for the API and the batch workflow.
  */
-export class SfnGenerateProductFunction extends lambda.Function {
+export class GenerateProductFunction extends lambda.DockerImageFunction {
   constructor(
     scope: Construct,
     id: string,
-    props?: SfnGenerateProductFunctionProps,
+    props: GenerateProductFunctionProps,
   ) {
     super(scope, id, {
-      runtime: lambda.Runtime.NODEJS_24_X,
-      handler: "index.handler",
-      code: lambda.Code.fromAsset(
-        path.resolve(
-          __dirname,
-          "../../../..",
-          "api/handlers/typescript/dist/lambda",
-          "generate-product-sfn",
-        ),
+      code: lambda.DockerImageCode.fromImageAsset(
+        path.resolve(__dirname, "../../../..", "smart-product-onboarding"),
+        {
+          platform: ecr_assets.Platform.LINUX_ARM64,
+          cmd: props.cmd ?? [
+            "amzn_smart_product_onboarding_product_categorization.aws_lambda.generate_product.handler",
+          ],
+        },
       ),
+      environment: {
+        IMAGE_BUCKET: props.imagesBucket.bucketName,
+        BEDROCK_MODEL_ID: "global.anthropic.claude-haiku-5-5",
+        ...(props.appConfigApplicationId && {
+          APPCONFIG_APPLICATION_ID: props.appConfigApplicationId,
+        }),
+        ...(props.appConfigEnvironmentId && {
+          APPCONFIG_ENVIRONMENT_ID: props.appConfigEnvironmentId,
+        }),
+        ...(props.appConfigConfigurationProfileId && {
+          APPCONFIG_CONFIGURATION_PROFILE_ID:
+            props.appConfigConfigurationProfileId,
+        }),
+      },
       tracing: lambda.Tracing.ACTIVE,
-      timeout: Duration.seconds(30),
-      ...props,
+      timeout: props.timeout ?? Duration.seconds(60),
+      memorySize: 512,
+      architecture: lambda.Architecture.ARM_64,
     });
 
-    this.role?.addToPrincipalPolicy(
+    // Converse only: the function never streams.
+    this.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ["bedrock:ListFoundationModels", "bedrock:InvokeModel"],
+        actions: ["bedrock:InvokeModel"],
         resources: [
           Stack.of(this).formatArn({
             service: "bedrock",
@@ -83,6 +108,30 @@ export class SfnGenerateProductFunction extends lambda.Function {
         ],
       }),
     );
+
+    this.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["s3:GetObject"],
+        resources: [props.imagesBucket.arnForObjects(props.imageKeyPattern)],
+      }),
+    );
+
+    NagSuppressions.addResourceSuppressions(
+      this,
+      [
+        {
+          id: "AwsSolutions-IAM4",
+          reason:
+            "Using the AWSLambdaBasicExecutionRole Managed Policy to expedite development. Replace on Production environment (Path to Production)",
+        },
+        {
+          id: "AwsSolutions-IAM5",
+          reason:
+            "The models are chosen at runtime, and the images are read from a key prefix of a specific bucket.",
+        },
+      ],
+      true,
+    );
   }
 }
 
@@ -104,48 +153,14 @@ export class SfnGenerateProduct extends sfn.StateMachineFragment {
   constructor(scope: Construct, id: string, props: SfnGenerateProductProps) {
     super(scope, id);
 
-    this.function = new SfnGenerateProductFunction(this, "Function", {
-      timeout: Duration.seconds(60),
-      memorySize: 512,
-      architecture: lambda.Architecture.ARM_64,
-      environment: {
-        IMAGE_BUCKET: props.imagesBucket.bucketName,
-        BEDROCK_MODEL_ID: "global.anthropic.claude-haiku-5-5",
-        ...(props.appConfigApplicationId && {
-          APPCONFIG_APPLICATION_ID: props.appConfigApplicationId,
-        }),
-        ...(props.appConfigEnvironmentId && {
-          APPCONFIG_ENVIRONMENT_ID: props.appConfigEnvironmentId,
-        }),
-        ...(props.appConfigConfigurationProfileId && {
-          APPCONFIG_CONFIGURATION_PROFILE_ID:
-            props.appConfigConfigurationProfileId,
-        }),
-      },
+    // The workflow reads the images under its execution's prefix.
+    this.function = new GenerateProductFunction(this, "Function", {
+      imagesBucket: props.imagesBucket,
+      imageKeyPattern: "*",
+      appConfigApplicationId: props.appConfigApplicationId,
+      appConfigEnvironmentId: props.appConfigEnvironmentId,
+      appConfigConfigurationProfileId: props.appConfigConfigurationProfileId,
     });
-
-    props.imagesBucket.grantRead(this.function);
-
-    NagSuppressions.addResourceSuppressions(
-      this.function,
-      [
-        {
-          id: "AwsSolutions-L1",
-          reason:
-            "Uses the latest generally available Lambda runtime (Python 3.14 or Node.js 24). cdk-nag compares against the newest runtime defined in aws-cdk-lib, which is a public preview runtime (Python 3.15, Node.js 26) not supported for production workloads.",
-        },
-        {
-          id: "AwsSolutions-IAM4",
-          reason:
-            "Using the AWSLambdaBasicExecutionRole Managed Policy to expedite development. Replace on Production environment (Path to Production)",
-        },
-        {
-          id: "AwsSolutions-IAM5",
-          reason: "This role needs access to any object in a specific bucket.",
-        },
-      ],
-      true,
-    );
 
     const task = new tasks.LambdaInvoke(this, id, {
       lambdaFunction: this.function,
@@ -159,7 +174,7 @@ export class SfnGenerateProduct extends sfn.StateMachineFragment {
     });
 
     task.addRetry({
-      errors: ["RetryableError"],
+      errors: ["RetryableError", "ModelResponseError"],
       backoffRate: 2,
       maxAttempts: 2,
     });

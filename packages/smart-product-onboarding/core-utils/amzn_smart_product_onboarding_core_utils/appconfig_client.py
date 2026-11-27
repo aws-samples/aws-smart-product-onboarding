@@ -26,6 +26,10 @@ class AppConfigSettings:
 
     model_id: str
     temperature: float
+    # Product generation only.
+    language: str | None = None
+    description_length: str | None = None
+    examples: list[dict[str, str]] | None = None
 
 
 class AppConfigClient:
@@ -82,6 +86,9 @@ class AppConfigClient:
             return AppConfigSettings(
                 model_id=component_config["modelId"],
                 temperature=component_config["temperature"],
+                language=component_config.get("language"),
+                description_length=component_config.get("descriptionLength"),
+                examples=component_config.get("examples"),
             )
         except Exception:
             logger.warning(

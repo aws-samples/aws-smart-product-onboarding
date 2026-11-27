@@ -100,6 +100,38 @@ class TestSuccessfulRetrieval:
             ConfigurationProfileIdentifier=PROFILE_ID,
         )
 
+    def test_returns_the_product_generation_options(self, mock_boto3_client):
+        examples = [{"title": "Oak Desk Lamp", "description": "A warm desk lamp."}]
+        config = {
+            **VALID_CONFIG,
+            "productGeneration": {
+                **VALID_CONFIG["productGeneration"],
+                "language": "Chilean Spanish",
+                "descriptionLength": "short",
+                "examples": examples,
+            },
+        }
+        mock_boto3_client.start_configuration_session.return_value = {"InitialConfigurationToken": "initial-token"}
+        mock_boto3_client.get_latest_configuration.return_value = {
+            "NextPollConfigurationToken": "next-token",
+            "Configuration": _make_stream(json.dumps(config).encode()),
+        }
+
+        result = AppConfigClient(APP_ID, ENV_ID, PROFILE_ID).get_configuration("productGeneration")
+
+        assert (result.language, result.description_length, result.examples) == ("Chilean Spanish", "short", examples)
+
+    def test_the_product_generation_options_are_optional(self, mock_boto3_client):
+        mock_boto3_client.start_configuration_session.return_value = {"InitialConfigurationToken": "initial-token"}
+        mock_boto3_client.get_latest_configuration.return_value = {
+            "NextPollConfigurationToken": "next-token",
+            "Configuration": _make_stream(json.dumps(VALID_CONFIG).encode()),
+        }
+
+        result = AppConfigClient(APP_ID, ENV_ID, PROFILE_ID).get_configuration("productGeneration")
+
+        assert (result.language, result.description_length, result.examples) == (None, None, None)
+
 
 class TestSessionTokenReuse:
     """Validates Requirement 4.4: Session token caching/reuse across invocations."""
