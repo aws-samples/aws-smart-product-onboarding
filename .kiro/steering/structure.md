@@ -21,7 +21,6 @@ This is a monorepo managed directly with pnpm workspaces and Nx. Each package de
 The REST API, defined by an OpenAPI definition:
 
 - `model/` - OpenAPI definition (`src/main/openapi/main.yaml`). Its `generate` target bundles it into `.api.json` for the infrastructure.
-- `handlers/typescript/` - TypeScript Lambda handlers (runtime: Node.js 24)
 - `generated/types/typescript/` - TypeScript types generated from the definition (checked in)
 - `generated/documentation/` - Markdown API documentation written by `scripts/generate-pdf-doc.sh` (not checked in)
 
@@ -56,6 +55,7 @@ The REST API, defined by an OpenAPI definition:
 
 - Bottom-up categorization logic
 - Category tree processing
+- Product title and description generation from images
 - Jinja2 templates for prompts
 
 #### Metaclasses (`metaclasses/`)
@@ -108,7 +108,7 @@ samples/
 
 ```
 infra → api model (bundled OpenAPI definition)
-infra → api handlers (TypeScript and Python)
+infra → api handlers (Python)
 infra → website (for deployment)
 infra → smart-product-onboarding packages
 metaclasses → core-utils

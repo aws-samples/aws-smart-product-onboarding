@@ -48,7 +48,6 @@
         "cwd": "packages/infra"
       },
       "dependsOn": [
-        "@aws-samples/smart-product-onboarding-api-typescript-handlers:build",
         "amzn-smart-product-onboarding-api-python-handlers:build",
         "amzn-smart-product-onboarding-core-utils:build",
         "amzn-smart-product-onboarding-product-categorization:build",
@@ -63,7 +62,6 @@
         "cwd": "packages/infra"
       },
       "dependsOn": [
-        "@aws-samples/smart-product-onboarding-api-typescript-handlers:build",
         "amzn-smart-product-onboarding-api-python-handlers:build",
         "amzn-smart-product-onboarding-core-utils:build",
         "amzn-smart-product-onboarding-product-categorization:build",
@@ -110,7 +108,6 @@
         "parallel": false
       },
       "dependsOn": [
-        "@aws-samples/smart-product-onboarding-api-typescript-handlers:build",
         "amzn-smart-product-onboarding-api-python-handlers:build",
         "amzn-smart-product-onboarding-core-utils:build",
         "amzn-smart-product-onboarding-product-categorization:build",

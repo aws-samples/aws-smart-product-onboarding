@@ -9,7 +9,7 @@ import { App, Stack } from "aws-cdk-lib";
 import { Template } from "aws-cdk-lib/assertions";
 import { AccessLogFormat } from "aws-cdk-lib/aws-apigateway";
 import { UserPool } from "aws-cdk-lib/aws-cognito";
-import { Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
+import { CfnFunction, Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
 import { OpenApiRestApi } from "../src/constructs/apis/open-api-rest-api";
 import { ApplicationStack } from "../src/stacks/application-stack";
 
@@ -392,6 +392,7 @@ describe("Deployed resource identity", () => {
 describe("OpenApiRestApi", () => {
   const build = (
     integrations: (fn: Function) => { [op: string]: Function },
+    packageType?: string,
   ) => {
     const stack = new Stack();
     const fn = new Function(stack, "Fn", {
@@ -399,6 +400,9 @@ describe("OpenApiRestApi", () => {
       handler: "index.handler",
       code: Code.fromInline("exports.handler = async () => ({});"),
     });
+    if (packageType) {
+      (fn.node.defaultChild as CfnFunction).packageType = packageType;
+    }
     new OpenApiRestApi(stack, "Api", {
       specPath: SPEC_PATH,
       userPool: new UserPool(stack, "Pool"),
@@ -407,6 +411,7 @@ describe("OpenApiRestApi", () => {
       corsAllowMethods: ["GET", "POST"],
       integrations: integrations(fn),
     });
+    return Template.fromStack(stack);
   };
   const all = (fn: Function) =>
     Object.fromEntries(Object.keys(OPERATIONS).map((op) => [op, fn]));
@@ -422,6 +427,17 @@ describe("OpenApiRestApi", () => {
         return rest;
       }),
     ).toThrow(/Missing: \[uploadFile\]/);
+  });
+
+  test("redeploys the stage when a function behind it is replaced", () => {
+    // Changing the package type replaces the function, so its ARN changes while the definition stays the same.
+    const deployment = (packageType?: string) =>
+      Object.keys(
+        build(all, packageType).findResources("AWS::ApiGateway::Deployment"),
+      );
+
+    expect(deployment()).toEqual(deployment());
+    expect(deployment("Image")).not.toEqual(deployment());
   });
 
   test("rejects an integration for an unknown operation", () => {

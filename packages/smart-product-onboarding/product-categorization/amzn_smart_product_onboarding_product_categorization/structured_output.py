@@ -13,7 +13,7 @@ import asyncio
 import functools
 import re
 import unicodedata
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from typing import TYPE_CHECKING, Any, Literal
 
 from amzn_smart_product_onboarding_core_utils.boto3_helper.bedrock_runtime_client import (
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 else:
     BedrockRuntimeClient = object
 
-# Both answers are a few hundred tokens.
+# The longest answer, a product description of five paragraphs, is about a thousand tokens.
 MAX_TOKENS = 4096
 MAX_KEY_LENGTH = 64
 
@@ -134,12 +134,17 @@ class _Invalid(Exception):
 
 
 async def _ask(
-    model: BedrockModel, output_type: type[BaseModel], system_prompt: str, prompt: str, originals: dict[str, str]
+    model: BedrockModel,
+    output_type: type[BaseModel],
+    system_prompt: str | None,
+    content: list[dict],
+    originals: dict[str, str],
+    total_usage: dict[str, int],
 ) -> BaseModel:
     stop_reason = usage = result = None
     try:
         async for event in model.structured_output(
-            output_type, [{"role": "user", "content": [{"text": prompt}]}], system_prompt=system_prompt
+            output_type, [{"role": "user", "content": content}], system_prompt=system_prompt
         ):
             if "stop" in event:
                 stop_reason, _, usage, _ = event["stop"]
@@ -164,12 +169,14 @@ async def _ask(
     finally:
         if usage:
             logger.info({"usage": {"inputTokens": usage["inputTokens"], "outputTokens": usage["outputTokens"]}})
+            for key in total_usage:
+                total_usage[key] += usage[key]
 
 
 def get_structured_output(
     bedrock: "BedrockRuntimeClient",
     model_id: str,
-    system_prompt: str,
+    system_prompt: str | None,
     prompt: str,
     schema: dict,
     name: str,
@@ -187,6 +194,25 @@ def get_structured_output(
         RetryableError: Bedrock timed out or was unavailable.
         ClientError: Any other Bedrock error, unchanged, such as a schema too complex to compile.
     """
+    answer, _ = get_structured_output_with_usage(
+        bedrock, model_id, system_prompt, prompt, schema, name, temperature=temperature, check=check
+    )
+    return answer
+
+
+def get_structured_output_with_usage(
+    bedrock: "BedrockRuntimeClient",
+    model_id: str,
+    system_prompt: str | None,
+    prompt: str,
+    schema: dict,
+    name: str,
+    temperature: float = 0,
+    check: Callable[[dict], str | None] | None = None,
+    images: Sequence[dict] = (),
+) -> tuple[dict, dict[str, int]]:
+    """Like `get_structured_output`, with Converse image blocks sent before the prompt, and also return the input and
+    output tokens of every attempt together."""
     keys = safe_keys(schema["properties"])
     originals = {key: original for original, key in keys.items()}
     output_type = output_model(schema, name, keys)
@@ -195,14 +221,16 @@ def get_structured_output(
     if supports_temperature(model_id):
         model.update_config(temperature=temperature)
 
+    usage = {"inputTokens": 0, "outputTokens": 0}
     attempt_prompt = prompt
     for attempt in (1, 2):
         try:
-            result = asyncio.run(_ask(model, output_type, system_prompt, attempt_prompt, originals))
+            content = [*images, {"text": attempt_prompt}]
+            result = asyncio.run(_ask(model, output_type, system_prompt, content, originals, usage))
             answer = {originals[key]: value for key, value in result.model_dump(by_alias=True).items()}
             if check and (problem := check(answer)):
                 raise _Invalid(problem, {"check_failed": True})
-            return answer
+            return answer, usage
         except _SchemaTooComplex as e:
             raise e.args[0] from None
         except ClientError as e:

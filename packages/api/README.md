@@ -6,10 +6,9 @@ The REST API is defined by the OpenAPI definition in `model/src/main/openapi/mai
 
 - `model/`: the OpenAPI definition. Its `generate` target bundles it into `model/.api.json`, which the infrastructure reads. See the [model README](./model/README.md).
 - `generated/types/typescript/`: TypeScript types generated from the definition with [openapi-typescript](https://openapi-ts.dev/) and checked in.
-- `handlers/typescript/`: the TypeScript Lambda handler for `generateProduct`.
 - `generated/documentation/`: Markdown documentation that `scripts/generate-pdf-doc.sh` generates. It is not checked in.
 
-The Python handlers live in `packages/smart-product-onboarding/api/handlers/`, and their pydantic models in `packages/smart-product-onboarding/api/common/`.
+The Python handlers live in `packages/smart-product-onboarding/api/handlers/` and, for the operations that call a model, in `packages/smart-product-onboarding/product-categorization/` and `packages/smart-product-onboarding/metaclasses/`. Their pydantic models are in `packages/smart-product-onboarding/api/common/`.
 
 ## Adding Operations
 
