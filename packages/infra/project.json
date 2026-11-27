@@ -49,6 +49,7 @@
       },
       "dependsOn": [
         "amzn-smart-product-onboarding-api-python-handlers:build",
+        "amzn-smart-product-onboarding-api-python-common:build",
         "amzn-smart-product-onboarding-core-utils:build",
         "amzn-smart-product-onboarding-product-categorization:build",
         "amzn-smart-product-onboarding-metaclasses:build",
@@ -63,6 +64,7 @@
       },
       "dependsOn": [
         "amzn-smart-product-onboarding-api-python-handlers:build",
+        "amzn-smart-product-onboarding-api-python-common:build",
         "amzn-smart-product-onboarding-core-utils:build",
         "amzn-smart-product-onboarding-product-categorization:build",
         "amzn-smart-product-onboarding-metaclasses:build",
@@ -109,6 +111,7 @@
       },
       "dependsOn": [
         "amzn-smart-product-onboarding-api-python-handlers:build",
+        "amzn-smart-product-onboarding-api-python-common:build",
         "amzn-smart-product-onboarding-core-utils:build",
         "amzn-smart-product-onboarding-product-categorization:build",
         "amzn-smart-product-onboarding-metaclasses:build"
